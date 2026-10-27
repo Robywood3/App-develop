@@ -46,6 +46,32 @@ npm test
   curve di rendimento/potenza vs carico e temperatura ambiente, trend, tabella delle
   correnti, bilancio energetico.
 
+## Documentazione di ingegneria
+
+La sezione **Documentazione di ingegneria** genera, dal punto di progetto ISO della
+configurazione corrente, un pacchetto di elaborati A3 con cartiglio, blocco
+revisioni e codifica KKS semplificata:
+
+| N. documento | Elaborato |
+|---|---|
+| `…-PR-PFD-001` | Schema di processo (PFD) con bilancio di massa ed energia e prestazioni nette |
+| `…-PR-PID-001` | P&ID turbogas, aspirazione, gas combustibile, scarico |
+| `…-PR-PID-002` | P&ID GVR circuito acqua/vapore (banchi, corpi cilindrici, strumentazione) |
+| `…-PR-PID-003` | P&ID turbina a vapore, bypass, condensazione, condensato e alimento |
+| `…-PI-LST-001` | Line list: DN per velocità limite, spessori ASME B31.1, classi ASME B16.34, condizioni di progetto e prova, coibentazione |
+| `…-ME-LST-001` | Equipment list: dati principali, superfici di scambio, corpi cilindrici (ASME VIII), pompe, trasformatori |
+| `…-EL-LST-001` | Load list: utenze MT/BT, potenze nominali e assorbite, carico contemporaneo |
+| `…-EL-SLD-001/002` | Schemi unifilari AT/generazione e servizi ausiliari MT/BT |
+| `…-CV-PLT-001` | Plot plan in scala con coordinate, legenda e quote |
+| `…-GA-ISO-001` | Vista isometrica d'insieme dell'impianto |
+| `…-PI-ISO-001` | Isometrico della linea vapore HP con quote, coordinate e distinta materiali |
+
+Ogni elaborato si visualizza in anteprima e si esporta in **PDF** (vettoriale, generato
+senza librerie esterne) o **SVG**; le liste anche in **CSV** (separatore `;`, per Excel).
+Il pulsante *Scarica pacchetto PDF* produce un unico PDF con l'elenco elaborati in
+apertura. I dati del cartiglio (progetto, committente, sito, prefisso, revisione,
+firme) si modificano nella stessa sezione.
+
 ## Modello
 
 | Componente | Modello |
@@ -77,6 +103,13 @@ js/engine/            modello fisico, usabile anche da Node
   bottoming.js        GVR, turbina a vapore, condensatore
   plant.js            integrazione impianto, ausiliari, emissioni, economia
   dynamics.js         simulazione dinamica e sequenze
+js/docs/              elaborati di ingegneria
+  engineering.js      modello: correnti, linee, apparecchiature, utenze, layout
+  sheet.js            foglio vettoriale, cartiglio, tabelle impaginate, SVG
+  pdf.js              scrittore PDF (Helvetica, WinAnsi)
+  symbols.js          simboli P&ID (ISA 5.1) ed elettrici (IEC 60617)
+  drawings-*.js       PFD, P&ID, plot plan, isometrici, unifilari
+  index.js            catalogo documenti, esportazioni
 js/ui/                interfaccia (sinottico SVG, grafici canvas, viste)
 scripts/build-single.mjs   genera la versione a file singolo in dist/
 tests/                test con node:test

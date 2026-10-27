@@ -7,6 +7,7 @@ import { fmt } from './format.js';
 import { sparkline, redrawAll } from './charts.js';
 import { buildMimic, updateMimic, mimicSignature } from './mimic.js';
 import { renderTQ, renderTS, computeCurves, renderCurves, renderTrend, renderStreams, renderBalance } from './views.js';
+import { initDocs } from './docs-ui.js';
 
 const $ = (id) => document.getElementById(id);
 const TICK_MS = 250;
@@ -48,6 +49,7 @@ function redesign() {
   fillNGTon();
   updateBrand();
   syncDesignInputs();
+  if (S.docs) S.docs.invalidate();
 }
 
 function opKey(op, load) {
@@ -548,6 +550,7 @@ function init() {
   bindOperation();
   bindControls();
   redesign();
+  S.docs = initDocs(() => ({ cfg: S.cfg, des: S.des }));
   S.sim.log('Simulatore avviato: unità in servizio a carico base');
   tick();
   setInterval(tick, TICK_MS);

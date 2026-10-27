@@ -334,6 +334,57 @@
     </div>
   </section>
 
+  <section class="docs" id="docs" aria-label="Documentazione di ingegneria">
+    <div class="docs-head">
+      <div class="docs-intro">
+        <h2>Documentazione di ingegneria</h2>
+        <p>Elaborati generati dal punto di progetto ISO della configurazione impostata nella scheda Progetto: PFD con bilancio di massa ed energia, P&amp;ID, line list, equipment list, load list, schemi unifilari, plot plan, vista isometrica e isometrico di linea. Si aggiornano a ogni modifica del progetto.</p>
+      </div>
+      <div class="docs-actions">
+        <button type="button" class="btn btn-primary" id="btn-pkg">Scarica pacchetto PDF</button>
+        <span class="muted" id="docs-status" aria-live="polite"></span>
+      </div>
+    </div>
+    <details class="docs-meta">
+      <summary>Dati di progetto e cartiglio</summary>
+      <div class="docs-meta-grid">
+        <div class="field"><label for="dm-project">Progetto</label><input type="text" id="dm-project"></div>
+        <div class="field"><label for="dm-client">Committente</label><input type="text" id="dm-client"></div>
+        <div class="field"><label for="dm-site">Sito</label><input type="text" id="dm-site"></div>
+        <div class="field"><label for="dm-prefix">Prefisso documenti</label><input type="text" id="dm-prefix" maxlength="12"></div>
+        <div class="field"><label for="dm-rev">Revisione</label><input type="text" id="dm-rev" maxlength="3"></div>
+        <div class="field"><label for="dm-revDesc">Descrizione revisione</label><input type="text" id="dm-revDesc"></div>
+        <div class="field"><label for="dm-date">Data</label><input type="text" id="dm-date"></div>
+        <div class="field"><label for="dm-author">Redatto</label><input type="text" id="dm-author"></div>
+        <div class="field"><label for="dm-checked">Controllato</label><input type="text" id="dm-checked"></div>
+        <div class="field"><label for="dm-approved">Approvato</label><input type="text" id="dm-approved"></div>
+        <div class="field"><label for="dm-stackHeight">Altezza camino <span class="u">m</span></label><input type="number" id="dm-stackHeight" min="30" max="120" step="5"></div>
+      </div>
+    </details>
+    <div class="docs-body">
+      <nav class="docs-list" id="docs-list" aria-label="Elenco elaborati"></nav>
+      <div class="docs-viewer">
+        <div class="docs-toolbar">
+          <div class="docs-title"><strong id="doc-number">—</strong><span id="doc-title"></span></div>
+          <div class="cluster">
+            <button type="button" class="btn icon-btn" id="doc-prev" aria-label="Foglio precedente">‹</button>
+            <span class="doc-sheet" id="doc-sheet">1 / 1</span>
+            <button type="button" class="btn icon-btn" id="doc-next" aria-label="Foglio successivo">›</button>
+            <div class="seg" role="radiogroup" aria-label="Ingrandimento">
+              <button type="button" class="seg-btn is-on" data-zoom="1" role="radio" aria-checked="true">Adatta</button>
+              <button type="button" class="seg-btn" data-zoom="1.8" role="radio" aria-checked="false">180 %</button>
+              <button type="button" class="seg-btn" data-zoom="3" role="radio" aria-checked="false">300 %</button>
+            </div>
+            <button type="button" class="btn" id="btn-doc-pdf">PDF</button>
+            <button type="button" class="btn" id="btn-doc-svg">SVG</button>
+            <button type="button" class="btn" id="btn-doc-csv" hidden>CSV</button>
+          </div>
+        </div>
+        <div class="docs-paper" id="docs-paper"><p class="muted">Generazione degli elaborati…</p></div>
+      </div>
+    </div>
+  </section>
+
   <footer class="foot">
     <p>Modello: proprietà del vapore IAPWS-IF97 (regioni 1, 2, 4), gas ideali con coefficienti di Shomate (NIST), TG con turbina in blocco sonico e regolazione IGV/isoterma, GVR risolto per pinch point, TV con legge del cono di Stodola, correzione di Baumann e perdita allo scarico. Strumento didattico e di prefattibilità: i risultati non sostituiscono i dati dei costruttori.</p>
   </footer>

@@ -482,6 +482,73 @@ table.data tr.grp td { font-family: var(--font-display); font-weight: 600; text-
 .bal-val { font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; font-size: 12.5px; }
 .bal-row.total { font-weight: 600; border-top: 1px solid var(--line); padding-top: 8px; }
 
+/* documentazione di ingegneria */
+.docs {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  min-width: 0;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.docs-head { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: flex-end; justify-content: space-between; }
+.docs-intro { flex: 1 1 420px; min-width: 0; }
+.docs-intro h2 {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.docs-intro p { margin: 0; color: var(--muted); font-size: 13px; max-width: 95ch; }
+.docs-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn-primary:hover { filter: brightness(1.08); }
+.docs-meta { border: 1px solid var(--line-soft); border-radius: var(--r); padding: 6px 10px; }
+.docs-meta summary { cursor: pointer; font-family: var(--font-display); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; font-size: 13px; color: var(--muted); }
+.docs-meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; padding: 10px 0 4px; }
+.docs-meta input[type="text"] {
+  width: 100%; border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--r); padding: 5px 8px; font-size: 13px;
+}
+.docs-body { display: grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); gap: 14px; align-items: start; }
+.docs-list { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.docs-list .grp {
+  font-family: var(--font-display); font-weight: 600; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); padding: 8px 8px 2px;
+}
+.doc-item {
+  appearance: none; border: 1px solid transparent; background: transparent; text-align: left; border-radius: 4px;
+  padding: 5px 8px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; min-width: 0;
+}
+.doc-item:hover { background: var(--surface-2); border-color: var(--line-soft); }
+.doc-item.is-on { background: var(--surface-2); border-color: var(--accent); }
+.doc-item .dn { font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.doc-item .dt { font-size: 13px; font-weight: 500; }
+.docs-viewer { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.docs-toolbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+.docs-title { display: flex; flex-direction: column; min-width: 0; }
+.docs-title strong { font-family: var(--font-data); font-size: 13px; }
+.docs-title span { font-size: 13px; color: var(--muted); }
+.doc-sheet { font-family: var(--font-data); font-size: 12px; font-variant-numeric: tabular-nums; min-width: 48px; text-align: center; }
+.docs-paper {
+  overflow: auto;
+  max-height: 78vh;
+  background: color-mix(in srgb, var(--fg) 8%, var(--surface));
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px;
+}
+.docs-paper svg { display: block; height: auto; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); background: #ffffff; margin: 0 auto; }
+@media (max-width: 860px) {
+  .docs-body { grid-template-columns: 1fr; }
+  .docs-list { flex-direction: row; flex-wrap: wrap; }
+  .docs-list .grp { width: 100%; }
+}
+
 .foot p { margin: 0; font-size: 12px; color: var(--muted); max-width: 120ch; }
 
 /* responsive */
@@ -822,6 +889,57 @@ table.data tr.grp td { font-family: var(--font-display); font-weight: 600; text-
     <div class="view" id="v-balance" role="tabpanel" aria-labelledby="tv-balance" hidden>
       <div class="view-head"><p>Destinazione dell'energia del combustibile (PCI). Le perdite al camino sono riferite all'aria ambiente.</p></div>
       <div class="balance" id="balance"></div>
+    </div>
+  </section>
+
+  <section class="docs" id="docs" aria-label="Documentazione di ingegneria">
+    <div class="docs-head">
+      <div class="docs-intro">
+        <h2>Documentazione di ingegneria</h2>
+        <p>Elaborati generati dal punto di progetto ISO della configurazione impostata nella scheda Progetto: PFD con bilancio di massa ed energia, P&amp;ID, line list, equipment list, load list, schemi unifilari, plot plan, vista isometrica e isometrico di linea. Si aggiornano a ogni modifica del progetto.</p>
+      </div>
+      <div class="docs-actions">
+        <button type="button" class="btn btn-primary" id="btn-pkg">Scarica pacchetto PDF</button>
+        <span class="muted" id="docs-status" aria-live="polite"></span>
+      </div>
+    </div>
+    <details class="docs-meta">
+      <summary>Dati di progetto e cartiglio</summary>
+      <div class="docs-meta-grid">
+        <div class="field"><label for="dm-project">Progetto</label><input type="text" id="dm-project"></div>
+        <div class="field"><label for="dm-client">Committente</label><input type="text" id="dm-client"></div>
+        <div class="field"><label for="dm-site">Sito</label><input type="text" id="dm-site"></div>
+        <div class="field"><label for="dm-prefix">Prefisso documenti</label><input type="text" id="dm-prefix" maxlength="12"></div>
+        <div class="field"><label for="dm-rev">Revisione</label><input type="text" id="dm-rev" maxlength="3"></div>
+        <div class="field"><label for="dm-revDesc">Descrizione revisione</label><input type="text" id="dm-revDesc"></div>
+        <div class="field"><label for="dm-date">Data</label><input type="text" id="dm-date"></div>
+        <div class="field"><label for="dm-author">Redatto</label><input type="text" id="dm-author"></div>
+        <div class="field"><label for="dm-checked">Controllato</label><input type="text" id="dm-checked"></div>
+        <div class="field"><label for="dm-approved">Approvato</label><input type="text" id="dm-approved"></div>
+        <div class="field"><label for="dm-stackHeight">Altezza camino <span class="u">m</span></label><input type="number" id="dm-stackHeight" min="30" max="120" step="5"></div>
+      </div>
+    </details>
+    <div class="docs-body">
+      <nav class="docs-list" id="docs-list" aria-label="Elenco elaborati"></nav>
+      <div class="docs-viewer">
+        <div class="docs-toolbar">
+          <div class="docs-title"><strong id="doc-number">—</strong><span id="doc-title"></span></div>
+          <div class="cluster">
+            <button type="button" class="btn icon-btn" id="doc-prev" aria-label="Foglio precedente">‹</button>
+            <span class="doc-sheet" id="doc-sheet">1 / 1</span>
+            <button type="button" class="btn icon-btn" id="doc-next" aria-label="Foglio successivo">›</button>
+            <div class="seg" role="radiogroup" aria-label="Ingrandimento">
+              <button type="button" class="seg-btn is-on" data-zoom="1" role="radio" aria-checked="true">Adatta</button>
+              <button type="button" class="seg-btn" data-zoom="1.8" role="radio" aria-checked="false">180 %</button>
+              <button type="button" class="seg-btn" data-zoom="3" role="radio" aria-checked="false">300 %</button>
+            </div>
+            <button type="button" class="btn" id="btn-doc-pdf">PDF</button>
+            <button type="button" class="btn" id="btn-doc-svg">SVG</button>
+            <button type="button" class="btn" id="btn-doc-csv" hidden>CSV</button>
+          </div>
+        </div>
+        <div class="docs-paper" id="docs-paper"><p class="muted">Generazione degli elaborati…</p></div>
+      </div>
     </div>
   </section>
 
@@ -3517,6 +3635,3021 @@ function renderBalance(box, r) {
 return { renderTQ, renderTS, computeCurves, renderCurves, renderTrend, renderStreams, renderBalance };
 })();
 
+__m['js/docs/engineering.js'] = (() => {
+// Modello di ingegneria di base/dettaglio derivato dal punto di progetto del simulatore:
+// correnti del bilancio di massa ed energia, linee (dimensionamento e specifiche),
+// apparecchiature, utenze elettriche, sistema elettrico, disposizione planimetrica e
+// instradamento della linea vapore HP. Valori preliminari, coerenti con il modello termico.
+// Codifica impianto: KKS semplificata (unità 1..3 = treni TG/GVR, 0 = comune).
+
+const { plantPoint, defaultOperation, ISO, GT_PRESETS } = __m['js/engine/plant.js'];
+const { propsPT, propsPH, satP, Tsat } = __m['js/engine/steam.js'];
+
+const G = 9.81;
+
+// ------------------------------------------------------------------ tubazioni
+// [DN, diametro esterno mm] (ASME B36.10M)
+const PIPES = [
+  [15, 21.3], [20, 26.7], [25, 33.4], [32, 42.2], [40, 48.3], [50, 60.3], [65, 73.0], [80, 88.9],
+  [100, 114.3], [125, 141.3], [150, 168.3], [200, 219.1], [250, 273.0], [300, 323.8], [350, 355.6],
+  [400, 406.4], [450, 457.0], [500, 508.0], [550, 559.0], [600, 610.0], [650, 660.0], [700, 711.0],
+  [750, 762.0], [800, 813.0], [900, 914.0], [1000, 1016.0], [1100, 1118.0], [1200, 1219.0], [1400, 1422.0],
+  [1600, 1626.0], [1800, 1829.0], [2000, 2032.0], [2200, 2235.0], [2400, 2438.0],
+];
+
+// Tensioni ammissibili [MPa] in funzione della temperatura (valori indicativi ASME B31.1)
+const MATERIALS = {
+  A: { name: 'ASTM A106 Gr.B', short: 'A106 B', S: [[0, 118], [340, 117], [370, 103], [400, 89], [425, 74]], c: 1.5, group: 'CS' },
+  B: { name: 'ASTM A335 P22', short: 'A335 P22', S: [[0, 129], [400, 120], [450, 113], [480, 98], [510, 72], [540, 50], [565, 37]], c: 1.0, group: 'P22' },
+  C: { name: 'ASTM A335 P91', short: 'A335 P91', S: [[0, 163], [400, 149], [450, 141], [500, 126], [540, 103], [565, 83], [595, 63], [610, 55]], c: 1.0, group: 'P91' },
+  G: { name: 'API 5L X52 PSL2', short: 'API 5L X52', S: [[0, 172], [120, 172]], c: 1.5, group: 'CS' },
+  W: { name: 'ASTM A672 / acciaio al carbonio elicoidale', short: 'A672 CS', S: [[0, 120], [60, 120]], c: 3.0, group: 'CS' },
+};
+
+// Pressione ammissibile [bar] della classe 300 (ASME B16.34) per gruppo di materiale
+const RATING300 = {
+  CS: [[38, 51.1], [100, 46.6], [200, 43.8], [300, 39.8], [350, 37.6], [400, 34.7], [425, 28.8]],
+  P22: [[38, 51.7], [200, 49.6], [300, 46.3], [400, 40.3], [450, 33.7], [500, 26.0], [538, 17.9], [565, 12.4]],
+  P91: [[38, 51.7], [200, 47.8], [300, 44.6], [400, 40.6], [450, 37.4], [500, 34.5], [538, 30.7], [565, 26.9], [593, 20.3], [610, 16.2]],
+};
+const CLASSES = [[150, 'A'], [300, 'B'], [600, 'C'], [900, 'D'], [1500, 'E'], [2500, 'F']];
+
+function interp(tbl, x) {
+  if (x <= tbl[0][0]) return tbl[0][1];
+  for (let i = 1; i < tbl.length; i++) {
+    if (x <= tbl[i][0]) {
+      const [x0, y0] = tbl[i - 1], [x1, y1] = tbl[i];
+      return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
+    }
+  }
+  return tbl[tbl.length - 1][1];
+}
+
+function ratingClass(group, pBarG, T) {
+  const r300 = interp(RATING300[group], T);
+  for (const [cls, code] of CLASSES) {
+    const r = cls === 150 ? r300 / 2.6 : (r300 * cls) / 300;
+    if (r >= pBarG) return { cls, code };
+  }
+  return { cls: 4500, code: 'G' };
+}
+
+function materialFor(service, T) {
+  if (service === 'gas') return 'G';
+  if (service === 'cw') return 'W';
+  if (T > 545) return 'C';
+  if (T > 425) return 'B';
+  return 'A';
+}
+
+function insulationFor(Top) {
+  if (Top >= 500) return { code: 'H', t: 250 };
+  if (Top >= 400) return { code: 'H', t: 200 };
+  if (Top >= 300) return { code: 'H', t: 150 };
+  if (Top >= 180) return { code: 'H', t: 100 };
+  if (Top >= 60) return { code: 'P', t: 50 };
+  return { code: 'N', t: 0 };
+}
+
+const roundUp = (v, step) => Math.ceil(v / step - 1e-9) * step;
+
+/**
+ * Dimensiona una linea: diametro per la velocità obiettivo, spessore minimo secondo
+ * ASME B31.1 (t = P·D / 2(SE + Py) + c), classe di rating, coibentazione.
+ */
+function sizeLine({ m, v, velMax, pOp, Top, service = 'steam', pDes = null, TDes = null }) {
+  const pD = pDes ?? roundUp(Math.max(pOp * 1.1, pOp + 1), 0.5); // bar a
+  const TD = TDes ?? roundUp(Top + (service === 'steam' ? 10 : 5), 5);
+  const mat = materialFor(service, TD);
+  const M = MATERIALS[mat];
+  const S = interp(M.S, TD);
+  const P = Math.max(0.1, (pD - 1.013) / 10); // MPa g
+  const y = mat === 'C' && TD >= 566 ? 0.7 : 0.4;
+  const Q = m * v; // m3/s
+  const pick = (DN, OD) => {
+    const tmin = (P * OD) / (2 * (S + P * y)) + M.c;
+    const tnom = Math.round(Math.max(roundUp(tmin / 0.875, 0.1), service === 'cw' ? 10 : DN >= 600 ? 9.5 : 3) * 10) / 10;
+    const ID = OD - 2 * tnom;
+    const vel = Q / ((Math.PI / 4) * (ID / 1000) ** 2);
+    return { DN, OD, tmin, tnom, ID, vel };
+  };
+  let sel = null;
+  for (const [DN, OD] of PIPES) {
+    const c = pick(DN, OD);
+    if (c.vel <= velMax && c.ID > 0) { sel = c; break; }
+  }
+  if (!sel) {
+    // condotto fabbricato oltre DN 2400: passo di 100 mm
+    for (let DN = 2500; DN <= 12000; DN += 100) {
+      const c = pick(DN, DN + 16);
+      if (c.vel <= velMax) { sel = c; break; }
+    }
+  }
+  const rc = ratingClass(M.group, pD - 1.013, TD);
+  const ins = insulationFor(Top);
+  return {
+    ...sel, pDes: pD, TDes: TD, mat, material: M.name, matShort: M.short, S, cls: rc.cls,
+    spec: `${mat}${rc.code}`, ins, test: roundUp((pD - 1.013) * 1.5, 0.5),
+  };
+}
+
+function kks(unit, sys, no, eq = '', eqNo = null) {
+  return `${unit}${sys}${String(no).padStart(2, '0')}${eq}${eqNo !== null ? String(eqNo).padStart(3, '0') : ''}`;
+}
+
+// ------------------------------------------------------------------ utilità elettriche
+const MOTORS = [0.75, 1.1, 1.5, 2.2, 3, 4, 5.5, 7.5, 11, 15, 18.5, 22, 30, 37, 45, 55, 75, 90, 110, 132, 160, 200, 250, 315, 355, 400, 450, 500, 560, 630, 710, 800, 900, 1000, 1120, 1250, 1400, 1600, 1800, 2000, 2240, 2500, 2800, 3150, 3550, 4000, 4500, 5000, 5600, 6300, 7100, 8000, 9000, 10000, 11200, 12500];
+const motorRating = (kW) => MOTORS.find((r) => r >= kW) ?? roundUp(kW, 500);
+const LV_TR = [630, 800, 1000, 1250, 1600, 2000, 2500, 3150];
+const MV_TR = [6.3, 8, 10, 12.5, 16, 20, 25, 31.5, 40, 50, 63];
+
+function genVoltage(MVA) {
+  if (MVA < 100) return 11;
+  if (MVA < 250) return 15.75;
+  if (MVA < 420) return 19;
+  return 21;
+}
+
+// ------------------------------------------------------------------ modello
+function defaultProjectMeta() {
+  const d = new Date();
+  const pad = (v) => String(v).padStart(2, '0');
+  return {
+    project: 'Centrale a ciclo combinato',
+    client: 'Committente',
+    site: 'Sito di progetto',
+    prefix: 'CCGT',
+    rev: 'A',
+    revDesc: 'Emissione preliminare per commenti',
+    date: `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`,
+    author: 'Ing.',
+    checked: '',
+    approved: '',
+    stackHeight: 60,
+  };
+}
+
+/** Costruisce il modello di ingegneria dalla configurazione e dal progetto. */
+function engineeringModel(cfg, des, meta) {
+  const N = cfg.nGT;
+  const op = { ...defaultOperation(), ...ISO, load: 1, nGTon: N, Tcw: cfg.steam.condenser.TcwDesign, ductT: 0, slidingHP: true };
+  const r = plantPoint(cfg, des, op);
+  const gt = r.gt;
+  const bt = r.bt;
+  const type = cfg.steam.type;
+  const names = bt.names;
+  const n = names.length;
+  const reheat = type === '3PRH';
+  const fuel = des.fuel;
+  const cond = cfg.steam.condenser;
+  const gtClass = cfg.gtName.replace(/\s*\(.*\)/, '');
+  const units = Array.from({ length: N }, (_, i) => i + 1);
+
+  // ---------------------------------------------------------------- correnti (PFD / H&MB)
+  const streams = [];
+  const S = (desc, fluid, m, p, T, h, extra = '') => {
+    streams.push({ no: streams.length + 1, desc, fluid, m, p, T, h, extra });
+    return streams.length;
+  };
+  const hw = (p, T) => propsPT(p, T).h;
+  const sec0 = bt.sections[0];
+  const lastSec = bt.sections[n - 1];
+  const lowest = n - 1;
+  const pFG = Math.max(20, gt.p2 * 1.5);
+  const st = {};
+  st.air = S('Aria ingresso compressore', 'Aria umida', gt.mAir, gt.p1, gt.T1, null, `per TG, UR ${Math.round(op.rh * 100)} %`);
+  st.cd2 = S('Mandata compressore', 'Aria', gt.mAir, gt.p2, gt.T2, null, 'per TG');
+  st.fg = S('Gas naturale ai bruciatori', 'Gas naturale', gt.mFuel, pFG, cfg.gt.Tfuel, null, `PCI ${(fuel.lhv / 1000).toFixed(2)} MJ/kg`);
+  st.exh = S('Scarico TG / ingresso GVR', 'Fumi', gt.mExh, gt.p4, gt.T4, null, 'per TG');
+  st.stack = S('Fumi al camino', 'Fumi', r.gas.m, op.pamb, bt.Tstack, null, 'per GVR');
+  st.hpGen = S(`Vapore HP uscita SH (per GVR)`, 'Vapore', bt.mLevels[0], bt.pAdm[0], bt.Tsh[0], hw(bt.pAdm[0], bt.Tsh[0]));
+  st.hpST = S('Vapore HP ammissione TV', 'Vapore', sec0.m, sec0.pIn, sec0.Tin, sec0.hIn, N > 1 ? `totale ${N} GVR` : '');
+  if (reheat) {
+    st.crh = S('Risurriscaldato freddo (scarico HP)', 'Vapore', sec0.m, bt.pAdm[1], sec0.Tout, sec0.hOut);
+    st.ip = S('Vapore IP uscita SH (per GVR)', 'Vapore', bt.mLevels[1], bt.pAdm[1], bt.Tsh[1], hw(bt.pAdm[1], bt.Tsh[1]));
+    st.hrh = S('Risurriscaldato caldo ammissione IP', 'Vapore', bt.sections[1].m, bt.pRHout, bt.Trh, bt.sections[1].hIn);
+  }
+  if (n > 1) st.lp = S('Vapore LP uscita SH (per GVR)', 'Vapore', bt.mLevels[lowest], bt.pAdm[lowest], bt.Tsh[lowest], hw(bt.pAdm[lowest], bt.Tsh[lowest]));
+  st.exST = S('Scarico TV al condensatore', 'Vapore umido', lastSec.m, bt.pCond, lastSec.Tout, lastSec.ueep, `titolo ${lastSec.xOut.toFixed(3)}`);
+  st.cdp = S('Condensato mandata pompe estrazione', 'Acqua', bt.mSteamTot, bt.pDrum[lowest] * 1.25 + 1, bt.TCondOut, null);
+  const pFWhp = bt.pDrum[0] * 1.15;
+  st.fwHP = S('Acqua alimento HP (per GVR)', 'Acqua', bt.mLevels[0], pFWhp, bt.TsubLP + 2, null);
+  if (reheat) st.fwIP = S('Acqua alimento IP (per GVR)', 'Acqua', bt.mLevels[1], bt.pDrum[1] * 1.15, bt.TsubLP + 1, null);
+  const dTcwOp = cond.dTcw * (r.bt.Qcond / des.QcondD);
+  if (cond.type === 'water') {
+    st.cwIn = S('Acqua di circolazione ingresso condensatore', 'Acqua', des.mcw, 2.5, op.Tcw, null);
+    st.cwOut = S('Acqua di circolazione uscita condensatore', 'Acqua', des.mcw, 1.8, op.Tcw + dTcwOp, null);
+  }
+  for (const s of streams) {
+    if (s.h === null && s.fluid === 'Acqua') s.h = propsPT(s.p, s.T).h;
+  }
+
+  // ---------------------------------------------------------------- linee
+  const lines = [];
+  const seq = {};
+  const L = (id, unit, fluid, service, from, to, m, p, T, velMax, vSpec, kksSys, extra = {}) => {
+    const v = vSpec ?? propsPT(p, T).v;
+    const sz = sizeLine({ m: m * 1.1, v, velMax, pOp: p, Top: T, service, ...extra });
+    seq[`${unit}${fluid}`] = (seq[`${unit}${fluid}`] || 0) + 1;
+    const no = `${unit}${String(seq[`${unit}${fluid}`]).padStart(2, '0')}`;
+    const lineNo = `${sz.DN}-${fluid}-${no}-${sz.spec}-${sz.ins.code}`;
+    const vel = (m * v) / ((Math.PI / 4) * (sz.ID / 1000) ** 2);
+    lines.push({ id, unit, lineNo, kks: kks(unit, kksSys, 10, 'BR', lines.length + 1), fluid, from, to, m, p, T, v, vel, ...sz, phase: service });
+    return lineNo;
+  };
+  const hdr = N > 1;
+  const vFG = ((8.314 / fuel.M) * (cfg.gt.Tfuel + 273.15)) / (pFG * 100); // m³/kg, gas ideale
+  const hpTag = (u) => kks(u, 'HAH', 10);
+  for (const u of units) {
+    L(`FG-${u}`, u, 'FG', 'gas', '0EKA10 stazione gas', `${kks(u, 'MBP', 10)} skid gas TG${u}`, gt.mFuel, pFG, cfg.gt.Tfuel,
+      20, vFG, 'EKG');
+    L(`MS-${u}`, u, 'MS', 'steam', `${hpTag(u)} uscita SH HP`, hdr ? 'Collettore vapore HP' : '0MAA10 valvola arresto HP', bt.mLevels[0], bt.pAdm[0], bt.Tsh[0], 45, null, 'LBA');
+    if (reheat) {
+      L(`CRH-${u}`, u, 'CR', 'steam', hdr ? 'Collettore RH freddo' : '0MAA10 scarico HP', `${kks(u, 'HAJ', 10)} ingresso RH`, sec0.m / N, bt.pAdm[1], sec0.Tout, 40, null, 'LBC');
+      L(`HRH-${u}`, u, 'HR', 'steam', `${kks(u, 'HAJ', 10)} uscita RH`, hdr ? 'Collettore RH caldo' : '0MAB10 valvola arresto IP', bt.sections[1].m / N, bt.pRHout, bt.Trh, 55, null, 'LBB');
+      L(`IP-${u}`, u, 'IS', 'steam', `${kks(u, 'HAH', 20)} uscita SH IP`, `Linea RH freddo GVR${u}`, bt.mLevels[1], bt.pAdm[1], bt.Tsh[1], 40, null, 'LBC');
+    }
+    if (n > 1) L(`LP-${u}`, u, 'LS', 'steam', `${kks(u, 'HAH', n === 3 ? 30 : 20)} uscita SH LP`, hdr ? 'Collettore vapore LP' : `0MAC10 ammissione LP`, bt.mLevels[lowest], bt.pAdm[lowest], bt.Tsh[lowest], 40, null, 'LBD');
+    L(`FW-${u}`, u, 'FW', 'water', `${kks(u, 'LAC', 10)} pompe alimento`, `${kks(u, 'HAC', 10)} ingresso ECO HP`, bt.mLevels[0], pFWhp, bt.TsubLP + 2, 3.0, null, 'LAB');
+    L(`FWS-${u}`, u, 'FW', 'water', `${kks(u, 'HAD', 10 * n)} corpo LP`, `${kks(u, 'LAC', 10)} aspirazione pompe`, bt.mLevels.slice(0, lowest).reduce((a, b) => a + b, 0) || bt.mLevels[0], bt.pDrum[lowest] + 0.5, bt.Tsat[lowest], 1.2, null, 'LAB');
+    if (reheat) L(`FWIP-${u}`, u, 'FW', 'water', `${kks(u, 'LAC', 10)} spillamento IP`, `${kks(u, 'HAC', 20)} ingresso ECO IP`, bt.mLevels[1], bt.pDrum[1] * 1.15, bt.TsubLP + 1, 3.0, null, 'LAB');
+    L(`SPR-${u}`, u, 'SW', 'water', `${kks(u, 'LAC', 10)} spillamento`, 'Desurriscaldatori HP/RH', bt.mLevels[0] * 0.05, pFWhp, bt.TsubLP + 2, 3.0, null, 'LAE');
+    L(`CD-${u}`, u, 'CD', 'water', hdr ? 'Collettore condensato' : '0LCB10 pompe condensato', `${kks(u, 'HAC', 30)} preriscaldatore`, bt.mLevels.reduce((a, b) => a + b, 0), bt.pDrum[lowest] * 1.25 + 1, bt.TCondOut, 2.0, null, 'LCA');
+    L(`HPB-${u}`, u, 'BP', 'steam', 'Linea vapore HP', reheat ? `Linea RH freddo (bypass HP ${kks(u, 'MAN', 10)})` : `Condensatore (bypass ${kks(u, 'MAN', 10)})`, bt.mLevels[0], bt.pAdm[0], bt.Tsh[0], 50, null, 'MAN');
+    L(`BD-${u}`, u, 'BD', 'water', `${kks(u, 'HAD', 10)} corpo HP`, `${kks(u, 'HAN', 10)} serbatoio spurghi`, bt.mLevels[0] * 0.01, bt.pDrum[0], bt.Tsat[0], 2.0, null, 'HAN');
+  }
+  if (hdr) {
+    L('MS-H', 0, 'MS', 'steam', 'Collettore vapore HP', '0MAA10 valvola arresto HP', sec0.m, sec0.pIn, sec0.Tin, 45, null, 'LBA');
+    if (reheat) {
+      L('CRH-H', 0, 'CR', 'steam', '0MAA10 scarico HP', 'Collettore RH freddo', sec0.m, bt.pAdm[1], sec0.Tout, 40, null, 'LBC');
+      L('HRH-H', 0, 'HR', 'steam', 'Collettore RH caldo', '0MAB10 valvola arresto IP', bt.sections[1].m, bt.pRHout, bt.Trh, 55, null, 'LBB');
+    }
+    if (n > 1) L('LP-H', 0, 'LS', 'steam', 'Collettore vapore LP', '0MAC10 ammissione LP', bt.mLevelsTot[lowest], bt.pAdm[lowest], bt.Tsh[lowest], 40, null, 'LBD');
+    L('CD-H', 0, 'CD', 'water', '0LCB10 pompe condensato', 'Collettore condensato', bt.mSteamTot, bt.pDrum[lowest] * 1.25 + 1, bt.TCondOut, 2.0, null, 'LCA');
+  }
+  L('CDS', 0, 'CD', 'water', '0MAG10 pozzo caldo', '0LCB10 aspirazione pompe', bt.mSteamTot, bt.pCond + 0.3, bt.Tcond - 0.5, 1.0, null, 'LCA', { pDes: 4, TDes: 80 });
+  const exhV = propsPH(bt.pCond, lastSec.ueep).v;
+  if (cond.type === 'air') {
+    L('ED', 0, 'ED', 'cw', '0MAC10 scarico LP', '0MAG10 aerocondensatore', lastSec.m, bt.pCond, bt.Tcond, 75, exhV, 'MAG', { pDes: 3.5, TDes: 120 });
+  } else {
+    L('CWS', 0, 'CW', 'cw', '0PAC10 pompe circolazione', '0MAG10 ingresso condensatore', des.mcw, 2.5, op.Tcw, 2.5, 0.001, 'PAB', { pDes: 4.5, TDes: 50 });
+    L('CWR', 0, 'CW', 'cw', '0MAG10 uscita condensatore', '0PAE10 torre di raffreddamento', des.mcw, 1.8, op.Tcw + dTcwOp, 2.5, 0.001, 'PAB', { pDes: 4.5, TDes: 50 });
+  }
+  const lineById = Object.fromEntries(lines.map((l) => [l.id, l]));
+
+  // ---------------------------------------------------------------- elettrico: generatori
+  const PgtMax = des.gtRef.Piso * cfg.gt.PmaxFactor;
+  const MVAgt = roundUp(PgtMax / 0.85, 5);
+  const kVgt = genVoltage(MVAgt);
+  const PstMax = r.Pst * 1.12;
+  const MVAst = roundUp(PstMax / 0.85, 5);
+  const kVst = genVoltage(MVAst);
+  const totalMW = des.gtRef.Piso * N + r.Pst;
+  const hvKV = totalMW > 400 ? 380 : totalMW > 180 ? 220 : 150;
+  const gens = [];
+  for (const u of units) gens.push({ tag: kks(u, 'MKA', 10), name: `Generatore TG${u}`, MVA: MVAgt, kV: kVgt, P: PgtMax, cooling: MVAgt > 330 ? 'idrogeno' : 'aria (TEWAC)', unit: u });
+  gens.push({ tag: kks(0, 'MKA', 10), name: 'Generatore TV', MVA: MVAst, kV: kVst, P: PstMax, cooling: MVAst > 330 ? 'idrogeno' : 'aria (TEWAC)', unit: 0 });
+
+  // ---------------------------------------------------------------- utenze elettriche
+  const loads = [];
+  const MV = 6;
+  const addLoad = (tag, desc, qtyInst, qtyOp, absKW, duty = 'C', { eff = null, pf = null, ku = 0.9, kV = null, bus = null, equip = null, rated = null } = {}) => {
+    const ratedKW = rated ?? motorRating(absKW * 1.1);
+    const voltage = kV ?? (ratedKW >= 250 ? MV : 0.4);
+    const e = eff ?? (ratedKW > 500 ? 0.965 : ratedKW > 50 ? 0.95 : 0.9);
+    const p = pf ?? (ratedKW > 500 ? 0.88 : ratedKW > 50 ? 0.86 : 0.82);
+    const elec = absKW / e;
+    const cont = duty === 'C' ? qtyOp * elec * ku : duty === 'I' ? qtyOp * elec * 0.3 * ku : 0;
+    loads.push({
+      tag, desc, qtyInst, qtyOp, kV: voltage, rated: ratedKW, abs: absKW, eff: e, pf: p, ku, duty,
+      elec, cont, kvar: cont * Math.tan(Math.acos(p)), bus: bus ?? (voltage >= 1 ? 'MT' : 'BT'), equip,
+    });
+  };
+  // pompe alimento (per treno): portata HP + IP + spray, prevalenza fino al corpo HP
+  const rhoFW = 1 / propsPT(pFWhp, bt.TsubLP).v;
+  const pumps = {};
+  for (const u of units) {
+    const mFW = bt.mLevels.slice(0, lowest).reduce((a, b) => a + b, 0) * 1.05 || bt.mLevels[0];
+    const dp = (pFWhp + 8 - bt.pDrum[lowest]) * 1e5;
+    const Hm = dp / (rhoFW * G);
+    const kWabs = (mFW * 1.1 * dp) / rhoFW / 0.8 / 1000;
+    pumps[`fw${u}`] = { Q: (mFW * 1.1 * 3600) / rhoFW, H: Hm, kW: kWabs };
+    addLoad(kks(u, 'LAC', 10, 'AP', 1), `Pompa alimento HP/IP GVR${u} (A/B)`, 2, 1, kWabs, 'C', { equip: kks(u, 'LAC', 10) });
+  }
+  // pompe estrazione condensato
+  const rhoC = 1 / satP(bt.pCond).vL;
+  const dpC = (bt.pDrum[lowest] * 1.25 + 4 - bt.pCond) * 1e5;
+  const kWcd = (bt.mSteamTot * 1.1 * dpC) / rhoC / 0.78 / 1000;
+  pumps.cd = { Q: (bt.mSteamTot * 1.1 * 3600) / rhoC, H: dpC / (rhoC * G), kW: kWcd };
+  addLoad(kks(0, 'LCB', 10, 'AP', 1), 'Pompa estrazione condensato (A/B)', 2, 1, kWcd, 'C', { equip: kks(0, 'LCB', 10) });
+  // raffreddamento principale
+  let ctCells = 0, accCells = 0;
+  if (cond.type === 'water') {
+    const Hcw = 25;
+    const kWcw = (des.mcw * 1.05 * G * Hcw) / 0.86 / 1000 / 2;
+    pumps.cw = { Q: (des.mcw * 3600) / 998 / 2, H: Hcw, kW: kWcw };
+    addLoad(kks(0, 'PAC', 10, 'AP', 1), 'Pompa acqua di circolazione 50 % (A/B/C)', 3, 2, kWcw, 'C', { equip: kks(0, 'PAC', 10) });
+    ctCells = Math.max(2, Math.ceil(des.QcondD / 26));
+    const kWfan = Math.max(55, (des.QcondD * 1000 * 0.0075) / ctCells);
+    addLoad(kks(0, 'PAE', 10, 'AN', 1), `Ventilatore torre di raffreddamento (${ctCells} celle)`, ctCells, ctCells, kWfan, 'C', { equip: kks(0, 'PAE', 10) });
+  } else {
+    accCells = Math.max(4, Math.ceil(des.QcondD / 10));
+    const kWfan = (cfg.aux.fanFrac * des.QcondD * 1000) / accCells;
+    addLoad(kks(0, 'MAG', 10, 'AN', 1), `Ventilatore aerocondensatore (${accCells} celle)`, accCells, accCells, kWfan, 'C', { equip: kks(0, 'MAG', 10) });
+  }
+  // TG
+  for (const u of units) {
+    const s = des.gtRef.Piso;
+    addLoad(kks(u, 'MBJ', 10, 'GH', 1), `Avviatore statico (SFC) TG${u} – solo in avviamento`, 1, 1, s * 1000 * 0.03, 'S', { kV: MV, rated: roundUp(s * 1000 * 0.03 / 0.95, 500), ku: 1 });
+    addLoad(kks(u, 'MBV', 10, 'AP', 1), `Pompa olio lubrificazione TG${u} (A/B)`, 2, 1, 45 + s * 0.12, 'C');
+    addLoad(kks(u, 'MBV', 20, 'AP', 1), `Pompa olio sollevamento rotore TG${u}`, 1, 1, 30, 'I');
+    addLoad(kks(u, 'MBK', 10, 'AE', 1), `Viratore TG${u}`, 1, 1, 22, 'I');
+    addLoad(kks(u, 'MBM', 10, 'AN', 1), `Ventilazione cabinato TG${u} (A/B)`, 2, 1, 30 + s * 0.08, 'C');
+    addLoad(kks(u, 'MBL', 10, 'AN', 1), `Sistema pulizia filtri aria TG${u}`, 1, 1, 11, 'I');
+    addLoad(kks(u, 'HAC', 30, 'AP', 1), `Pompa ricircolo preriscaldatore GVR${u} (A/B)`, 2, 1, 15 + bt.mSteamTot * 0.12 / N, 'C');
+    addLoad(kks(u, 'HNE', 10, 'AA', 1), `Serranda camino e strumenti GVR${u}`, 1, 1, 7.5, 'I');
+  }
+  // TV e ciclo
+  addLoad(kks(0, 'MAV', 10, 'AP', 1), 'Pompa olio lubrificazione TV (A/B)', 2, 1, 40 + r.Pst * 0.1, 'C');
+  addLoad(kks(0, 'MAV', 20, 'AP', 1), 'Pompa olio sollevamento rotore TV', 1, 1, 37, 'I');
+  addLoad(kks(0, 'MAK', 10, 'AE', 1), 'Viratore TV', 1, 1, 30, 'I');
+  addLoad(kks(0, 'MAJ', 10, 'AP', 1), 'Pompa del vuoto condensatore (A/B)', 2, 1, 55 + des.QcondD * 0.12, 'C');
+  addLoad(kks(0, 'MAW', 10, 'AN', 1), 'Estrattore vapore tenute (A/B)', 2, 1, 11, 'C');
+  addLoad(kks(0, 'MAX', 10, 'AP', 1), 'Centralina olio regolazione TV (A/B)', 2, 1, 22, 'C');
+  // BoP
+  const qCCW = r.gross * 1000 * 0.006; // kW termici ausiliari
+  addLoad(kks(0, 'PGB', 10, 'AP', 1), 'Pompa acqua raffreddamento ciclo chiuso (A/B)', 2, 1, (qCCW / (4.18 * 8)) * 9.81 * 40 / 0.78 / 1000 * 1.2 + 20, 'C');
+  addLoad(kks(0, 'PGC', 10, 'AN', 1), 'Ventilatori aerotermi ciclo chiuso', 6, 5, (qCCW * 0.02) / 5 + 7, 'C');
+  addLoad(kks(0, 'SCA', 10, 'AN', 1), 'Compressore aria strumenti e servizi (A/B)', 2, 1, 110 + N * 30, 'C');
+  addLoad(kks(0, 'GCF', 10, 'AP', 1), 'Impianto produzione acqua demineralizzata', 1, 1, 90 + N * 20, 'C');
+  addLoad(kks(0, 'GHC', 10, 'AP', 1), 'Pompa trasferimento acqua demi (A/B)', 2, 1, 22, 'I');
+  addLoad(kks(0, 'QCA', 10, 'AP', 1), 'Dosaggio chimico ciclo (fosfati, ammine, O2)', 6, 3, 2.2, 'C');
+  addLoad(kks(0, 'SGA', 10, 'AP', 1), 'Pompa antincendio elettrica', 1, 1, 160 + N * 40, 'S', { kV: MV });
+  addLoad(kks(0, 'SGA', 10, 'AP', 3), 'Pompa antincendio di pressurizzazione (jockey)', 1, 1, 11, 'I');
+  addLoad(kks(0, 'EKA', 10, 'AH', 1), 'Riscaldatore elettrico gas (avviamento)', 1, 1, 200 + N * 60, 'I', { pf: 1, eff: 0.99, kV: 0.4 });
+  addLoad(kks(0, 'SAA', 10, 'AN', 1), 'HVAC sala controllo ed edifici', 1, 1, 180 + N * 60, 'C', { kV: 0.4 });
+  addLoad(kks(0, 'SAC', 10, 'AN', 1), 'Ventilazione sala macchine TV', 8, 6, 22, 'C');
+  addLoad(kks(0, 'BRA', 10, 'GA', 1), 'Raddrizzatori e UPS (A/B)', 2, 2, 60 + N * 20, 'C', { pf: 0.9, eff: 0.93 });
+  addLoad(kks(0, 'XLA', 10, 'GA', 1), 'Illuminazione normale ed esterna', 1, 1, 120 + N * 40, 'C', { pf: 0.95, eff: 1, ku: 0.8, kV: 0.4, rated: 120 + N * 40 });
+  addLoad(kks(0, 'SMA', 10, 'GA', 1), 'Officina, magazzino e prese di servizio', 1, 1, 80, 'I', { pf: 0.85, eff: 1 });
+  addLoad(kks(0, 'XKA', 10, 'GA', 1), 'Gru di sala macchine TV', 1, 1, 90, 'I');
+
+  // assegnazione ai quadri: A/B alternati per utenze ridondate
+  let ia = 0;
+  for (const ld of loads) {
+    const side = ld.qtyInst >= 2 ? 'A/B' : (ia++ % 2 === 0 ? 'A' : 'B');
+    ld.board = ld.kV >= 1 ? `0BBA/0BBB (${side})` : `0BFA/0BFB (${side})`;
+  }
+  const sum = (arr, k) => arr.reduce((a, b) => a + b[k], 0);
+  const mvLoads = loads.filter((l) => l.kV >= 1);
+  const lvLoads = loads.filter((l) => l.kV < 1);
+  const lvP = sum(lvLoads, 'cont'), lvQ = sum(lvLoads, 'kvar');
+  const lvKVA = Math.hypot(lvP, lvQ);
+  const mvP = sum(mvLoads, 'cont'), mvQ = sum(mvLoads, 'kvar');
+  const totKW = mvP + lvP * 1.012;
+  const totKVA = Math.hypot(totKW, mvQ + lvQ);
+  // trasformatori BT a coppie 2×100 %
+  const pairs = Math.max(1, Math.ceil((lvKVA * 1.2) / 2500));
+  const lvTrKVA = LV_TR.find((s) => s >= (lvKVA * 1.2) / pairs) ?? 3150;
+  const sfcKW = des.gtRef.Piso * 1000 * 0.03;
+  const uatMVA = MV_TR.find((s) => s * 1000 >= Math.max(totKVA * 1.25, sfcKW / 0.95 + totKVA * 0.5)) ?? 63;
+  const lvTr = [];
+  for (let i = 0; i < pairs * 2; i++) lvTr.push({ tag: kks(0, 'BFT', 10 + i * 10), kVA: lvTrKVA, bus: `0BF${String.fromCharCode(65 + i)}` });
+  const uats = [];
+  const uatSources = N > 1 ? [gens[0], gens[1]] : [gens[0], gens[N]];
+  uatSources.forEach((g, i) => uats.push({ tag: kks(g.unit, 'BBT', 10 + i), MVA: uatMVA, ratio: `${String(g.kV).replace('.', ',')}/6,3 kV`, from: g.tag, bus: i === 0 ? '0BBA' : '0BBB' }));
+  const gsu = gens.map((g) => ({ tag: kks(g.unit, 'BAT', g.unit === 0 ? 20 : 10), MVA: roundUp(g.MVA * 1.0, 5), ratio: `${hvKV}/${String(g.kV).replace('.', ',')} kV`, gen: g.tag, uk: 14 }));
+  const edgKVA = roundUp(Math.max(500, (lvP * 0.25) / 0.8), 100);
+  const electrical = {
+    gens, gsu, uats, lvTr, hvKV, edgKVA, mvKV: MV,
+    summary: { mvP, mvQ, lvP, lvQ, lvKVA, totKW, totKVA, sfcKW, simAux: r.Paux * 1000 },
+  };
+
+  // ---------------------------------------------------------------- apparecchiature
+  const eq = [];
+  const E = (tag, desc, qty, kind, data, pDes = '', TDes = '', mat = '', kW = '') => eq.push({ tag, desc, qty, kind, data, pDes, TDes, mat, kW });
+  const f1 = (v) => (Math.round(v * 10) / 10).toLocaleString('it-IT');
+  const f0 = (v) => Math.round(v).toLocaleString('it-IT');
+  const loadKW = (tag) => { const l = loads.find((x) => x.tag === tag); return l ? f0(l.rated) : ''; };
+  const banks = bt.banks;
+  const bankArea = (b, U) => {
+    const d1 = b.TgIn - b.TwOut, d2 = b.TgOut - b.TwIn;
+    const lmtd = Math.abs(d1 - d2) < 1e-3 ? d1 : (d1 - d2) / Math.log(d1 / d2);
+    return (b.Q * 1e6) / (U * Math.max(lmtd, 2));
+  };
+  const coilInfo = {
+    SH: { sys: 'HAH', U: 48, mat: (T) => (T > 545 ? 'SA-213 T91' : T > 450 ? 'SA-213 T22' : 'SA-210 C') },
+    RH: { sys: 'HAJ', U: 42, mat: (T) => (T > 545 ? 'SA-213 T91' : 'SA-213 T22') },
+    EVA: { sys: 'HAD', U: 40, mat: () => 'SA-210 C' },
+    ECO: { sys: 'HAC', U: 36, mat: () => 'SA-210 C' },
+    PRE: { sys: 'HAC', U: 32, mat: () => 'SA-210 C (alette in acciaio)' },
+  };
+  const lvlIdx = (name) => { const m = name.match(/\b(HP|IP|LP)\b/); return m ? names.indexOf(m[1]) : n - 1; };
+  const designP = (k) => roundUp(bt.pDrum[k] * 1.1, 1);
+
+  const tp = (sys) => (N > 1 ? `1..${N}${sys}` : `1${sys}`);
+  eq.push({ group: 'Turbogas' });
+  E(tp('MBA10'), `Turbina a gas heavy duty ${gtClass}`, N > 1 ? `${N}` : '1', 'Monoalbero, 3000 giri/min, combustori DLN',
+    `P ISO ${f1(des.gtRef.Piso)} MW · η ${f1(des.gtRef.point.eta * 100)} % · β ${f1(cfg.gt.PR)} · aria ${f0(des.gtRef.point.mAir)} kg/s · scarico ${f1(des.gtRef.point.T4)} °C`, '', '', '', '');
+  E(tp('MKA10'), 'Generatore sincrono TG', `${N}`, `Raffreddamento ad ${gens[0].cooling}`, `${f0(MVAgt)} MVA · ${String(kVgt).replace('.', ',')} kV · cosφ 0,85 · 50 Hz`);
+  E(tp('MBL10'), 'Casa filtri aria aspirazione', `${N}`, 'Filtrazione a 3 stadi (G4/F9/E12), silenziatore', `Portata ${f0((gt.mAir * 3600) / 1.2)} m³/h · ΔP pulito ≤ ${cfg.gt.dpInlet} mbar`);
+  E(tp('MBP10'), 'Skid valvole gas combustibile', `${N}`, 'Valvole di arresto/rapporto, regolazione, sfiato', `Portata ${f1(gt.mFuel * 3.6)} t/h · p alimentazione ${f1(pFG)} bar`, f1(pFG * 1.15), '60', 'AISI 316L');
+  E(tp('EKG10'), 'Riscaldatore gas combustibile', `${N}`, 'Scambiatore a fascio tubiero, lato tubi acqua IP', `Duty ${f1((gt.mFuel * 2.3 * (cfg.gt.Tfuel - 15)) / 1000)} MW · gas 15 → ${cfg.gt.Tfuel} °C`, f1(pFG * 1.15), String(cfg.gt.Tfuel + 30), 'SA-516 70 / SA-213 TP316');
+  E(tp('MBV10'), 'Centralina olio lubrificazione TG', `${N}`, 'Serbatoio, pompe AC 2×100 % + DC emergenza, refrigeranti', `Pompe ${loadKW(kks(1, 'MBV', 10, 'AP', 1))} kW`, '', '', '', loadKW(kks(1, 'MBV', 10, 'AP', 1)));
+  E(tp('MBJ10'), 'Avviatore statico a frequenza variabile (SFC)', `${N}`, 'Convertitore a tiristori', `${f0(sfcKW)} kW in avviamento`, '', '', '', loadKW(kks(1, 'MBJ', 10, 'GH', 1)));
+
+  eq.push({ group: 'Generatore di vapore a recupero (per ciascun GVR)' });
+  E(tp('HAA00'), `GVR orizzontale a circolazione naturale, ${type === '3PRH' ? '3 livelli + RH' : type === '2P' ? '2 livelli' : '1 livello'}`, `${N}`, 'Tubi alettati, moduli prefabbricati',
+    `Fumi ${f0(r.gas.m)} kg/s · ${f1(gt.T4)} → ${f1(bt.Tstack)} °C · duty ${f1(bt.Qhrsg)} MW`, '', '', '');
+  const seen = {};
+  for (const b of banks) {
+    const kind = b.name.split(' ')[0].replace('(condensato)', '').trim();
+    const ci = coilInfo[kind] ?? coilInfo.ECO;
+    const k = lvlIdx(b.name);
+    const sysNo = kind === 'PRE' ? 31 : kind === 'RH' ? 10 : (k + 1) * 10 + (seen[b.name] || 0);
+    seen[b.name] = (seen[b.name] || 0) + 1;
+    const A = bankArea(b, ci.U);
+    const pd = kind === 'RH' ? roundUp(bt.pAdm[1] * 1.1, 1) : kind === 'PRE' ? roundUp(bt.pDrum[n - 1] * 1.6, 1) : designP(k);
+    E(tp(`${ci.sys}${sysNo}`), `Banco ${b.name}`, `${N}`, 'Tubi alettati a spirale, collettori',
+      `Duty ${f1(b.Q)} MW · fumi ${f0(b.TgIn)}→${f0(b.TgOut)} °C · H2O ${f0(b.TwIn)}→${f0(b.TwOut)} °C · superficie ~${f0(A)} m²`, f0(pd), f0(roundUp(b.TwOut + 25, 5)), ci.mat(b.TwOut));
+  }
+  names.forEach((lv, k) => {
+    const sat = satP(bt.pDrum[k]);
+    const holdS = k === n - 1 ? 600 : k === 0 ? 180 : 240;
+    const mFeed = k === n - 1 ? bt.mLevels.reduce((a, b) => a + b, 0) : bt.mLevels[k];
+    const V = Math.max(6, ((mFeed * holdS) / (1 / sat.vL)) * 2);
+    const D = Math.cbrt((4 * V) / (Math.PI * 6));
+    const Ld = 6 * D;
+    const pd = designP(k);
+    const Smpa = 118;
+    const t = ((pd - 1) / 10 * (D * 1000 / 2)) / (Smpa - 0.6 * (pd - 1) / 10) + 3;
+    E(tp(`HAD${(k + 1) * 10}BB001`), `Corpo cilindrico ${lv}${k === n - 1 && n > 1 ? ' con degasatore integrato' : ''}`, `${N}`, 'Orizzontale, separatori a ciclone',
+      `DI ${f1(D)} m × L ${f1(Ld)} m · V ${f0(V)} m³ · spessore ~${f0(roundUp(t, 2))} mm · Tsat ${f1(sat.T)} °C`, f0(pd), f0(roundUp(Tsat(pd) + 10, 5)), 'SA-516 Gr.70');
+  });
+  const stackD = roundUp(Math.sqrt((4 * r.gas.m / ((op.pamb * 1e5) / (288 * (bt.Tstack + 273.15)))) / (Math.PI * 20)), 0.1);
+  E(tp('HNE10'), 'Camino con silenziatore e serranda', `${N}`, 'Autoportante in acciaio, CEMS', `DI ${f1(stackD)} m · H ${meta.stackHeight} m · velocità fumi ~20 m/s`, '', '150', 'Acciaio al carbonio / Corten');
+  E(tp('LAC10AP001/002'), 'Pompe alimento HP/IP', `${2 * N} (2×100 % per GVR)`, 'Centrifughe multistadio a barile, spillamento IP',
+    `Q ${f0(pumps.fw1.Q)} m³/h · H ${f0(pumps.fw1.H)} m · ${f0(pumps.fw1.kW)} kW assorbiti`, f0(pFWhp * 1.25), f0(roundUp(bt.TsubLP + 20, 5)), 'Acciaio al 13 % Cr', loadKW(kks(1, 'LAC', 10, 'AP', 1)));
+  E(tp('HAN10BB001'), 'Serbatoio flash spurghi', `${N}`, 'Verticale atmosferico', `Spurgo continuo ~1 % della produzione HP`, '6', '200', 'SA-516 Gr.70');
+  E(tp('MAN10/20/30'), 'Stazioni di bypass TV con desurriscaldamento', `${N}`, 'Valvole di bypass HP, RH, LP al 100 %', `HP ${f0(bt.mLevels[0] * 3.6)} t/h${reheat ? ` · RH ${f0((bt.sections[1].m / N) * 3.6)} t/h` : ''}`, f0(designP(0)), f0(roundUp(bt.Tsh[0] + 10, 5)), 'F91 / F22');
+
+  eq.push({ group: 'Turbina a vapore e ciclo termico' });
+  const stDesc = n === 3 ? 'HP + IP/LP, risurriscaldata' : n === 2 ? 'HP + LP a due pressioni' : 'monocorpo';
+  E('0MAA/MAB/MAC10', `Turbina a vapore a condensazione ${stDesc}`, '1', `Scarico ${cond.type === 'air' ? 'assiale verso ACC' : 'verso il basso'}, 3000 giri/min`,
+    `P ${f1(r.Pst)} MW · HP ${f1(sec0.pIn)} bar/${f0(sec0.Tin)} °C · ${f1(sec0.m)} kg/s${reheat ? ` · RH ${f1(bt.pRHout)} bar/${f0(bt.Trh)} °C` : ''} · scarico ${f1(bt.pCond * 1000)} mbar · area scarico ${f1(des.stRef.lpArea)} m²`);
+  E('0MKA10', 'Generatore sincrono TV', '1', `Raffreddamento ad ${gens[N].cooling}`, `${f0(MVAst)} MVA · ${String(kVst).replace('.', ',')} kV · cosφ 0,85`);
+  if (cond.type === 'water') {
+    const Tin = op.Tcw, Tout = op.Tcw + dTcwOp;
+    const lmtd = (Tout - Tin) / Math.log((bt.Tcond - Tin) / (bt.Tcond - Tout));
+    const A = (bt.Qcond * 1e6) / (3000 * lmtd);
+    E('0MAG10', 'Condensatore a superficie', '1', 'Due passaggi, tubi in titanio, pozzo caldo', `Duty ${f0(bt.Qcond)} MW · ${f1(bt.pCond * 1000)} mbar · superficie ~${f0(A)} m² · acqua ${f0(des.mcw * 3.6 / 1.0)} t/h`, '1,0 / FV', '80', 'Mantello CS, tubi Ti Gr.2');
+    E('0PAC10AP001..003', 'Pompe acqua di circolazione', '3 (3×50 %)', 'Verticali a pozzo umido', `Q ${f0(pumps.cw.Q)} m³/h · H ${pumps.cw.H} m · ${f0(pumps.cw.kW)} kW assorbiti`, '4,5', '50', 'Ghisa sferoidale / inox', loadKW(kks(0, 'PAC', 10, 'AP', 1)));
+    E('0PAE10', 'Torre di raffreddamento evaporativa a tiraggio indotto', '1', `${ctCells} celle in linea, ventilatori assiali`, `Duty ${f0(des.QcondD)} MW · ΔT ${f1(cond.dTcw)} K · avvicinamento ~6 K`, '', '', 'Calcestruzzo / GRP');
+  } else {
+    E('0MAG10', 'Aerocondensatore (ACC)', '1', `${accCells} celle a A, ventilatori assiali`, `Duty ${f0(bt.Qcond)} MW · ITD ${cond.ITD} K · ${f1(bt.pCond * 1000)} mbar`, '1,0 / FV', '120', 'Tubi alettati in acciaio alluminato', loadKW(kks(0, 'MAG', 10, 'AN', 1)));
+  }
+  E('0LCB10AP001/002', 'Pompe estrazione condensato', '2 (2×100 %)', 'Verticali a barile, multistadio', `Q ${f0(pumps.cd.Q)} m³/h · H ${f0(pumps.cd.H)} m · ${f0(pumps.cd.kW)} kW assorbiti`, f1(bt.pDrum[lowest] * 1.8 + 4), '80', 'Ghisa / inox', loadKW(kks(0, 'LCB', 10, 'AP', 1)));
+  E('0MAJ10AP001/002', 'Pompe del vuoto ad anello liquido', '2 (2×100 %)', 'Con separatore e refrigerante', 'Mantenimento vuoto ed evacuazione all\'avviamento', '', '', '', loadKW(kks(0, 'MAJ', 10, 'AP', 1)));
+  E('0MAW10', 'Condensatore vapore tenute', '1', 'Fascio tubiero, estrattori 2×100 %', 'Lato acqua: condensato principale', '', '', 'CS / inox');
+
+  eq.push({ group: 'Sistemi ausiliari (BoP)' });
+  E('0EKA10', 'Stazione di ricevimento e riduzione gas', '1', 'Filtrazione, misura fiscale, riduzione 2×100 %, preriscaldo', `Portata ${f0((gt.mFuel * N * 3600) / 0.74)} Sm³/h · uscita ${f1(pFG)} bar`, '75', '60', 'API 5L X52');
+  E('0PGB10', 'Circuito acqua di raffreddamento chiuso', '1', 'Pompe 2×100 %, aerotermi, vaso di espansione', `Calore ausiliari ~${f1(qCCW / 1000)} MW`, '10', '60', 'CS');
+  E('0SCA10AN001/002', 'Compressori aria strumenti e servizi', '2 (2×100 %)', 'A vite oil-free, essiccatori', '~1200 Nm³/h a 8 bar', '10', '60', '', loadKW(kks(0, 'SCA', 10, 'AN', 1)));
+  E('0GCF10', 'Impianto acqua demineralizzata', '1', 'Osmosi inversa + EDI', `~${f0(bt.mSteamTot * 0.02 * 3.6 + 10)} m³/h`, '', '', '', loadKW(kks(0, 'GCF', 10, 'AP', 1)));
+  E('0GHC10BB001', 'Serbatoio acqua demineralizzata', '1', 'Cilindrico verticale a tetto fisso', `${f0(roundUp(bt.mSteamTot * 3.6 * 4, 100))} m³`, 'Atm.', '50', 'Inox AISI 304L');
+  E('0SGA10', 'Stazione pompe antincendio', '1', 'Elettrica + diesel + jockey (UNI EN 12845 / NFPA 20)', 'Serbatoio riserva idrica dedicato', '', '', '', loadKW(kks(0, 'SGA', 10, 'AP', 1)));
+  E('0XJA10', 'Generatore diesel di emergenza', '1', 'Avviamento automatico, 400 V', `${f0(electrical.edgKVA)} kVA`);
+
+  eq.push({ group: 'Sistema elettrico' });
+  for (const t of gsu) E(t.tag, `Trasformatore elevatore ${t.gen.startsWith('0') ? 'TV' : 'TG' + t.gen[0]}`, '1', 'ONAN/ONAF, YNd11', `${f0(t.MVA)} MVA · ${t.ratio} · ucc ${t.uk} %`, '', '', 'Olio minerale');
+  for (const g of gens) E(g.tag.replace('MKA', 'BAC'), `Interruttore di generatore ${g.name.replace('Generatore ', '')}`, '1', 'SF6 / vuoto in condotto a fasi isolate', `${String(g.kV).replace('.', ',')} kV · In ≥ ${f0((g.MVA * 1000) / (Math.sqrt(3) * g.kV) * 1.1)} A`);
+  for (const u of uats) E(u.tag, 'Trasformatore servizi di unità', '1', 'ONAN, Dyn1', `${String(u.MVA).replace('.', ',')} MVA · ${u.ratio}`, '', '', 'Olio minerale');
+  for (const t of lvTr) E(t.tag, 'Trasformatore MT/BT', '1', 'Resina, Dyn11', `${t.kVA} kVA · 6/0,42 kV`, '', '', 'Resina epossidica');
+  E('0AEA10', `Sottostazione AT ${hvKV} kV isolata in gas (GIS)`, '1', 'Doppia sbarra, stalli di linea e di macchina', `${gens.length} stalli macchina + 2 stalli linea + parallelo sbarre`);
+
+  eq.forEach((e, i) => { if (!e.group) e.no = String(eq.slice(0, i + 1).filter((x) => !x.group).length); });
+
+  // ---------------------------------------------------------------- disposizione planimetrica (m)
+  const layout = buildLayout(cfg, des, r, meta, { ctCells, accCells, stackD, MVAgt, N, n });
+
+  return {
+    meta, cfg, des, r, op, N, n, names, type, reheat, gtClass,
+    streams, st, lines, lineById, eq, loads, electrical, pumps, layout,
+    pFG, ctCells, accCells, stackD,
+  };
+}
+
+function buildLayout(cfg, des, r, meta, { ctCells, accCells, stackD, MVAgt, N, n }) {
+  const items = [];
+  const gt = r.gt;
+  const mAir = cfg.gt.mAirISO;
+  const add = (o) => { items.push(o); return o; };
+  // dimensioni principali
+  const Lgen = 10 + MVAgt * 0.012, Wgen = 6;
+  const Lgt = 16 + mAir * 0.022, Wgt = 8 + mAir * 0.006;
+  const rhoIn = (gt.p4 * 1e5) / (288 * (gt.T4 + 273.15));
+  const Aface = gt.mExh / rhoIn / 6.5;
+  const Hh = Math.min(32, Math.max(18, Math.sqrt(Aface * 1.9)));
+  const Wh = Math.max(8, Aface / Hh);
+  const Lh = 10 + r.bt.banks.length * 2.8;
+  const Ldiff = 8;
+  const pitch = Math.max(Wh, Wgt + 6) + 22;
+  const X0 = 70; // a ovest restano GIS e trasformatori
+  const Y0 = 120; // a sud restano sala macchine e raffreddamento
+  const trains = [];
+  for (let i = 0; i < N; i++) {
+    const yc = Y0 + i * pitch + pitch / 2;
+    const u = i + 1;
+    const xg = X0;
+    const gen = add({ tag: `${u}MKA10`, name: `Generatore TG${u}`, kind: 'box', x: xg, y: yc - Wgen / 2, w: Lgen, d: Wgen, h: 6, grp: 'el' });
+    const gtb = add({ tag: `${u}MBA10`, name: `TG${u}`, kind: 'box', x: xg + Lgen + 2, y: yc - Wgt / 2, w: Lgt, d: Wgt, h: 11, grp: 'gt' });
+    add({ tag: `${u}MBL10`, name: 'Filtri aria', kind: 'box', x: xg + Lgen - 4, y: yc - Wgt * 0.9, w: 14, d: Wgt * 1.8, h: 10, z: 13, grp: 'gt', elevated: true });
+    const xd = gtb.x + Lgt;
+    add({ tag: `${u}MBR10`, name: 'Diffusore', kind: 'box', x: xd, y: yc - Wh / 2.6, w: Ldiff, d: Wh / 1.3, h: Hh * 0.6, grp: 'hrsg' });
+    const hr = add({ tag: `${u}HAA00`, name: `GVR${u}`, kind: 'box', x: xd + Ldiff, y: yc - Wh / 2, w: Lh, d: Wh, h: Hh, grp: 'hrsg' });
+    const stk = add({ tag: `${u}HNE10`, name: `Camino ${u}`, kind: 'cyl', x: hr.x + Lh + stackD / 2 + 1.5, y: yc, r: stackD / 2, h: meta.stackHeight, grp: 'hrsg' });
+    add({ tag: `${u}BAT10`, name: `TR elevatore TG${u}`, kind: 'box', x: xg - 22, y: yc - 5, w: 12, d: 8, h: 7, grp: 'el' });
+    add({ tag: `${u}BBT10`, name: 'TR servizi', kind: 'box', x: xg - 22, y: yc + 5.5, w: 6, d: 5, h: 4.5, grp: 'el' });
+    add({ tag: `${u}LAC10`, name: 'Pompe alimento', kind: 'box', x: hr.x + 2, y: yc + Wh / 2 + 3, w: 10, d: 6, h: 4, grp: 'bop' });
+    trains.push({ u, yc, gen, gt: gtb, hr, stk, xHot: hr.x });
+  }
+  const yTop = Y0 + N * pitch;
+  // sala macchine TV
+  const Pst = r.Pst;
+  const Lst = 40 + Pst * 0.09, Wst = 32;
+  const st = add({ tag: '0UMA', name: 'Sala macchine TV', kind: 'box', x: X0, y: Y0 - Wst - 14, w: Lst, d: Wst, h: 28, grp: 'st', hall: true });
+  add({ tag: '0MAA10', name: 'TV', kind: 'box', x: st.x + 8, y: st.y + Wst / 2 - 4, w: Lst * 0.55, d: 8, h: 6, z: 12, grp: 'st', inner: true });
+  add({ tag: '0MKA10', name: 'Gen. TV', kind: 'box', x: st.x + 10 + Lst * 0.55, y: st.y + Wst / 2 - 3, w: Lst * 0.25, d: 6, h: 6, z: 12, grp: 'el', inner: true });
+  add({ tag: '0BAT20', name: 'TR elevatore TV', kind: 'box', x: X0 - 22, y: st.y + Wst / 2 - 4, w: 12, d: 8, h: 7, grp: 'el' });
+  add({ tag: '0UBA', name: 'Edificio elettrico e sala controllo', kind: 'box', x: X0 - 52, y: st.y, w: 26, d: Wst, h: 16, grp: 'bld' });
+  // pipe rack nord-sud tra TV e GVR
+  const xr = trains[0].xHot - 4;
+  const rack = add({ tag: '0UQA', name: 'Pipe rack', kind: 'box', x: xr, y: st.y + Wst, w: 6, d: yTop - (st.y + Wst) - pitch / 2 + 6, h: 2, z: 10, grp: 'rack' });
+  add({ tag: '0UQA', name: 'Pipe rack', kind: 'box', x: st.x + Lst - 2, y: st.y + Wst - 8, w: xr - (st.x + Lst) + 8, d: 6, h: 2, z: 10, grp: 'rack' });
+  // raffreddamento
+  if (cfg.steam.condenser.type === 'water') {
+    const perRow = Math.min(ctCells, 8);
+    const rows = Math.ceil(ctCells / perRow);
+    const cs = 16;
+    const x0 = st.x + Lst + 30;
+    const y0 = st.y - rows * cs - 20 + Wst;
+    for (let i = 0; i < ctCells; i++) {
+      add({ tag: '0PAE10', name: i === 0 ? 'Torre di raffreddamento' : '', kind: 'box', x: x0 + (i % perRow) * cs, y: y0 + Math.floor(i / perRow) * cs, w: cs, d: cs, h: 15, grp: 'cool', cell: true });
+    }
+    add({ tag: '0PAC10', name: 'Pompe circolazione', kind: 'box', x: x0 - 22, y: y0 + 2, w: 16, d: 10, h: 5, grp: 'bop' });
+  } else {
+    const perRow = Math.ceil(Math.sqrt(accCells * 1.6));
+    const rows = Math.ceil(accCells / perRow);
+    const cs = 12;
+    const x0 = st.x + Lst + 12;
+    for (let i = 0; i < accCells; i++) {
+      add({ tag: '0MAG10', name: i === 0 ? 'Aerocondensatore' : '', kind: 'box', x: x0 + (i % perRow) * cs, y: st.y - 6 + Math.floor(i / perRow) * cs - rows * cs / 2 + Wst / 2, w: cs, d: cs, h: 10, z: 24, grp: 'cool', cell: true, legs: true });
+    }
+  }
+  // BoP e edifici
+  const xE = Math.max(...trains.map((t) => t.stk.x)) + 30;
+  add({ tag: '0EKA10', name: 'Stazione gas', kind: 'box', x: xE, y: yTop - 30, w: 30, d: 16, h: 4, grp: 'bop' });
+  add({ tag: '0GHC10', name: 'Serbatoio demi', kind: 'cyl', x: xE + 10, y: Y0 + 12, r: 7, h: 12, grp: 'tank' });
+  add({ tag: '0GCF10', name: 'Impianto demi', kind: 'box', x: xE + 22, y: Y0 + 4, w: 22, d: 14, h: 8, grp: 'bld' });
+  add({ tag: '0SGA10', name: 'Serbatoio antincendio', kind: 'cyl', x: xE + 10, y: Y0 + 38, r: 9, h: 14, grp: 'tank' });
+  add({ tag: '0SGA20', name: 'Pompe antincendio', kind: 'box', x: xE + 22, y: Y0 + 32, w: 14, d: 10, h: 6, grp: 'bld' });
+  add({ tag: '0PGB10', name: 'Aerotermi ciclo chiuso', kind: 'box', x: st.x + Lst - 30, y: st.y - 18, w: 26, d: 10, h: 6, grp: 'bop' });
+  add({ tag: '0XJA10', name: 'Diesel emergenza', kind: 'box', x: X0 - 52, y: st.y - 16, w: 12, d: 8, h: 5, grp: 'el' });
+  add({ tag: '0AEA10', name: `GIS ${''}AT`, kind: 'box', x: X0 - 62, y: Y0 + 10, w: 30, d: Math.max(30, N * pitch - 20), h: 14, grp: 'el' });
+  add({ tag: '0UYA', name: 'Uffici e magazzino', kind: 'box', x: X0 - 62, y: yTop + 6, w: 40, d: 20, h: 9, grp: 'bld' });
+  add({ tag: '0SCA10', name: 'Compressori aria', kind: 'box', x: st.x + 4, y: st.y - 18, w: 14, d: 10, h: 5, grp: 'bop' });
+
+  // confini
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const it of items) {
+    const x0 = it.kind === 'cyl' ? it.x - it.r : it.x, x1 = it.kind === 'cyl' ? it.x + it.r : it.x + it.w;
+    const y0 = it.kind === 'cyl' ? it.y - it.r : it.y, y1 = it.kind === 'cyl' ? it.y + it.r : it.y + it.d;
+    minX = Math.min(minX, x0); maxX = Math.max(maxX, x1); minY = Math.min(minY, y0); maxY = Math.max(maxY, y1);
+  }
+  const road = 7, margin = 12;
+  const site = { x0: minX - road - margin, y0: minY - road - margin, x1: maxX + road + margin, y1: maxY + road + margin };
+  // shift so that site starts at (0, 0)
+  const dx = -site.x0, dy = -site.y0;
+  for (const it of items) { it.x += dx; it.y += dy; }
+  for (const t of trains) { t.yc += dy; }
+  const siteW = site.x1 - site.x0, siteD = site.y1 - site.y0;
+  const inner = { x0: margin, y0: margin, x1: siteW - margin, y1: siteD - margin };
+
+  // instradamento della linea vapore HP dal GVR 1 alla TV (coordinate m, z = quota)
+  const t1 = trains[0];
+  const hr1 = t1.hr;
+  const stHall = st;
+  const turb = items.find((i) => i.tag === '0MAA10');
+  const p0 = [hr1.x + 3, hr1.y, hr1.h + 1.5];
+  const route = [
+    p0,
+    [p0[0], p0[1], p0[2] + 2.5],
+    [p0[0], hr1.y - 3, p0[2] + 2.5],
+    [rack.x + 3, hr1.y - 3, p0[2] + 2.5],
+    [rack.x + 3, hr1.y - 3, 12],
+    [rack.x + 3, stHall.y + stHall.d - 5, 12],
+    [turb.x + 4, stHall.y + stHall.d - 5, 12],
+    [turb.x + 4, turb.y + turb.d / 2, 12],
+    [turb.x + 4, turb.y + turb.d / 2, 9.5],
+  ];
+
+  return { items, site: { w: siteW, d: siteD }, inner, road, trains, pitch, st, route, dims: { Lgen, Lgt, Wgt, Lh, Wh, Hh, Lst, Wst } };
+}
+
+
+return { GT_PRESETS, MATERIALS, sizeLine, kks, defaultProjectMeta, engineeringModel };
+})();
+
+__m['js/docs/pdf.js'] = (() => {
+// Scrittore PDF minimale, senza dipendenze: pagine con grafica vettoriale e testo
+// nei font standard Helvetica / Helvetica-Bold (codifica WinAnsi).
+
+// Larghezze Helvetica (unità 1/1000 em) per i caratteri 32..126.
+const HELV = [
+  278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278,
+  556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556,
+  1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778,
+  667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556,
+  333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556,
+  556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584,
+];
+const HELV_B = [
+  278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278,
+  556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611,
+  975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778,
+  667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556,
+  333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611,
+  611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584,
+];
+
+// Caratteri non presenti in WinAnsi sostituiti con equivalenti leggibili.
+const SUBST = {
+  '₂': '2', '₃': '3', '₄': '4', 'Δ': 'D', 'η': 'eta', 'β': 'beta', 'φ': 'phi', '≥': '>=', '≤': '<=',
+  '→': '->', '←': '<-', '↑': '^', '↓': 'v', '−': '-', '≈': '~', '√': 'rad', 'Ω': 'ohm', '∅': 'Ø', '⌀': 'Ø',
+};
+// Caratteri WinAnsi oltre ASCII (codice -> larghezza Helvetica)
+const WIN = {
+  '€': [0x80, 556], '‚': [0x82, 222], '„': [0x84, 333], '…': [0x85, 1000], '‘': [0x91, 222], '’': [0x92, 222],
+  '“': [0x93, 333], '”': [0x94, 333], '•': [0x95, 350], '–': [0x96, 556], '—': [0x97, 1000], '°': [0xb0, 400],
+  '±': [0xb1, 584], '²': [0xb2, 333], '³': [0xb3, 333], 'µ': [0xb5, 556], '·': [0xb7, 278], '¹': [0xb9, 333],
+  '½': [0xbd, 834], '×': [0xd7, 584], 'Ø': [0xd8, 778], 'ø': [0xf8, 611], '÷': [0xf7, 584],
+  'À': [0xc0, 667], 'È': [0xc8, 667], 'É': [0xc9, 667], 'Ì': [0xcc, 278], 'Ò': [0xd2, 778], 'Ù': [0xd9, 722],
+  'à': [0xe0, 556], 'á': [0xe1, 556], 'è': [0xe8, 556], 'é': [0xe9, 556], 'ì': [0xec, 278], 'í': [0xed, 278],
+  'ò': [0xf2, 556], 'ó': [0xf3, 556], 'ù': [0xf9, 556], 'ú': [0xfa, 556], 'ü': [0xfc, 556], 'ö': [0xf6, 556], 'ä': [0xe4, 556],
+};
+
+function normalizeText(s) {
+  let out = '';
+  for (const ch of String(s)) out += SUBST[ch] ?? ch;
+  return out;
+}
+
+/** Larghezza del testo in unità di `size` (stessa unità della dimensione del font). */
+function textWidth(s, size, bold = false) {
+  const tbl = bold ? HELV_B : HELV;
+  let w = 0;
+  for (const ch of normalizeText(s)) {
+    const c = ch.charCodeAt(0);
+    if (c >= 32 && c <= 126) w += tbl[c - 32];
+    else if (WIN[ch]) w += WIN[ch][1] * (bold ? 1.05 : 1);
+    else w += 556;
+  }
+  return (w * size) / 1000;
+}
+
+// Stringa PDF letterale con escape ottali per i caratteri non ASCII.
+function pdfString(s) {
+  let out = '(';
+  for (const ch of normalizeText(s)) {
+    const c = ch.charCodeAt(0);
+    if (ch === '(' || ch === ')' || ch === '\\') out += '\\' + ch;
+    else if (c >= 32 && c <= 126) out += ch;
+    else {
+      const code = WIN[ch] ? WIN[ch][0] : 63; // '?'
+      out += '\\' + code.toString(8).padStart(3, '0');
+    }
+  }
+  return out + ')';
+}
+
+const n = (v) => (Math.round(v * 1000) / 1000).toString();
+
+function rgb(hex) {
+  const h = hex.replace('#', '');
+  const f = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  return [0, 2, 4].map((i) => n(parseInt(f.slice(i, i + 2), 16) / 255)).join(' ');
+}
+
+/**
+ * Converte la lista di primitive di un foglio (unità mm, asse y verso il basso)
+ * in un content stream PDF.
+ */
+function sheetToContent(sheet) {
+  const k = 72 / 25.4;
+  const ops = [`q ${n(k)} 0 0 ${n(-k)} 0 ${n(sheet.h * k)} cm 1 J 1 j`];
+  const style = (st) => {
+    const o = [];
+    if (st.s) o.push(`${rgb(st.s)} RG`, `${n(st.w ?? 0.25)} w`, st.d ? `[${st.d.map(n).join(' ')}] 0 d` : '[] 0 d');
+    if (st.f) o.push(`${rgb(st.f)} rg`);
+    return o.join(' ');
+  };
+  const paint = (st, closed) => (st.f && st.s ? (closed ? 'b' : 'B') : st.f ? 'f' : closed ? 's' : 'S');
+  for (const p of sheet.items) {
+    switch (p.t) {
+      case 'path': {
+        if (!p.st.s && !p.st.f) break;
+        let d = `${n(p.pts[0][0])} ${n(p.pts[0][1])} m`;
+        for (let i = 1; i < p.pts.length; i++) d += ` ${n(p.pts[i][0])} ${n(p.pts[i][1])} l`;
+        ops.push(`${style(p.st)} ${d} ${paint(p.st, p.closed)}`);
+        break;
+      }
+      case 'circle': {
+        const { cx, cy, r } = p;
+        const c = 0.5523 * r;
+        const d = `${n(cx + r)} ${n(cy)} m ${n(cx + r)} ${n(cy + c)} ${n(cx + c)} ${n(cy + r)} ${n(cx)} ${n(cy + r)} c `
+          + `${n(cx - c)} ${n(cy + r)} ${n(cx - r)} ${n(cy + c)} ${n(cx - r)} ${n(cy)} c `
+          + `${n(cx - r)} ${n(cy - c)} ${n(cx - c)} ${n(cy - r)} ${n(cx)} ${n(cy - r)} c `
+          + `${n(cx + c)} ${n(cy - r)} ${n(cx + r)} ${n(cy - c)} ${n(cx + r)} ${n(cy)} c`;
+        ops.push(`${style(p.st)} ${d} ${paint(p.st, true)}`);
+        break;
+      }
+      case 'text': {
+        const w = textWidth(p.s, p.size, p.bold);
+        const dx = p.anchor === 'middle' ? -w / 2 : p.anchor === 'end' ? -w : 0;
+        const a = ((p.rot || 0) * Math.PI) / 180;
+        const ca = Math.cos(a), sa = Math.sin(a);
+        const x = p.x + dx * ca, y = p.y + dx * sa;
+        ops.push(`BT ${rgb(p.color || '#000')} rg /${p.bold ? 'F2' : 'F1'} ${n(p.size)} Tf ${n(ca)} ${n(sa)} ${n(sa)} ${n(-ca)} ${n(x)} ${n(y)} Tm ${pdfString(p.s)} Tj ET`);
+        break;
+      }
+      default: break;
+    }
+  }
+  ops.push('Q');
+  return ops.join('\n');
+}
+
+/** Assembla un documento PDF da un elenco di fogli. Restituisce Uint8Array. */
+function buildPdf(sheets, info = {}) {
+  const objs = [];
+  const add = (s) => { objs.push(s); return objs.length; };
+  const catalog = add(null);
+  const pages = add(null);
+  const f1 = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+  const f2 = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  const kids = [];
+  const k = 72 / 25.4;
+  for (const sh of sheets) {
+    const content = sheetToContent(sh);
+    const c = add(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
+    const pg = add(`<< /Type /Page /Parent ${pages} 0 R /MediaBox [0 0 ${n(sh.w * k)} ${n(sh.h * k)}] /Resources << /Font << /F1 ${f1} 0 R /F2 ${f2} 0 R >> >> /Contents ${c} 0 R >>`);
+    kids.push(`${pg} 0 R`);
+  }
+  objs[catalog - 1] = `<< /Type /Catalog /Pages ${pages} 0 R >>`;
+  objs[pages - 1] = `<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${kids.length} >>`;
+  const date = new Date();
+  const pad = (v) => String(v).padStart(2, '0');
+  const pdfDate = `D:${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+  const infoObj = add(`<< /Title ${pdfString(info.title || 'Documento')} /Author ${pdfString(info.author || '')} /Subject ${pdfString(info.subject || '')} /Producer (Simulatore Ciclo Combinato) /CreationDate (${pdfDate}) >>`);
+
+  // intestazione con 4 byte binari; il resto è ASCII, quindi offset = lunghezza stringa
+  const header = '%PDF-1.4\n%';
+  const offsets = [];
+  let pos = header.length + 5;
+  let out = '';
+  for (let i = 0; i < objs.length; i++) {
+    offsets.push(pos);
+    const s = `${i + 1} 0 obj\n${objs[i]}\nendobj\n`;
+    out += s;
+    pos += s.length;
+  }
+  const xrefPos = pos;
+  let xref = `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+  for (const o of offsets) xref += `${String(o).padStart(10, '0')} 00000 n \n`;
+  const trailer = `trailer\n<< /Size ${objs.length + 1} /Root ${catalog} 0 R /Info ${infoObj} 0 R >>\nstartxref\n${xrefPos}\n%%EOF\n`;
+  const body = out + xref + trailer;
+  const bytes = new Uint8Array(pos - out.length + body.length);
+  let j = 0;
+  for (const ch of header) bytes[j++] = ch.charCodeAt(0);
+  for (const b of [0xe2, 0xe3, 0xcf, 0xd3, 0x0a]) bytes[j++] = b;
+  for (let i = 0; i < body.length; i++) bytes[j++] = body.charCodeAt(i) & 0xff;
+  return bytes;
+}
+
+return { normalizeText, textWidth, sheetToContent, buildPdf };
+})();
+
+__m['js/docs/sheet.js'] = (() => {
+// Foglio di disegno vettoriale (unità mm, origine in alto a sinistra, y verso il basso),
+// esportabile in SVG (anteprima) e PDF; cornice con cartiglio e tabelle impaginate.
+
+const { textWidth } = __m['js/docs/pdf.js'];
+
+const A3 = { w: 420, h: 297 };
+
+const ST = {
+  hair: { s: '#000000', w: 0.13 },
+  thin: { s: '#000000', w: 0.18 },
+  norm: { s: '#000000', w: 0.35 },
+  med: { s: '#000000', w: 0.5 },
+  thick: { s: '#000000', w: 0.7 },
+  heavy: { s: '#000000', w: 1.0 },
+  dash: { s: '#000000', w: 0.25, d: [1.6, 1.0] },
+  signal: { s: '#000000', w: 0.18, d: [1.2, 0.8] },
+  white: { s: '#000000', w: 0.35, f: '#ffffff' },
+  black: { f: '#000000' },
+};
+
+const withFill = (st, f) => ({ ...st, f });
+const withColor = (st, s) => ({ ...st, s });
+
+class Sheet {
+  constructor(w = A3.w, h = A3.h) {
+    this.w = w;
+    this.h = h;
+    this.items = [];
+  }
+  path(pts, st = ST.norm, closed = false) {
+    if (pts.length >= 2) this.items.push({ t: 'path', pts, st, closed });
+    return this;
+  }
+  line(x1, y1, x2, y2, st = ST.norm) { return this.path([[x1, y1], [x2, y2]], st); }
+  rect(x, y, w, h, st = ST.norm) { return this.path([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], st, true); }
+  circle(cx, cy, r, st = ST.norm) { this.items.push({ t: 'circle', cx, cy, r, st }); return this; }
+  text(x, y, s, o = {}) {
+    if (s === null || s === undefined || s === '') return this;
+    this.items.push({ t: 'text', x, y, s: String(s), size: o.size ?? 2.5, anchor: o.anchor ?? 'start', bold: !!o.bold, rot: o.rot ?? 0, color: o.color });
+    return this;
+  }
+  /** Testo centrato verticalmente sulla coordinata y. */
+  textMid(x, y, s, o = {}) { return this.text(x, y + (o.size ?? 2.5) * 0.36, s, o); }
+  /** Arco come polilinea (angoli in gradi, senso orario sullo schermo). */
+  arc(cx, cy, r, a0, a1, st = ST.norm, steps = 16) {
+    const pts = [];
+    for (let i = 0; i <= steps; i++) {
+      const a = ((a0 + ((a1 - a0) * i) / steps) * Math.PI) / 180;
+      pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+    }
+    return this.path(pts, st);
+  }
+  /** Freccia piena all'estremità (x2, y2). */
+  arrow(x1, y1, x2, y2, st = ST.norm, size = 2) {
+    this.line(x1, y1, x2, y2, st);
+    const a = Math.atan2(y2 - y1, x2 - x1);
+    const p1 = [x2 - size * Math.cos(a - 0.4), y2 - size * Math.sin(a - 0.4)];
+    const p2 = [x2 - size * Math.cos(a + 0.4), y2 - size * Math.sin(a + 0.4)];
+    return this.path([[x2, y2], p1, p2], { f: st.s || '#000' }, true);
+  }
+}
+
+// ------------------------------------------------------------------ SVG
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const r3 = (v) => Math.round(v * 1000) / 1000;
+
+function sheetToSVG(sheet, { id = '' } = {}) {
+  const out = [`<svg xmlns="http://www.w3.org/2000/svg" ${id ? `id="${id}" ` : ''}viewBox="0 0 ${sheet.w} ${sheet.h}" width="${sheet.w}mm" height="${sheet.h}mm" font-family="Helvetica, Arial, sans-serif">`,
+    `<rect x="0" y="0" width="${sheet.w}" height="${sheet.h}" fill="#ffffff"/>`];
+  const stAttr = (st) => {
+    const a = [`fill="${st.f || 'none'}"`];
+    if (st.s) {
+      a.push(`stroke="${st.s}" stroke-width="${st.w ?? 0.25}" stroke-linecap="round" stroke-linejoin="round"`);
+      if (st.d) a.push(`stroke-dasharray="${st.d.join(' ')}"`);
+    }
+    return a.join(' ');
+  };
+  for (const p of sheet.items) {
+    if (p.t === 'path') {
+      const d = p.pts.map((q, i) => `${i ? 'L' : 'M'}${r3(q[0])} ${r3(q[1])}`).join('') + (p.closed ? 'Z' : '');
+      out.push(`<path d="${d}" ${stAttr(p.st)}/>`);
+    } else if (p.t === 'circle') {
+      out.push(`<circle cx="${r3(p.cx)}" cy="${r3(p.cy)}" r="${r3(p.r)}" ${stAttr(p.st)}/>`);
+    } else if (p.t === 'text') {
+      const rot = p.rot ? ` transform="rotate(${p.rot} ${r3(p.x)} ${r3(p.y)})"` : '';
+      out.push(`<text x="${r3(p.x)}" y="${r3(p.y)}" font-size="${p.size}" text-anchor="${p.anchor}"${p.bold ? ' font-weight="700"' : ''} fill="${p.color || '#000'}"${rot}>${esc(p.s)}</text>`);
+    }
+  }
+  out.push('</svg>');
+  return out.join('');
+}
+
+// ------------------------------------------------------------------ cornice e cartiglio
+const FRAME = { x0: 15, y0: 10, x1: 410, y1: 287, tbX: 230, tbY: 247, revY: 237 };
+
+/**
+ * Disegna cornice, riferimenti di zona, blocco revisioni e cartiglio.
+ * meta: dati di progetto; doc: {number, title, subtitle, scale, sheetNo, sheetCount}
+ */
+function frame(sh, meta, doc) {
+  const F = FRAME;
+  sh.rect(5, 5, sh.w - 10, sh.h - 10, ST.thin);
+  sh.rect(F.x0, F.y0, F.x1 - F.x0, F.y1 - F.y0, ST.thick);
+  // riferimenti di zona
+  const cols = 8, rows = 6;
+  for (let i = 0; i <= cols; i++) {
+    const x = F.x0 + ((F.x1 - F.x0) * i) / cols;
+    sh.line(x, 5, x, F.y0, ST.thin).line(x, F.y1, x, sh.h - 5, ST.thin);
+    if (i < cols) {
+      const xm = x + (F.x1 - F.x0) / cols / 2;
+      sh.textMid(xm, 7.5, String(i + 1), { size: 2.2, anchor: 'middle' });
+      sh.textMid(xm, sh.h - 7.5, String(i + 1), { size: 2.2, anchor: 'middle' });
+    }
+  }
+  for (let j = 0; j <= rows; j++) {
+    const y = F.y0 + ((F.y1 - F.y0) * j) / rows;
+    sh.line(5, y, F.x0, y, ST.thin).line(F.x1, y, sh.w - 5, y, ST.thin);
+    if (j < rows) {
+      const ym = y + (F.y1 - F.y0) / rows / 2;
+      const L = String.fromCharCode(65 + j);
+      sh.textMid(10, ym, L, { size: 2.2, anchor: 'middle' });
+      sh.textMid(sh.w - 7.5, ym, L, { size: 2.2, anchor: 'middle' });
+    }
+  }
+
+  // blocco revisioni
+  const x0 = F.tbX, x1 = F.x1;
+  sh.rect(x0, F.revY, x1 - x0, F.tbY - F.revY, ST.white);
+  const rc = [x0, x0 + 10, x0 + 28, x0 + 120, x0 + 140, x0 + 160, x1];
+  const rh = ['Rev.', 'Data', 'Descrizione', 'Red.', 'Contr.', 'Appr.'];
+  const rv = [meta.rev, meta.date, meta.revDesc || 'Emissione preliminare', meta.author, meta.checked, meta.approved];
+  const ym = F.revY + 5;
+  sh.line(x0, ym, x1, ym, ST.hair);
+  for (let i = 0; i < rh.length; i++) {
+    if (i) sh.line(rc[i], F.revY, rc[i], F.tbY, ST.hair);
+    sh.text(rc[i] + 1, F.revY + 3.6, rh[i], { size: 1.8, color: '#444444' });
+    sh.text(rc[i] + 1, F.tbY - 1.4, rv[i] || '', { size: 2.1 });
+  }
+
+  // cartiglio
+  const y0 = F.tbY, y1 = F.y1;
+  sh.rect(x0, y0, x1 - x0, y1 - y0, ST.med);
+  const yA = y0 + 9, yB = y0 + 23, yC = y0 + 32;
+  sh.line(x0, yA, x1, yA, ST.thin).line(x0, yB, x1, yB, ST.thin).line(x0, yC, x1, yC, ST.thin);
+  sh.line(x0 + 60, y0, x0 + 60, yA, ST.thin);
+  sh.text(x0 + 2, y0 + 3.6, 'COMMITTENTE', { size: 1.7, color: '#444444' });
+  sh.text(x0 + 2, y0 + 7.4, meta.client || '—', { size: 2.4, bold: true });
+  sh.text(x0 + 62, y0 + 3.6, 'PROGETTO', { size: 1.7, color: '#444444' });
+  sh.text(x0 + 62, y0 + 7.4, `${meta.project}${meta.site ? ' – ' + meta.site : ''}`, { size: 2.4, bold: true });
+  sh.text(x0 + 2, yA + 3.6, 'TITOLO', { size: 1.7, color: '#444444' });
+  sh.text(x0 + 2, yA + 8.4, doc.title, { size: 3.4, bold: true });
+  if (doc.subtitle) sh.text(x0 + 2, yA + 12.4, doc.subtitle, { size: 2.3 });
+  const cc = [x0, x0 + 78, x0 + 98, x0 + 128, x1];
+  const ch = ['N. DOCUMENTO', 'REV.', 'SCALA', 'FOGLIO'];
+  const cv = [doc.number, meta.rev, doc.scale || '—', `${doc.sheetNo} di ${doc.sheetCount}`];
+  for (let i = 0; i < ch.length; i++) {
+    if (i) sh.line(cc[i], yB, cc[i], yC, ST.thin);
+    sh.text(cc[i] + 1.5, yB + 3.2, ch[i], { size: 1.7, color: '#444444' });
+    sh.text(cc[i] + 1.5, yC - 1.6, cv[i], { size: i === 0 ? 2.8 : 2.6, bold: i === 0 });
+  }
+  const dc = [x0, x0 + 45, x0 + 90, x0 + 135, x1];
+  const dh = ['REDATTO', 'CONTROLLATO', 'APPROVATO', 'DATA'];
+  const dv = [meta.author, meta.checked, meta.approved, meta.date];
+  for (let i = 0; i < dh.length; i++) {
+    if (i) sh.line(dc[i], yC, dc[i], y1, ST.thin);
+    sh.text(dc[i] + 1.5, yC + 3, dh[i], { size: 1.6, color: '#444444' });
+    sh.text(dc[i] + 1.5, y1 - 1.5, dv[i] || '', { size: 2.2 });
+  }
+  return { x0: F.x0 + 4, y0: F.y0 + 4, x1: F.x1 - 4, y1: F.revY - 3 };
+}
+
+/** Riquadro di note in basso a sinistra (accanto al cartiglio). */
+function notesBox(sh, title, lines, { x = FRAME.x0 + 4, w = FRAME.tbX - FRAME.x0 - 10, y1 = FRAME.y1 - 4, size = 2.0 } = {}) {
+  const lh = size * 1.45;
+  const wrapped = [];
+  for (const l of lines) for (const w2 of wrap(l, w - 4, size)) wrapped.push(w2);
+  const h = 6 + wrapped.length * lh + 2;
+  const y0 = y1 - h;
+  sh.rect(x, y0, w, h, ST.thin);
+  sh.text(x + 2, y0 + 4, title, { size: 2.2, bold: true });
+  wrapped.forEach((l, i) => sh.text(x + 2, y0 + 7.6 + i * lh, l, { size }));
+  return y0;
+}
+
+/** Spezza un testo in righe che stanno nella larghezza data. */
+function wrap(s, width, size, bold = false) {
+  const words = String(s ?? '').split(/\s+/).filter(Boolean);
+  const lines = [];
+  let cur = '';
+  for (const w of words) {
+    const t = cur ? `${cur} ${w}` : w;
+    if (textWidth(t, size, bold) <= width || !cur) cur = t;
+    else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [''];
+}
+
+// ------------------------------------------------------------------ tabelle impaginate
+/**
+ * Impagina una tabella su più fogli A3 con cornice e cartiglio.
+ * columns: [{key, title, w, align}], rows: oggetti (o {group: 'titolo'} per le righe di gruppo).
+ */
+function tableSheets(meta, doc, columns, rows, { size = 2.05, notes = null, totals = null } = {}) {
+  const F = FRAME;
+  const left = F.x0 + 4, right = F.x1 - 4;
+  const totalW = columns.reduce((a, c) => a + c.w, 0);
+  const scale = (right - left) / totalW;
+  const xs = [];
+  let acc = left;
+  for (const c of columns) { xs.push(acc); acc += c.w * scale; }
+  xs.push(right);
+  const top = F.y0 + 16;
+  const bottom = F.revY - 4;
+  const lh = size * 1.32;
+  const headLines = columns.map((c, i) => wrap(c.title, xs[i + 1] - xs[i] - 2, size * 0.95, true));
+  const headH = Math.max(...headLines.map((l) => l.length)) * lh + 3;
+
+  const prepared = rows.map((r) => {
+    if (r.group) return { group: r.group, h: lh + 2.4 };
+    const cells = columns.map((c, i) => wrap(fmtCell(r[c.key]), xs[i + 1] - xs[i] - 2, size));
+    return { cells, h: Math.max(...cells.map((l) => l.length)) * lh + 1.6 };
+  });
+  const pages = [];
+  let cur = [];
+  let y = top + headH;
+  for (const r of prepared) {
+    if (y + r.h > bottom - (notes ? 0 : 0) && cur.length) { pages.push(cur); cur = []; y = top + headH; }
+    cur.push(r);
+    y += r.h;
+  }
+  if (cur.length || !pages.length) pages.push(cur);
+
+  const sheets = pages.map((pageRows, pi) => {
+    const sh = new Sheet();
+    frame(sh, meta, { ...doc, sheetNo: pi + 1, sheetCount: pages.length });
+    sh.text(left, F.y0 + 10, doc.title.toUpperCase(), { size: 3.6, bold: true });
+    if (doc.subtitle) sh.text(right, F.y0 + 10, doc.subtitle, { size: 2.3, anchor: 'end' });
+    // intestazione
+    sh.rect(left, top, right - left, headH, { s: '#000000', w: 0.35, f: '#e6e6e6' });
+    columns.forEach((c, i) => {
+      if (i) sh.line(xs[i], top, xs[i], top + headH, ST.thin);
+      headLines[i].forEach((l, j) => sh.text(xs[i] + 1, top + 2.9 + j * lh, l, { size: size * 0.95, bold: true }));
+    });
+    let yy = top + headH;
+    for (const r of pageRows) {
+      if (r.group) {
+        sh.rect(left, yy, right - left, r.h, { s: '#000000', w: 0.18, f: '#f2f2f2' });
+        sh.text(left + 1.5, yy + r.h - 1.5, r.group.toUpperCase(), { size, bold: true });
+      } else {
+        r.cells.forEach((lines, i) => {
+          const c = columns[i];
+          lines.forEach((l, j) => {
+            const ty = yy + 2.6 + j * lh;
+            if (c.align === 'right') sh.text(xs[i + 1] - 1, ty, l, { size, anchor: 'end' });
+            else if (c.align === 'center') sh.text((xs[i] + xs[i + 1]) / 2, ty, l, { size, anchor: 'middle' });
+            else sh.text(xs[i] + 1, ty, l, { size });
+          });
+        });
+        sh.line(left, yy + r.h, right, yy + r.h, ST.hair);
+      }
+      yy += r.h;
+    }
+    for (let i = 1; i < columns.length; i++) sh.line(xs[i], top + headH, xs[i], yy, ST.hair);
+    sh.rect(left, top, right - left, yy - top, ST.norm);
+    if (pi === pages.length - 1) {
+      let ny = yy + 4;
+      if (totals) {
+        for (const t of totals) { sh.text(left, ny + 3, t, { size: 2.3, bold: true }); ny += 4.2; }
+      }
+      if (notes) {
+        const lines = notes.flatMap((nl) => wrap(nl, F.tbX - left - 8, 1.95));
+        if (ny + lines.length * 2.9 + 6 < F.y1 - 2) {
+          sh.text(left, ny + 4, 'NOTE', { size: 2.2, bold: true });
+          lines.forEach((l, i) => sh.text(left, ny + 7.6 + i * 2.85, l, { size: 1.95 }));
+        }
+      }
+    }
+    return sh;
+  });
+  return sheets;
+}
+
+function fmtCell(v) {
+  if (v === null || v === undefined) return '';
+  return String(v);
+}
+
+return { A3, ST, withFill, withColor, Sheet, sheetToSVG, FRAME, frame, notesBox, wrap, tableSheets };
+})();
+
+__m['js/docs/symbols.js'] = (() => {
+// Simboli grafici per schemi di processo e P&ID (ispirati a ISA 5.1 / ISO 10628)
+// e per schemi elettrici unifilari (IEC 60617). Unità mm sul foglio.
+
+const { ST } = __m['js/docs/sheet.js'];
+const { textWidth } = __m['js/docs/pdf.js'];
+
+const W = '#ffffff';
+
+/** Linea di processo con freccia di flusso opzionale ed etichetta del numero linea. */
+function pline(sh, pts, { st = ST.med, arrow = true, label = null, at = 0.5, side = -1, size = 1.7, seg = null } = {}) {
+  sh.path(pts, st);
+  // segmento più lungo per freccia ed etichetta
+  let best = seg ?? 0, len = 0;
+  if (seg === null) {
+    for (let i = 1; i < pts.length; i++) {
+      const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+      if (l > len) { len = l; best = i - 1; }
+    }
+  }
+  const [a, b] = [pts[best], pts[best + 1]];
+  const mx = a[0] + (b[0] - a[0]) * at, my = a[1] + (b[1] - a[1]) * at;
+  const ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+  if (arrow) {
+    const s = 1.8;
+    const ax = mx + Math.cos(ang) * 1.2, ay = my + Math.sin(ang) * 1.2;
+    sh.path([[ax, ay], [ax - s * Math.cos(ang - 0.45), ay - s * Math.sin(ang - 0.45)], [ax - s * Math.cos(ang + 0.45), ay - s * Math.sin(ang + 0.45)]], { f: st.s || '#000' }, true);
+  }
+  if (label) {
+    const vertical = Math.abs(Math.sin(ang)) > 0.7;
+    if (vertical) sh.text(mx + side * -1.4 + (side < 0 ? 0 : 0), my + 6, label, { size, rot: -90, anchor: 'start' });
+    else sh.text(mx + 3, my + side * 1.2, label, { size });
+  }
+  return [mx, my];
+}
+
+/** Valvola: kind gate|globe|ball|check|butterfly|control|motor|nrv|plug */
+function valve(sh, x, y, { dir = 'h', kind = 'gate', s = 2.6, tag = null, tagSide = 1, fail = null } = {}) {
+  const h = dir === 'h';
+  const p = (u, v) => (h ? [x + u, y + v] : [x + v, y + u]);
+  const body = { s: '#000000', w: 0.3, f: W };
+  if (kind === 'butterfly') {
+    sh.path([p(-s, -s * 0.8), p(-s, s * 0.8)], ST.norm).path([p(s, -s * 0.8), p(s, s * 0.8)], ST.norm);
+    sh.circle(x, y, s * 0.55, body);
+    sh.path([p(-s * 0.55, s * 0.55), p(s * 0.55, -s * 0.55)], ST.norm);
+  } else if (kind === 'check' || kind === 'nrv') {
+    sh.path([p(-s, -s * 0.75), p(-s, s * 0.75), p(s, -s * 0.75), p(s, s * 0.75)], body, true);
+    sh.path([p(s, -s * 0.75), p(s, s * 0.75)], ST.med);
+    sh.path([p(-s, -s * 0.75), p(0, 0), p(-s, s * 0.75)], { f: '#000000' }, true);
+  } else {
+    sh.path([p(-s, -s * 0.75), p(-s, s * 0.75), p(s, -s * 0.75), p(s, s * 0.75)], body, true);
+    if (kind === 'globe' || kind === 'control') sh.circle(x, y, 0.55, { f: '#000000' });
+    if (kind === 'ball') sh.circle(x, y, s * 0.42, body);
+    if (kind === 'plug') sh.path([p(-s * 0.3, -s * 0.5), p(s * 0.3, -s * 0.5), p(s * 0.3, s * 0.5), p(-s * 0.3, s * 0.5)], { f: '#000000' }, true);
+  }
+  if (kind === 'control' || kind === 'motor') {
+    const stem = h ? [[x, y], [x, y - s * 1.8]] : [[x, y], [x + s * 1.8, y]];
+    sh.path(stem, ST.norm);
+    if (kind === 'control') {
+      if (h) sh.arc(x, y - s * 1.8, s * 0.9, 180, 360, { s: '#000000', w: 0.3, f: W }).line(x - s * 0.9, y - s * 1.8, x + s * 0.9, y - s * 1.8, ST.norm);
+      else sh.arc(x + s * 1.8, y, s * 0.9, -90, 90, { s: '#000000', w: 0.3, f: W }).line(x + s * 1.8, y - s * 0.9, x + s * 1.8, y + s * 0.9, ST.norm);
+    } else {
+      const cx = h ? x : x + s * 2.4, cy = h ? y - s * 2.4 : y;
+      sh.rect(cx - 1.3, cy - 1.3, 2.6, 2.6, body);
+      sh.textMid(cx, cy, 'M', { size: 1.7, anchor: 'middle', bold: true });
+    }
+    if (fail) sh.text(h ? x + s * 1.2 : x + s * 2.8, h ? y - s * 1.2 : y + s * 1.6, fail, { size: 1.3 });
+  }
+  if (tag) {
+    if (h) sh.text(x, y + (tagSide > 0 ? s + 2.6 : -s - 1.4 - (kind === 'control' || kind === 'motor' ? s * 2.8 : 0)), tag, { size: 1.6, anchor: 'middle' });
+    else sh.text(x + (tagSide > 0 ? s + 1.2 + (kind === 'control' || kind === 'motor' ? s * 2.4 : 0) : -s - 1.2), y + 0.6, tag, { size: 1.6, anchor: tagSide > 0 ? 'start' : 'end' });
+  }
+}
+
+/** Valvola di sicurezza ad angolo: ingresso dal basso, scarico verso destra. */
+function psv(sh, x, y, { tag = null, s = 2.4, out = 1 } = {}) {
+  const body = { s: '#000000', w: 0.3, f: W };
+  sh.path([[x, y], [x - s * 0.8, y + s * 1.4], [x + s * 0.8, y + s * 1.4]], body, true); // ingresso (punta verso l'alto)
+  sh.path([[x, y], [x + out * s * 1.4, y - s * 0.8], [x + out * s * 1.4, y + s * 0.8]], body, true);
+  // molla
+  const zz = [[x, y]];
+  for (let i = 1; i <= 5; i++) zz.push([x + (i % 2 ? 0.9 : -0.9), y - i * 0.75]);
+  zz.push([x, y - 4.6]);
+  sh.path(zz, ST.thin);
+  sh.line(x - 1.2, y - 4.6, x + 1.2, y - 4.6, ST.norm);
+  if (tag) sh.text(x - 1.6, y - 5.4, tag, { size: 1.5, anchor: 'end' });
+}
+
+/** Strumento: bolla circolare con lettere funzionali e numero; dcs = linea centrale (sala controllo). */
+function instr(sh, x, y, fn, num, { dcs = true, r = 3.3, to = null, sis = false } = {}) {
+  if (to) {
+    // linea di segnale dal bordo della bolla al punto di presa
+    const d = Math.hypot(to[0] - x, to[1] - y) || 1;
+    sh.line(x + ((to[0] - x) / d) * r, y + ((to[1] - y) / d) * r, to[0], to[1], ST.signal);
+  }
+  if (sis) sh.rect(x - r, y - r, 2 * r, 2 * r, { s: '#000000', w: 0.25, f: W });
+  sh.circle(x, y, r, { s: '#000000', w: 0.3, f: W });
+  if (dcs) sh.line(x - r, y, x + r, y, ST.thin);
+  const fs = fn.length > 3 ? 1.45 : 1.75;
+  sh.text(x, y - 0.6, fn, { size: fs, anchor: 'middle', bold: true });
+  sh.text(x, y + 2.2, String(num), { size: 1.45, anchor: 'middle' });
+}
+
+/** Pompa centrifuga (cerchio con mandata tangente). */
+function pump(sh, x, y, { r = 4, tag = null, label = null, out = 'up' } = {}) {
+  sh.circle(x, y, r, { s: '#000000', w: 0.4, f: W });
+  if (out === 'up') sh.path([[x, y - r], [x + r, y - r], [x + r, y - r + 1.6]], ST.med);
+  else sh.path([[x + r, y], [x + r + 0.01, y]], ST.med);
+  sh.path([[x - r * 0.55, y - r * 0.45], [x + r * 0.7, y], [x - r * 0.55, y + r * 0.45]], { s: '#000000', w: 0.3 }, true);
+  sh.path([[x - r * 0.6, y + r * 0.8], [x - r, y + r + 1.4], [x + r, y + r + 1.4], [x + r * 0.6, y + r * 0.8]], ST.norm);
+  if (tag) sh.text(x, y + r + 4.2, tag, { size: 1.7, anchor: 'middle', bold: true });
+  if (label) sh.text(x, y + r + 6.6, label, { size: 1.5, anchor: 'middle' });
+}
+
+/** Rinvio ad altro foglio (pentagono). dir: 'right' (uscita) | 'left' (ingresso da sinistra). */
+function offPage(sh, x, y, dir, text, ref = '', { w = 30 } = {}) {
+  const h = 5.2;
+  let pts;
+  if (dir === 'right') pts = [[x, y - h / 2], [x + w - 3, y - h / 2], [x + w, y], [x + w - 3, y + h / 2], [x, y + h / 2]];
+  else pts = [[x, y - h / 2], [x - w + 3, y - h / 2], [x - w, y], [x - w + 3, y + h / 2], [x, y + h / 2]];
+  sh.path(pts, { s: '#000000', w: 0.35, f: W }, true);
+  const cx = dir === 'right' ? x + (w - 3) / 2 : x - (w - 3) / 2;
+  sh.text(cx, y - 0.2, text, { size: 1.55, anchor: 'middle', bold: true });
+  if (ref) sh.text(cx, y + 2.1, ref, { size: 1.3, anchor: 'middle' });
+}
+
+/** Etichetta apparecchiatura: tag sottolineato e descrizione. */
+function equipTag(sh, x, y, tag, desc, { anchor = 'middle', size = 2.1 } = {}) {
+  sh.text(x, y, tag, { size, bold: true, anchor });
+  const w = textWidth(tag, size, true);
+  const x0 = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x;
+  sh.line(x0, y + 0.6, x0 + w, y + 0.6, ST.thin);
+  if (desc) {
+    const parts = Array.isArray(desc) ? desc : [desc];
+    parts.forEach((d, i) => sh.text(x, y + 3.2 + i * 2.5, d, { size: size * 0.78, anchor }));
+  }
+}
+
+/** Corpo cilindrico orizzontale con fondi semisferici. */
+function drum(sh, x, y, w, h, st = { s: '#000000', w: 0.45, f: W }) {
+  const r = h / 2;
+  const pts = [];
+  for (let i = 0; i <= 12; i++) { const a = Math.PI / 2 + (Math.PI * i) / 12; pts.push([x + r + r * Math.cos(a), y + r + r * Math.sin(a)]); }
+  for (let i = 0; i <= 12; i++) { const a = -Math.PI / 2 + (Math.PI * i) / 12; pts.push([x + w - r + r * Math.cos(a), y + r + r * Math.sin(a)]); }
+  sh.path(pts, st, true);
+}
+
+/** Recipiente verticale (fondi semiellittici). */
+function vvessel(sh, x, y, w, h, st = { s: '#000000', w: 0.45, f: W }) {
+  const r = w / 2, e = w * 0.25;
+  const pts = [];
+  for (let i = 0; i <= 12; i++) { const a = Math.PI + (Math.PI * i) / 12; pts.push([x + r + r * Math.cos(a), y + e + e * Math.sin(a)]); }
+  for (let i = 0; i <= 12; i++) { const a = (Math.PI * i) / 12; pts.push([x + r + r * Math.cos(a), y + h - e + e * Math.sin(a)]); }
+  sh.path(pts, st, true);
+}
+
+/** Banco di scambio termico (serpentino) in un rettangolo. */
+function coil(sh, x, y, w, h, { label = null, st = ST.norm } = {}) {
+  sh.rect(x, y, w, h, { s: '#000000', w: 0.3, f: W });
+  const nz = Math.max(4, Math.round(h / 4));
+  const pts = [];
+  for (let i = 0; i <= nz; i++) pts.push([x + (i % 2 ? w - 1 : 1), y + 1 + ((h - 2) * i) / nz]);
+  sh.path(pts, st);
+  if (label) {
+    const lines = label.split(' ');
+    lines.forEach((l, i) => sh.text(x + w / 2, y - 1.2 - (lines.length - 1 - i) * 2.2, l, { size: 1.6, anchor: 'middle', bold: true }));
+  }
+}
+
+/** Scambiatore a fascio tubiero (cerchio con serpentino). */
+function hx(sh, x, y, r = 4) {
+  sh.circle(x, y, r, { s: '#000000', w: 0.4, f: W });
+  sh.path([[x - r, y], [x - r / 2, y - r / 2], [x, y + r / 2], [x + r / 2, y - r / 2], [x + r, y]], ST.norm);
+}
+
+/** Filtro a Y / separatore. */
+function strainer(sh, x, y, s = 2.4) {
+  sh.path([[x - s, y - s * 0.7], [x - s, y + s * 0.7], [x + s, y - s * 0.7], [x + s, y + s * 0.7]], { s: '#000000', w: 0.3, f: W }, true);
+  sh.line(x, y, x + s * 0.8, y + s * 1.4, ST.norm);
+  sh.line(x + s * 0.3, y + s * 1.6, x + s * 1.3, y + s * 1.2, ST.norm);
+}
+
+/** Elemento di misura di portata (flangia tarata). */
+function orifice(sh, x, y, dir = 'h') {
+  if (dir === 'h') { sh.line(x - 0.8, y - 2, x - 0.8, y + 2, ST.med).line(x + 0.8, y - 2, x + 0.8, y + 2, ST.med); } else { sh.line(x - 2, y - 0.8, x + 2, y - 0.8, ST.med).line(x - 2, y + 0.8, x + 2, y + 0.8, ST.med); }
+}
+
+// ------------------------------------------------------------------ simboli elettrici (IEC 60617)
+function elGen(sh, x, y, r = 6, label = 'G') {
+  sh.circle(x, y, r, { s: '#000000', w: 0.45, f: W });
+  sh.text(x, y + 0.2, label, { size: 3, anchor: 'middle', bold: true });
+  sh.path([[x - 2.2, y + 2.4], [x - 1.1, y + 1.6], [x, y + 2.4], [x + 1.1, y + 3.2], [x + 2.2, y + 2.4]], ST.thin);
+}
+function elMotor(sh, x, y, r = 3.2) {
+  sh.circle(x, y, r, { s: '#000000', w: 0.35, f: W });
+  sh.textMid(x, y, 'M', { size: 2.3, anchor: 'middle', bold: true });
+}
+/** Trasformatore a due avvolgimenti verticale; (x, y) = centro superiore del primo cerchio. */
+function elTrafo(sh, x, y, r = 4.2) {
+  sh.circle(x, y + r, r, { s: '#000000', w: 0.4 });
+  sh.circle(x, y + r * 2.4, r, { s: '#000000', w: 0.4 });
+  return y + r * 3.4;
+}
+/** Interruttore (quadrato) su linea verticale; restituisce la y inferiore. */
+function elBreaker(sh, x, y, s = 2.8) {
+  sh.rect(x - s / 2, y, s, s, { s: '#000000', w: 0.4, f: W });
+  return y + s;
+}
+/** Sezionatore su linea verticale. */
+function elDisconnector(sh, x, y, l = 4) {
+  sh.line(x, y + l, x - l * 0.55, y + 0.6, ST.norm);
+  sh.line(x - 1, y, x + 1, y, ST.norm);
+  return y + l;
+}
+function elEarth(sh, x, y) {
+  sh.line(x, y, x, y + 1.5, ST.norm).line(x - 2, y + 1.5, x + 2, y + 1.5, ST.norm).line(x - 1.3, y + 2.3, x + 1.3, y + 2.3, ST.norm).line(x - 0.6, y + 3.1, x + 0.6, y + 3.1, ST.norm);
+}
+/** Trasformatore di corrente (cerchietti sulla linea). */
+function elCT(sh, x, y) {
+  sh.circle(x, y, 1.3, ST.thin);
+}
+
+return { pline, valve, psv, instr, pump, offPage, equipTag, drum, vvessel, coil, hx, strainer, orifice, elGen, elMotor, elTrafo, elBreaker, elDisconnector, elEarth, elCT };
+})();
+
+__m['js/docs/drawings-process.js'] = (() => {
+// Elaborati di processo: PFD con bilancio di massa ed energia e P&ID.
+
+const { Sheet, ST, frame, notesBox, FRAME } = __m['js/docs/sheet.js'];
+const { pline, valve, psv, instr, pump, offPage, equipTag, drum, coil, hx, strainer, orifice, vvessel } = __m['js/docs/symbols.js'];
+
+const W = '#ffffff';
+const f = (v, d = 1) => (Number.isFinite(v) ? v.toLocaleString('it-IT', { minimumFractionDigits: d, maximumFractionDigits: d }) : '—');
+
+function diamond(sh, x, y, num) {
+  const r = 2.7;
+  sh.path([[x, y - r], [x + r, y], [x, y + r], [x - r, y]], { s: '#000000', w: 0.3, f: W }, true);
+  sh.textMid(x, y, String(num), { size: 1.8, anchor: 'middle', bold: true });
+}
+
+function gtSymbol(sh, x, y, { h = 30, scale = 1 } = {}) {
+  // compressore (x..x+20), combustore sopra, turbina (x+24..x+44); asse a y
+  const s = scale;
+  const c0 = x, c1 = x + 20 * s, t0 = x + 24 * s, t1 = x + 44 * s;
+  sh.path([[c0, y - h / 2], [c1, y - h / 4], [c1, y + h / 4], [c0, y + h / 2]], { s: '#000000', w: 0.45, f: W }, true);
+  sh.path([[t0, y - h / 4], [t1, y - h / 2], [t1, y + h / 2], [t0, y + h / 4]], { s: '#000000', w: 0.45, f: W }, true);
+  sh.line(c1, y, t0, y, ST.thick);
+  const cbX = (c1 + t0) / 2;
+  sh.rect(cbX - 5 * s, y - h / 2 - 12 * s, 10 * s, 9 * s, { s: '#000000', w: 0.45, f: W });
+  sh.line(c1 - 1, y - h / 4 + 0.5, cbX - 3 * s, y - h / 2 - 3 * s, ST.med);
+  sh.line(cbX + 3 * s, y - h / 2 - 3 * s, t0 + 1, y - h / 4 + 0.5, ST.med);
+  sh.text((c0 + c1) / 2, y + 1, 'C', { size: 3, anchor: 'middle', bold: true });
+  sh.text((t0 + t1) / 2, y + 1, 'T', { size: 3, anchor: 'middle', bold: true });
+  return { c0, c1, t0, t1, cbX, cbY: y - h / 2 - 12 * s, cbBot: y - h / 2 - 3 * s };
+}
+
+function genSym(sh, x, y, r = 6) {
+  sh.circle(x, y, r, { s: '#000000', w: 0.45, f: W });
+  sh.text(x, y + 1.1, 'G', { size: 3, anchor: 'middle', bold: true });
+}
+
+function stSection(sh, x0, x1, yc, kind, label) {
+  if (kind === 'LP') {
+    const xm = (x0 + x1) / 2;
+    sh.path([[x0, yc - 11], [xm - 3, yc - 4], [xm + 3, yc - 4], [x1, yc - 11], [x1, yc + 11], [xm + 3, yc + 4], [xm - 3, yc + 4], [x0, yc + 11]], { s: '#000000', w: 0.45, f: W }, true);
+  } else {
+    sh.path([[x0, yc - 5], [x1, yc - 9], [x1, yc + 9], [x0, yc + 5]], { s: '#000000', w: 0.45, f: W }, true);
+  }
+  sh.textMid((x0 + x1) / 2, yc, label, { size: 2.2, anchor: 'middle', bold: true });
+}
+
+// ------------------------------------------------------------------ PFD
+function pfdSheets(M, doc) {
+  const sh = new Sheet();
+  frame(sh, M.meta, { ...doc, sheetNo: 1, sheetCount: 1 });
+  const s = M.st;
+  const N = M.N;
+  sh.text(FRAME.x0 + 4, FRAME.y0 + 8, 'SCHEMA DI PROCESSO E BILANCIO DI MASSA ED ENERGIA', { size: 3.2, bold: true });
+  sh.text(FRAME.x0 + 4, FRAME.y0 + 12, `Punto di progetto ISO 15 °C, 1013 mbar, UR 60 %, carico base · ${N}+1 · ${M.gtClass}${N > 1 ? ` · valori "per TG/GVR" riferiti a una unità` : ''}`, { size: 2 });
+
+  // turbogas
+  const yA = 78;
+  genSym(sh, 32, yA, 6.5);
+  sh.line(38.5, yA, 52, yA, ST.thick);
+  const g = gtSymbol(sh, 52, yA, { h: 30 });
+  equipTag(sh, 74, yA + 22, `${N > 1 ? 'TG1..' + N : 'TG'}`, M.gtClass);
+  // filtro aria
+  sh.rect(48, 28, 18, 10, { s: '#000000', w: 0.4, f: W });
+  for (let i = 0; i < 5; i++) sh.line(50 + i * 3.5, 29, 50 + i * 3.5, 37, ST.thin);
+  pline(sh, [[57, 38], [57, yA - 15.5]], { arrow: true });
+  diamond(sh, 53, 47, s.air);
+  diamond(sh, 75, 56, s.cd2);
+  // combustibile
+  pline(sh, [[g.cbX - 14, g.cbY - 4], [g.cbX, g.cbY - 4], [g.cbX, g.cbY]], {});
+  sh.text(g.cbX - 14, g.cbY - 6, 'Gas naturale', { size: 1.7 });
+  diamond(sh, g.cbX - 9, g.cbY - 4, s.fg);
+  // scarico -> GVR
+  const hx0 = 112, hx1 = 232, hy0 = 50, hy1 = 104;
+  sh.path([[g.t1, yA - 15], [hx0, hy0 + 4], [hx0, hy1 - 4], [g.t1, yA + 15]], { s: '#000000', w: 0.4, f: W }, true);
+  diamond(sh, 104, yA, s.exh);
+  sh.rect(hx0, hy0, hx1 - hx0, hy1 - hy0, { s: '#000000', w: 0.6, f: W });
+  equipTag(sh, hx0, hy0 - 4, N > 1 ? `GVR1..${N}` : 'GVR', null, { anchor: 'start' });
+  const cols = groupCols(M.r.bt.banks);
+  const cw = (hx1 - hx0 - 6) / cols.length;
+  const colPos = {};
+  cols.forEach((c, i) => {
+    const x = hx0 + 3 + i * cw;
+    c.banks.forEach((b, j) => {
+      const bw = (cw - 2) / c.banks.length;
+      const bx = x + 1 + j * bw;
+      coil(sh, bx + 0.4, hy0 + 14, bw - 0.8, hy1 - hy0 - 22, {});
+      const lb = b.name.replace(' (condensato)', '').split(' ');
+      lb.forEach((l, k) => sh.text(bx + bw / 2, hy0 + 6 + k * 2.6, l, { size: 1.5, anchor: 'middle', bold: k === 0 }));
+      if (!colPos[b.name]) colPos[b.name] = bx + bw / 2;
+    });
+  });
+  // corpi cilindrici
+  M.names.forEach((lv) => {
+    const x = colPos[`EVA ${lv}`];
+    if (x === undefined) return;
+    drum(sh, x - 8, 30, 16, 6);
+    sh.textMid(x, 33, lv, { size: 1.8, anchor: 'middle', bold: true });
+    sh.line(x - 4, 36, x - 4, hy0, ST.norm).line(x + 4, 36, x + 4, hy0, ST.norm);
+  });
+  // camino
+  sh.rect(hx1 + 2, 18, 10, hy1 - 18, { s: '#000000', w: 0.5, f: W });
+  pline(sh, [[hx1 + 7, 30], [hx1 + 7, 20]], {});
+  diamond(sh, hx1 + 7, 40, s.stack);
+  sh.text(hx1 + 14, 26, 'Camino', { size: 1.8 });
+
+  // turbina a vapore
+  const yS = 136;
+  const secs = M.n === 3 ? [['HP', 252, 266], ['IP', 270, 286], ['LP', 292, 326]] : M.n === 2 ? [['HP', 262, 278], ['LP', 292, 326]] : [['LP', 292, 326]];
+  sh.line(secs[0][1] - 4, yS, 350, yS, ST.thick);
+  for (const [k, x0, x1] of secs) stSection(sh, x0, x1, yS, k, k === 'LP' && M.n === 1 ? 'TV' : k);
+  genSym(sh, 356, yS, 6.5);
+  equipTag(sh, 300, yS - 16, 'TV', 'Turbina a vapore');
+  const xHPin = secs[0][1] + 2;
+  // vapore HP
+  const xSH = colPos['SH HP'];
+  pline(sh, [[xSH, hy1], [xSH, 110], [xHPin, 110], [xHPin, yS - 6]], {});
+  diamond(sh, xSH + 20, 110, s.hpGen);
+  diamond(sh, xHPin, 122, s.hpST);
+  if (M.reheat) {
+    const xRH = colPos.RH;
+    const hpOut = secs[0][2] - 2;
+    pline(sh, [[hpOut, yS - 8], [hpOut, 115], [xRH - 1.5, 115], [xRH - 1.5, hy1]], { seg: 1, at: 0.7 });
+    diamond(sh, hpOut, 121, s.crh);
+    const ipIn = secs[1][1] + 2;
+    pline(sh, [[xRH + 1.5, hy1], [xRH + 1.5, 120], [ipIn + 3, 120], [ipIn + 3, yS - 6]], { seg: 1, at: 0.8 });
+    diamond(sh, ipIn + 3, 126, s.hrh);
+    const xSHip = colPos['SH IP'];
+    pline(sh, [[xSHip, hy1], [xSHip, 115]], { arrow: true });
+    sh.circle(xSHip, 115, 0.8, ST.black);
+    diamond(sh, xSHip + 4, 108, s.ip);
+  }
+  if (M.n > 1) {
+    const xSHlp = colPos['SH LP'];
+    const lpIn = (secs[secs.length - 1][1] + secs[secs.length - 1][2]) / 2;
+    pline(sh, [[xSHlp, hy1], [xSHlp, 125], [lpIn, 125], [lpIn, yS - 4]], { seg: 1, at: 0.85 });
+    diamond(sh, xSHlp + 5, 125, s.lp);
+  }
+  // condensatore e pompe
+  const lpx0 = 292, lpx1 = 326;
+  sh.rect(lpx0, 150, lpx1 - lpx0, 9, { s: '#000000', w: 0.45, f: W });
+  sh.line((lpx0 + lpx1) / 2, yS + 11, (lpx0 + lpx1) / 2, 150, ST.med);
+  diamond(sh, (lpx0 + lpx1) / 2 + 4, 149, s.exST);
+  sh.text(lpx0 - 2, 156, M.cfg.steam.condenser.type === 'air' ? 'Aerocondensatore' : 'Condensatore', { size: 1.8, anchor: 'end' });
+  pump(sh, 280, 166, { r: 3.4 });
+  pline(sh, [[lpx0 + 4, 159], [lpx0 + 4, 166], [283.4, 166]], { arrow: false });
+  const xPRE = colPos['PRE (condensato)'] ?? hx1 - 6;
+  pline(sh, [[283.4, 162.6], [283.4, 174], [xPRE, 174], [xPRE, hy1]], { seg: 1, at: 0.4 });
+  diamond(sh, 262, 174, s.cdp);
+  // alimento
+  const xLPd = colPos[`EVA ${M.names[M.n - 1]}`];
+  if (M.n > 1) {
+    pump(sh, 200, 166, { r: 3.4 });
+    pline(sh, [[xLPd + 7, hy1], [xLPd + 7, 170], [196.6, 170], [196.6, 166]], { arrow: false, seg: 1 });
+    const xECO = colPos['ECO HP'];
+    pline(sh, [[203.4, 162.6], [203.4, 160], [xECO, 160], [xECO, hy1]], { seg: 1, at: 0.5 });
+    diamond(sh, 190, 160, s.fwHP);
+    if (M.reheat && s.fwIP) {
+      const xEIP = colPos['ECO IP'];
+      pline(sh, [[203.4, 160], [203.4, 154], [xEIP + 2, 154], [xEIP + 2, hy1]], { seg: 1, at: 0.6, arrow: true });
+      diamond(sh, (203.4 + xEIP) / 2, 154, s.fwIP);
+    }
+    sh.text(195, 172, 'Pompe alimento', { size: 1.6, anchor: 'end' });
+  }
+  sh.text(286, 170, 'Pompe condensato', { size: 1.6 });
+  if (s.cwIn) {
+    pline(sh, [[366, 152], [lpx1, 152]], {});
+    pline(sh, [[lpx1, 157], [366, 157]], {});
+    diamond(sh, 354, 152, s.cwIn);
+    diamond(sh, 342, 157, s.cwOut);
+    sh.path([[366, 166], [370, 148], [386, 148], [390, 166]], { s: '#000000', w: 0.45, f: W }, true);
+    sh.text(378, 170, 'Torre di raffreddamento', { size: 1.6, anchor: 'middle' });
+  }
+  // riepilogo prestazioni
+  const r = M.r;
+  const kx = 330, ky = 30;
+  sh.rect(kx, ky - 5, 72, 46, ST.norm);
+  sh.text(kx + 2, ky, 'PRESTAZIONI NETTE DI PROGETTO', { size: 2, bold: true });
+  const rows = [
+    ['Potenza TG', `${f(r.Pgt)} MW`], ['Potenza TV', `${f(r.Pst)} MW`], ['Potenza lorda', `${f(r.gross)} MW`],
+    ['Ausiliari + trasf.', `${f(r.Paux + r.Ptrafo)} MW`], ['Potenza netta', `${f(r.net)} MW`],
+    ['Rendimento netto PCI', `${f(r.eta * 100, 2)} %`], ['Heat rate netto', `${f(3600 / r.eta, 0)} kJ/kWh`],
+    ['Combustibile', `${f(r.Qfuel)} MWt`], ['CO₂ specifica', `${f(r.co2Spec, 0)} kg/MWh`],
+  ];
+  rows.forEach(([a, b], i) => { sh.text(kx + 2, ky + 4.6 + i * 4.3, a, { size: 1.9 }); sh.text(kx + 70, ky + 4.6 + i * 4.3, b, { size: 1.9, anchor: 'end', bold: i === 4 || i === 5 }); });
+
+  // tabella H&MB
+  const tx0 = FRAME.x0 + 4, tx1 = FRAME.x1 - 4;
+  let ty = 184;
+  const colsT = [['N.', 8], ['Corrente', 86], ['Fluido', 26], ['Portata kg/s', 22], ['Portata t/h', 22], ['Pressione bar(a)', 24], ['Temperatura °C', 24], ['Entalpia kJ/kg', 22], ['Note', 60]];
+  const scale = (tx1 - tx0) / colsT.reduce((a, c) => a + c[1], 0);
+  const xs = [tx0];
+  for (const c of colsT) xs.push(xs[xs.length - 1] + c[1] * scale);
+  const rh = 2.7;
+  const half = Math.ceil(M.streams.length / 1);
+  sh.rect(tx0, ty, tx1 - tx0, 4.6, { s: '#000000', w: 0.35, f: '#e6e6e6' });
+  colsT.forEach((c, i) => sh.text(xs[i] + 0.8, ty + 3.2, c[0], { size: 1.75, bold: true }));
+  ty += 4.6;
+  M.streams.slice(0, half).forEach((st, i) => {
+    const y = ty + i * rh;
+    const vals = [String(st.no), st.desc, st.fluid, f(st.m, 1), f(st.m * 3.6, 1), st.p < 1 ? f(st.p, 3) : f(st.p, 2), f(st.T, 1), st.h === null ? '—' : f(st.h, 1), st.extra || ''];
+    vals.forEach((v, j) => {
+      const right = j >= 3 && j <= 7;
+      sh.text(right ? xs[j + 1] - 0.8 : xs[j] + 0.8, y + 2.15, v, { size: 1.7, anchor: right ? 'end' : 'start' });
+    });
+    sh.line(tx0, y + rh, tx1, y + rh, ST.hair);
+  });
+  const yEnd = ty + half * rh;
+  for (let i = 1; i < colsT.length; i++) sh.line(xs[i], 184, xs[i], yEnd, ST.hair);
+  sh.rect(tx0, 184, tx1 - tx0, yEnd - 184, ST.norm);
+  return [sh];
+}
+
+function groupCols(banks) {
+  const cols = [];
+  for (const b of banks) {
+    const last = cols[cols.length - 1];
+    if (b.parallel && last && last.parallel && Math.abs(last.TgIn - b.TgIn) < 1e-6) last.banks.push(b);
+    else cols.push({ parallel: !!b.parallel, TgIn: b.TgIn, banks: [b] });
+  }
+  return cols;
+}
+
+const LEGEND = [
+  'Simbologia ISA 5.1 / ISO 10628. Strumenti con linea centrale: funzioni disponibili in DCS (sala controllo).',
+  'Numerazione linee: DN-FLUIDO-NUMERO-SPECIFICA-COIBENTAZIONE (vedi line list). Specifica: materiale (A A106B, B P22, C P91, G API 5L, W A672) + classe (A 150#, B 300#, C 600#, D 900#, E 1500#, F 2500#). Coibentazione: H calore, P protezione personale, N nessuna.',
+  'Codifica apparecchiature KKS semplificata: prima cifra = unità (1..3 treni TG/GVR, 0 comune).',
+];
+
+// ------------------------------------------------------------------ P&ID 1: turbogas e gas combustibile
+function pid1Sheets(M, doc) {
+  const sh = new Sheet();
+  frame(sh, M.meta, { ...doc, sheetNo: 1, sheetCount: 1 });
+  const ln = (id) => M.lineById[id]?.lineNo ?? '';
+  const N = M.N;
+  sh.text(FRAME.x0 + 4, FRAME.y0 + 8, `TURBOGAS, ASPIRAZIONE ARIA, GAS COMBUSTIBILE E SCARICO${N > 1 ? ` – TIPICO TG1…TG${N}` : ''}`, { size: 3, bold: true });
+  const yG = 92; // linea gas
+  // ingresso da cabina
+  offPage(sh, 50, yG, 'left', 'GAS NATURALE', 'da 0EKA10 stazione gas', { w: 30 });
+  pline(sh, [[50, yG], [64, yG]], { arrow: false });
+  valve(sh, 64 + 2.6, yG, { kind: 'motor', tag: '1EKG10AA001', fail: 'FC' });
+  instr(sh, 67, yG - 18, 'XV', '001', { to: [67, yG - 9] });
+  pline(sh, [[69.2, yG], [86, yG]], { arrow: true, label: ln('FG-1'), size: 1.5 });
+  // filtro separatore
+  vvessel(sh, 86, yG - 12, 9, 22);
+  equipTag(sh, 90.5, yG + 22, '1EKG10AT001', 'Filtro separatore');
+  instr(sh, 90.5, yG - 22, 'PDT', '002', { to: [90.5, yG - 12] });
+  sh.line(90.5, yG + 10, 90.5, yG + 13, ST.norm);
+  valve(sh, 90.5, yG + 14.5, { dir: 'v', kind: 'ball', s: 1.6 });
+  pline(sh, [[95, yG], [112, yG]], { arrow: false });
+  // misura portata
+  orifice(sh, 104, yG);
+  instr(sh, 104, yG - 14, 'FT', '003', { to: [104, yG - 2] });
+  instr(sh, 113, yG - 22, 'AT', '004', { to: [113, yG] });
+  sh.text(117, yG - 24, 'gascromatografo PCS/Wobbe', { size: 1.4 });
+  // riscaldatore gas
+  pline(sh, [[112, yG], [124, yG]], { arrow: false });
+  hx(sh, 128, yG, 4.5);
+  equipTag(sh, 124, yG + 10, '1EKG10AC001', 'Riscaldatore gas', { anchor: 'end' });
+  pline(sh, [[128, yG + 19], [128, yG + 4.5]], { arrow: true });
+  offPage(sh, 128, yG + 30, 'left', 'ACQUA IP', 'da ECO IP (P&ID GVR)', { w: 26 });
+  sh.line(128, yG + 30, 128, yG + 19, ST.med);
+  pline(sh, [[132.5, yG + 2], [140, yG + 2], [140, yG + 30], [146, yG + 30]], { arrow: true });
+  offPage(sh, 146, yG + 30, 'right', 'RITORNO', 'a condensatore', { w: 22 });
+  instr(sh, 142, yG - 14, 'TT', '005', { to: [142, yG] });
+  pline(sh, [[132.5, yG], [156, yG]], { arrow: false });
+  // regolazione pressione
+  valve(sh, 158.6, yG, { kind: 'control', tag: '1EKG10AA002' });
+  instr(sh, 158.6, yG - 20, 'PIC', '006', { to: [158.6, yG - 9] });
+  instr(sh, 172, yG - 14, 'PT', '007', { to: [172, yG] });
+  pline(sh, [[161.2, yG], [184, yG]], { arrow: true });
+  // skid gas TG
+  sh.rect(184, yG - 34, 76, 52, ST.dash);
+  sh.text(186, yG - 30, '1MBP10 SKID VALVOLE GAS (fornitura TG)', { size: 1.6, bold: true });
+  valve(sh, 194, yG, { kind: 'control', tag: 'SRV', fail: 'FC' });
+  instr(sh, 194, yG - 20, 'PIC', '010', { to: [194, yG - 9] });
+  pline(sh, [[196.6, yG], [220, yG]], { arrow: false });
+  sh.line(207, yG, 207, yG - 10, ST.norm);
+  valve(sh, 207, yG - 12.6, { dir: 'v', kind: 'motor', tag: 'VENT', s: 2 });
+  sh.line(207, yG - 15, 207, yG - 22, ST.norm);
+  sh.text(209, yG - 22, 'sfiato in atmosfera', { size: 1.3 });
+  // valvole di regolazione per stadi DLN
+  const stages = ['PM1', 'PM2', 'PM3'];
+  stages.forEach((sg, i) => {
+    const y = yG - 8 + i * 8;
+    pline(sh, [[220, yG], [224, yG], [224, y], [232, y]], { arrow: false });
+    valve(sh, 234.6, y, { kind: 'control', tag: i === 1 ? '' : '', s: 2.1 });
+    sh.text(240, y - 1.2, sg, { size: 1.4 });
+    pline(sh, [[236.7, y], [262, y], [262, 66 - i * 1.2]], { arrow: false });
+  });
+  sh.text(236, yG + 17, 'valvole di regolazione gas per stadio', { size: 1.4 });
+
+  // turbogas
+  const x0 = 250, yc = 120;
+  // generatore a sinistra
+  const gx = 300;
+  const g = gtSymbol(sh, gx, 52 + 70, { h: 34 });
+  void x0; void yc;
+  const ya = 122;
+  sh.circle(gx - 22, ya, 8, { s: '#000000', w: 0.45, f: W });
+  sh.text(gx - 22, ya + 1.2, 'G', { size: 3.4, anchor: 'middle', bold: true });
+  sh.line(gx - 14, ya, gx, ya, ST.thick);
+  equipTag(sh, gx - 22, ya + 14, '1MKA10', `${M.electrical.gens[0].MVA} MVA ${String(M.electrical.gens[0].kV).replace('.', ',')} kV`);
+  equipTag(sh, gx - 18, ya - 30, '1MBA10', [`Turbina a gas ${M.gtClass}`, `P ISO ${f(M.des.gtRef.Piso)} MW`]);
+  // gas ai combustori
+  pline(sh, [[262, 63.6], [g.cbX, 63.6], [g.cbX, g.cbY]], { arrow: true });
+  // aria: casa filtri
+  const fx = gx - 2, fy = 36;
+  sh.rect(fx - 4, fy - 14, 26, 14, { s: '#000000', w: 0.45, f: W });
+  for (let i = 0; i < 7; i++) sh.line(fx - 2 + i * 3.4, fy - 12, fx - 2 + i * 3.4, fy - 2, ST.thin);
+  equipTag(sh, fx + 9, fy - 17, '1MBL10', null);
+  instr(sh, fx + 30, fy - 8, 'PDT', '020', { to: [fx + 22, fy - 8] });
+  pline(sh, [[fx + 6, fy], [fx + 6, ya - 17]], { arrow: true });
+  instr(sh, fx - 12, fy + 14, 'TT', '021', { to: [fx + 6, fy + 14] });
+  instr(sh, fx - 12, fy + 26, 'ZT', '022', { to: [gx + 2, ya - 12] });
+  sh.text(fx - 20, fy + 33, 'posizione IGV', { size: 1.3 });
+  instr(sh, g.c1 - 4, ya + 30, 'PT', '023', { to: [g.c1 - 2, ya + 8] });
+  instr(sh, g.t1 + 6, ya - 34, 'ST', '024', { to: [g.t1 - 6, ya] });
+  instr(sh, g.t0 + 14, ya + 30, 'VT', '025', { to: [g.t0 + 4, ya + 4] });
+  // scarico
+  const ex0 = g.t1;
+  sh.path([[ex0, ya - 17], [ex0 + 22, ya - 24], [ex0 + 22, ya + 24], [ex0, ya + 17]], { s: '#000000', w: 0.45, f: W }, true);
+  sh.text(ex0 + 11, ya + 1, 'Diffusore', { size: 1.5, anchor: 'middle' });
+  instr(sh, ex0 + 30, ya - 30, 'TT', '030', { to: [ex0 + 14, ya - 18] });
+  sh.text(ex0 + 34, ya - 30, '× 24 termocoppie', { size: 1.3 });
+  instr(sh, ex0 + 30, ya + 32, 'PT', '031', { to: [ex0 + 14, ya + 18] });
+  offPage(sh, ex0 + 22, ya, 'right', 'FUMI AL GVR', `${f(M.r.gt.mExh, 0)} kg/s ${f(M.r.gt.T4, 0)} °C`, { w: 34 });
+
+  // centralina olio
+  sh.rect(240, 168, 50, 24, { s: '#000000', w: 0.4, f: W });
+  sh.text(265, 172.5, '1MBV10 CENTRALINA OLIO', { size: 1.6, anchor: 'middle', bold: true });
+  pump(sh, 254, 182, { r: 3, tag: 'AP001' });
+  pump(sh, 270, 182, { r: 3, tag: 'AP002' });
+  sh.text(282, 186, 'DC', { size: 1.5 });
+  pline(sh, [[265, 168], [265, 156], [gx + 10, 156], [gx + 10, ya + 12]], { arrow: true, st: ST.norm });
+  instr(sh, 300, 168, 'PT', '040', { to: [292, 168] });
+  instr(sh, 310, 176, 'TT', '041', { to: [290, 176] });
+
+  // SFC
+  sh.rect(196, 160, 30, 12, { s: '#000000', w: 0.4, f: W });
+  sh.text(211, 165, '1MBJ10', { size: 1.7, anchor: 'middle', bold: true });
+  sh.text(211, 169, 'Avviatore statico', { size: 1.4, anchor: 'middle' });
+  sh.path([[211, 160], [211, ya], [gx - 30, ya]], ST.dash);
+
+  notesBox(sh, 'NOTE E LEGENDA', [
+    ...LEGEND,
+    `Pressione di alimentazione gas al TG ${f(M.pFG, 1)} bar(a), temperatura dopo riscaldo ${M.cfg.gt.Tfuel} °C. Portata gas ${f(M.r.gt.mFuel * 3.6, 1)} t/h per TG.`,
+    'Valvola di blocco 1EKG10AA001 con chiusura per mancanza aria (FC), comandata dal sistema di protezione TG.',
+  ]);
+  return [sh];
+}
+
+// ------------------------------------------------------------------ P&ID 2: GVR acqua-vapore
+function pid2Sheets(M, doc) {
+  const sh = new Sheet();
+  frame(sh, M.meta, { ...doc, sheetNo: 1, sheetCount: 1 });
+  const ln = (id) => M.lineById[id]?.lineNo ?? '';
+  const N = M.N;
+  const bt = M.r.bt;
+  const names = M.names;
+  const n = M.n;
+  sh.text(FRAME.x0 + 4, FRAME.y0 + 8, `GENERATORE DI VAPORE A RECUPERO – CIRCUITO ACQUA/VAPORE${N > 1 ? ` – TIPICO GVR1…GVR${N}` : ''}`, { size: 3, bold: true });
+  const cx0 = 66, cx1 = 330, cy0 = 112, cy1 = 172;
+  sh.rect(cx0, cy0, cx1 - cx0, cy1 - cy0, { s: '#000000', w: 0.7, f: W });
+  equipTag(sh, cx0 + 14, cy0 - 3, '1HAA00', null, { anchor: 'start' });
+  offPage(sh, cx0, (cy0 + cy1) / 2, 'left', 'FUMI DA TG', `${f(bt.banks[0].TgIn, 0)} °C`, { w: 26 });
+  instr(sh, cx0 + 8, cy0 - 8, 'TT', '101', { to: [cx0 + 8, cy0 + 2] });
+  // camino
+  sh.rect(cx1, 40, 14, cy1 - 40, { s: '#000000', w: 0.6, f: W });
+  equipTag(sh, cx1 + 7, 36, '1HNE10', null);
+  valve(sh, cx1 + 7, 70, { dir: 'v', kind: 'butterfly', s: 3 });
+  sh.text(cx1 + 16, 71, 'serranda', { size: 1.4 });
+  instr(sh, cx1 + 26, 86, 'AT', '190', { to: [cx1 + 14, 86] });
+  sh.text(cx1 + 30, 86, 'CEMS NOx/CO/O₂', { size: 1.3 });
+  instr(sh, cx1 + 26, 100, 'TT', '191', { to: [cx1 + 14, 100] });
+
+  const cols = groupCols(bt.banks);
+  const cw = (cx1 - cx0 - 8) / cols.length;
+  const pos = []; // {name, x, w, idx}
+  cols.forEach((c, i) => {
+    const x = cx0 + 4 + i * cw;
+    c.banks.forEach((b, j) => {
+      const bw = (cw - 3) / c.banks.length;
+      const bx = x + 1.5 + j * bw;
+      coil(sh, bx + 0.5, cy0 + 12, bw - 1, cy1 - cy0 - 20, {});
+      const lb = b.name.replace(' (condensato)', '').split(' ');
+      lb.forEach((l, k) => sh.text(bx + bw / 2, cy0 + 4.6 + k * 2.6, l, { size: 1.6, anchor: 'middle', bold: k === 0 }));
+      pos.push({ name: b.name, x: bx + bw / 2, w: bw, col: i, top: cy0 + 12, bot: cy1 - 8, gapL: x, gapR: x + cw });
+    });
+    if (i > 0) sh.text(x, cy1 - 2, f(c.TgIn, 0), { size: 1.4, anchor: 'middle' });
+  });
+  sh.text(cx1 - 2, cy1 - 2, `${f(bt.Tstack, 0)} °C`, { size: 1.4, anchor: 'end' });
+  const byName = (nm) => pos.filter((p) => p.name === nm);
+
+  // corsie
+  const laneTop = (k) => cy0 - 8 - k * 7; // sopra l'involucro
+  const laneBot = (k) => cy1 + 6 + k * 7;
+  const drumY = 44;
+  const drums = {};
+  names.forEach((lv, k) => {
+    const ev = byName(`EVA ${lv}`)[0];
+    if (!ev) return;
+    const dw = 26, dh = 9;
+    const dx = ev.x - dw / 2;
+    const dy = drumY + (k % 2) * 4;
+    drum(sh, dx, dy, dw, dh);
+    sh.textMid(ev.x, dy + dh / 2, `${lv}`, { size: 2.2, anchor: 'middle', bold: true });
+    sh.text(ev.x, dy - 9, `${k === 0 ? '1' : '1'}HAD${(k + 1) * 10}BB001`, { size: 1.6, anchor: 'middle', bold: true });
+    sh.text(ev.x, dy - 6.6, `${f(bt.pDrum[k], 1)} bar · ${f(bt.Tsat[k], 0)} °C`, { size: 1.4, anchor: 'middle' });
+    // tubi di discesa e risalita
+    pline(sh, [[ev.x - 5, dy + dh], [ev.x - 5, cy0 + 6], [ev.gapL, cy0 + 6], [ev.gapL, ev.bot + 3], [ev.x - 1.5, ev.bot + 3], [ev.x - 1.5, ev.bot]], { arrow: false, st: ST.norm });
+    pline(sh, [[ev.x + 2, ev.top], [ev.x + 2, dy + dh]], { arrow: true, st: ST.norm });
+    // strumentazione corpo
+    instr(sh, dx - 5, dy + 2, 'LT', `${k + 1}11`, { to: [dx, dy + 4] });
+    instr(sh, dx - 5, dy + 10, 'LT', `${k + 1}12`, { to: [dx + 1, dy + 6] });
+    instr(sh, dx + dw + 5, dy + 6, 'PT', `${k + 1}13`, { to: [dx + dw, dy + 4.5] });
+    psv(sh, dx + 6, dy - 1, { tag: `PSV ${k + 1}14` });
+    // spurgo continuo
+    sh.line(dx + dw - 4, dy + dh, dx + dw - 4, dy + dh + 4, ST.norm);
+    valve(sh, dx + dw - 4, dy + dh + 6.2, { dir: 'v', kind: 'globe', s: 1.6 });
+    sh.text(dx + dw - 2, dy + dh + 7.2, 'spurgo', { size: 1.2 });
+    drums[lv] = { x: ev.x, dx, dw, dy, dh };
+  });
+
+  const ecoSeq = (lv) => {
+    // banchi ECO del livello dal più freddo al più caldo (ordine inverso lato fumi)
+    const list = pos.filter((p) => p.name === `ECO ${lv}`).sort((a, b) => b.col - a.col);
+    return list;
+  };
+  const offL = cx0 - 34;
+  // ---- livelli HP / IP: alimento -> ECO -> corpo
+  for (let k = 0; k < n - 1; k++) {
+    const lv = names[k];
+    const ecos = ecoSeq(lv);
+    const dr = drums[lv];
+    if (!dr || !ecos.length) continue;
+    const yb = laneBot(k);
+    const yIn = laneBot(k);
+    const fwId = k === 0 ? 'FW-1' : 'FWIP-1';
+    offPage(sh, offL + 26, yIn, 'left', `ALIMENTO ${lv}`, 'da pompe alimento', { w: 26 });
+    const vx = offL + 36 + k * 24;
+    valve(sh, vx, yIn, { kind: 'control', tag: '', s: 2.2 });
+    instr(sh, vx, yIn + 30 - k * 7, 'LIC', `${k + 1}10`, { to: [vx, yIn + 3] });
+    instr(sh, vx + 10, yIn + 30 - k * 7, 'FT', `${k + 1}15`, { to: [vx + 10, yIn] });
+    let cur = [vx + 2.2, yIn];
+    let enterBottom = true;
+    ecos.forEach((e, i) => {
+      if (enterBottom) {
+        pline(sh, [cur, [e.x, yb], [e.x, e.bot]], { arrow: i === 0, label: i === 0 ? ln(fwId) : null, seg: 0, size: 1.4 });
+        cur = [e.x, e.top];
+      } else {
+        const yt = laneTop(k) + 3;
+        pline(sh, [cur, [cur[0], yt], [e.x, yt], [e.x, e.top]], { arrow: true, seg: 1 });
+        cur = [e.x, e.bot];
+        cur.gapR = e.gapR;
+      }
+      enterBottom = !enterBottom;
+    });
+    // ultimo ECO -> corpo
+    const yt = laneTop(k);
+    if (!enterBottom) pline(sh, [cur, [cur[0], yt], [dr.dx + 3, yt], [dr.dx + 3, dr.dy + dr.dh]], { seg: 1, at: 0.6 });
+    else pline(sh, [cur, [cur[0], cy1 - 4], [cur.gapR, cy1 - 4], [cur.gapR, yt], [dr.dx + 3, yt], [dr.dx + 3, dr.dy + dr.dh]], { seg: 4 });
+  }
+  // ---- livello più basso: condensato -> PRE -> corpo LP
+  {
+    const k = n - 1;
+    const lv = names[k];
+    const pre = byName('PRE (condensato)')[0];
+    const dr = drums[lv];
+    const yb = laneBot(n - 1);
+    if (pre && dr) {
+      offPage(sh, offL + 26, yb, 'left', 'CONDENSATO', 'da pompe estrazione', { w: 26 });
+      instr(sh, offL + 36 + (n - 1) * 24, yb + 30 - (n - 1) * 7, 'FT', '301', { to: [offL + 36 + (n - 1) * 24, yb] });
+      pline(sh, [[offL + 26, yb], [pre.x, yb], [pre.x, pre.bot]], { label: ln('CD-1'), seg: 0, at: 0.3, size: 1.4 });
+      instr(sh, pre.x - 10, yb - 8, 'TIC', '302', { to: [pre.x, yb - 2] });
+      sh.text(pre.x - 15, yb - 12, 'ricircolo ≥ 55 °C', { size: 1.2, anchor: 'end' });
+      const yt = laneTop(k);
+      pline(sh, [[pre.x, pre.top], [pre.x, yt], [dr.dx + 3, yt], [dr.dx + 3, dr.dy + dr.dh]], { seg: 1, at: 0.5 });
+      // aspirazione pompe alimento
+      if (n > 1) {
+        pline(sh, [[dr.dx + dr.dw - 9, dr.dy + dr.dh], [dr.dx + dr.dw - 9, dr.dy + dr.dh + 6], [cx1 + 24, dr.dy + dr.dh + 6]], { arrow: true });
+        offPage(sh, cx1 + 24, dr.dy + dr.dh + 6, 'right', 'A POMPE ALIMENTO', ln('FWS-1'), { w: 34 });
+      }
+    }
+  }
+  // ---- vapore: corpo -> SH -> uscita
+  const outX = FRAME.x1 - 44;
+  names.forEach((lv, k) => {
+    const dr = drums[lv];
+    const sh0 = byName(`SH ${lv}`)[0];
+    if (!dr || !sh0) return;
+    const yt = drumY - 12 - k * 4;
+    pline(sh, [[dr.x + 6, dr.dy], [dr.x + 6, yt], [sh0.x, yt], [sh0.x, sh0.top]], { seg: 1, at: 0.5 });
+    // uscita SH dal basso verso il bordo destro
+    const yo = laneBot(n + 1) + 4 + k * 7;
+    const pts = [[sh0.x, sh0.bot], [sh0.x, yo], [outX, yo]];
+    const id = k === 0 ? 'MS-1' : M.reheat && k === 1 ? 'IP-1' : 'LP-1';
+    pline(sh, pts, { label: ln(id), seg: 1, at: 0.82, size: 1.4 });
+    offPage(sh, outX, yo, 'right', k === 0 ? 'VAPORE HP A TV' : M.reheat && k === 1 ? 'VAPORE IP A RH FREDDO' : 'VAPORE LP A TV', '', { w: 36 });
+    // valvole e strumenti sulla linea di uscita
+    const vx = outX - 8;
+    valve(sh, vx, yo, { kind: 'motor', s: 2.1 });
+    const ix = outX - 30 - k * 30;
+    instr(sh, ix, yo - 9, 'PT', `${k + 1}20`, { to: [ix, yo] });
+    instr(sh, ix - 8, yo - 9, 'TT', `${k + 1}21`, { to: [ix - 8, yo] });
+    if (k === 0) {
+      const px = outX - 132;
+      sh.line(px, yo, px, yo - 6, ST.norm);
+      psv(sh, px, yo - 6, { tag: 'PSV 122' });
+      sh.line(px + 10, yo, px + 10, yo + 3, ST.norm);
+      valve(sh, px + 10, yo + 5.4, { dir: 'v', kind: 'control', s: 1.8 });
+      sh.text(px + 13, yo + 6, 'sfiato avviamento', { size: 1.2 });
+      // desurriscaldatore con acqua di attemperamento
+      const xa = outX - 150;
+      sh.rect(xa - 3, yo - 1.8, 6, 3.6, { s: '#000000', w: 0.35, f: W });
+      sh.text(xa, yo - 3, 'DSH', { size: 1.3, anchor: 'middle' });
+      sh.line(xa, yo + 1.8, xa, yo + 6, ST.norm);
+      sh.text(xa + 1.5, yo + 6.5, `spray ${ln('SPR-1')}`, { size: 1.2 });
+    }
+  });
+  // ---- risurriscaldatore
+  if (M.reheat) {
+    const rh = byName('RH')[0];
+    const yIn = 23;
+    offPage(sh, outX + 36, yIn, 'left', 'RH FREDDO DA TV', ln('CRH-1'), { w: 36 });
+    pline(sh, [[outX, yIn], [rh.x, yIn], [rh.x, rh.top]], { seg: 0, at: 0.3 });
+    const yo = laneBot(n + 1) + 4 + 3 * 7;
+    pline(sh, [[rh.x, rh.bot], [rh.x, yo], [outX, yo]], { label: ln('HRH-1'), seg: 1, at: 0.82, size: 1.4 });
+    offPage(sh, outX, yo, 'right', 'RH CALDO A TV', '', { w: 36 });
+    instr(sh, outX - 120, yo - 9, 'TT', '140', { to: [outX - 120, yo] });
+    psv(sh, outX - 104, yo - 6, { tag: 'PSV 141' });
+    sh.line(outX - 104, yo, outX - 104, yo - 6, ST.norm);
+  }
+  // spurghi
+  equipTag(sh, FRAME.x1 - 22, 110, '1HAN10BB001', 'Serbatoio spurghi', { anchor: 'middle' });
+  vvessel(sh, FRAME.x1 - 27, 115, 10, 16);
+  pline(sh, [[FRAME.x1 - 56, 125], [FRAME.x1 - 27, 125]], { label: ln('BD-1'), size: 1.3 });
+  sh.text(FRAME.x1 - 56, 122, 'dagli spurghi continui', { size: 1.2 });
+
+  notesBox(sh, 'NOTE E LEGENDA', [
+    ...LEGEND,
+    'Banchi rappresentati nell\'ordine lato fumi (da sinistra ingresso fumi a destra camino); i banchi affiancati lavorano in parallelo sulla stessa sezione fumi.',
+    'Regolazione livello corpi cilindrici a tre elementi (livello, portata vapore, portata alimento) con 3 trasmettitori di livello in logica 2oo3.',
+  ]);
+  return [sh];
+}
+
+// ------------------------------------------------------------------ P&ID 3: TV, condensato, alimento
+function pid3Sheets(M, doc) {
+  const sh = new Sheet();
+  frame(sh, M.meta, { ...doc, sheetNo: 1, sheetCount: 1 });
+  const ln = (id) => M.lineById[id]?.lineNo ?? '';
+  const N = M.N;
+  const bt = M.r.bt;
+  const hdr = N > 1;
+  sh.text(FRAME.x0 + 4, FRAME.y0 + 8, 'TURBINA A VAPORE, BYPASS, CONDENSAZIONE, CONDENSATO E ACQUA ALIMENTO', { size: 3, bold: true });
+  const yS = 82;
+  const secs = M.n === 3 ? [['HP', 150, 172], ['IP', 182, 206], ['LP', 222, 272]] : M.n === 2 ? [['HP', 165, 190], ['LP', 222, 272]] : [['TV', 222, 272]];
+  sh.line(secs[0][1] - 6, yS, 300, yS, ST.thick);
+  for (const [k, x0, x1] of secs) stSection(sh, x0, x1, yS, k === 'TV' ? 'LP' : k, k);
+  genSym(sh, 308, yS, 8);
+  equipTag(sh, 308, yS + 15, '0MKA10', `${M.electrical.gens[N].MVA} MVA`);
+  equipTag(sh, 247, yS - 24, '0MAA/MAB/MAC10', `Turbina a vapore ${f(M.r.Pst)} MW`);
+  instr(sh, 290, yS - 18, 'ST', '501', { to: [290, yS] });
+  instr(sh, 280, yS + 20, 'VT', '502', { to: [262, yS + 6] });
+
+  // vapore HP
+  const yHP = 40;
+  const hp = secs[0];
+  offPage(sh, 50, yHP, 'left', 'VAPORE HP', hdr ? `da GVR1..${N}` : 'da GVR', { w: 30 });
+  const hpLn = hdr ? ln('MS-H') : ln('MS-1');
+  pline(sh, [[50, yHP], [hp[1] + 4, yHP], [hp[1] + 4, yS - 6]], { label: hpLn, seg: 0, at: 0.25, size: 1.5 });
+  valve(sh, hp[1] - 16, yHP, { kind: 'control', tag: 'MSV', fail: 'FC', s: 2.4 });
+  valve(sh, hp[1] - 4, yHP, { kind: 'control', tag: 'CV', s: 2.4 });
+  instr(sh, 76, yHP - 14, 'PT', '510', { to: [76, yHP] });
+  instr(sh, 86, yHP - 14, 'TT', '511', { to: [86, yHP] });
+  // bypass HP
+  const xb = 100;
+  sh.line(xb, yHP, xb, yHP + 12, ST.med);
+  valve(sh, xb, yHP + 15, { dir: 'v', kind: 'control', tag: 'HPBP', s: 2.4 });
+  instr(sh, xb - 14, yHP + 15, 'PIC', '512', { to: [xb - 3, yHP + 15] });
+  sh.rect(xb - 1.6, yHP + 19, 3.2, 5, { s: '#000000', w: 0.3, f: W });
+  sh.text(xb + 3, yHP + 23, 'DSH', { size: 1.3 });
+  if (M.reheat) {
+    // RH freddo
+    const yC = 120;
+    const hpOut = hp[2] - 4;
+    pline(sh, [[hpOut, yS + 7], [hpOut, yC], [50, yC]], { label: hdr ? ln('CRH-H') : ln('CRH-1'), seg: 1, at: 0.5, size: 1.5 });
+    valve(sh, hpOut - 10, yC, { kind: 'check', tag: 'NRV' });
+    offPage(sh, 50, yC, 'right', 'RH FREDDO', hdr ? `a GVR1..${N}` : 'a GVR', { w: 30 });
+    pline(sh, [[xb, yHP + 24], [xb, yC]], { arrow: true });
+    offPage(sh, 126, yC + 14, 'left', 'VAPORE IP', 'da SH IP GVR', { w: 26 });
+    pline(sh, [[126, yC + 14], [132, yC + 14], [132, yC]], { arrow: true });
+    // RH caldo
+    const ip = secs[1];
+    const yH = 28;
+    offPage(sh, 50, yH, 'left', 'RH CALDO', hdr ? `da GVR1..${N}` : 'da GVR', { w: 30 });
+    pline(sh, [[50, yH], [ip[1] + 4, yH], [ip[1] + 4, yS - 6]], { label: hdr ? ln('HRH-H') : ln('HRH-1'), seg: 0, at: 0.45, size: 1.5 });
+    valve(sh, ip[1] - 4, yH, { kind: 'control', tag: 'RSV/IV', fail: 'FC', s: 2.4 });
+    // bypass RH al condensatore
+    const xr = ip[1] + 14;
+    sh.line(xr, yH, xr, yH - 6, ST.med);
+    sh.line(xr, yH - 6, 340, yH - 6, ST.med);
+    valve(sh, 330, yH - 6, { kind: 'control', tag: 'RHBP', s: 2.4 });
+    pline(sh, [[340, yH - 6], [348, yH - 6], [348, 132], [266, 132], [266, 140]], { arrow: true, seg: 2 });
+    sh.text(350, 100, 'bypass RH al condensatore', { size: 1.3, rot: -90 });
+    // crossover IP-LP
+    pline(sh, [[ip[2] - 4, yS - 8], [ip[2] - 4, 58], [247, 58], [247, yS - 4]], { arrow: true, seg: 1 });
+  } else if (M.n === 2) {
+    pline(sh, [[hp[2] - 4, yS - 8], [hp[2] - 4, 58], [247, 58], [247, yS - 4]], { arrow: true, seg: 1 });
+    pline(sh, [[xb, yHP + 24], [xb, 132], [228, 132], [228, 140]], { arrow: true, seg: 1 });
+  } else {
+    pline(sh, [[xb, yHP + 24], [xb, 132], [228, 132], [228, 140]], { arrow: true, seg: 1 });
+  }
+  if (M.n > 1) {
+    offPage(sh, 360, 50, 'left', 'VAPORE LP', hdr ? `da GVR1..${N}` : 'da GVR', { w: 28 });
+    pline(sh, [[332, 50], [257, 50], [257, 58]], { label: hdr ? ln('LP-H') : ln('LP-1'), seg: 0, at: 0.4, size: 1.5 });
+    valve(sh, 280, 50, { kind: 'control', tag: 'LPCV', s: 2.2 });
+    // bypass LP
+    sh.line(320, 50, 320, 132, ST.med);
+    valve(sh, 320, 110, { dir: 'v', kind: 'control', tag: 'LPBP', s: 2.2 });
+    if (!M.reheat) sh.line(320, 132, 266, 132, ST.med).line(266, 132, 266, 140, ST.med);
+  }
+
+  // condensatore
+  const cx0 = 222, cx1 = 272, cy0 = 140, cy1 = 166;
+  sh.line(247, yS + 11, 247, cy0, ST.thick);
+  const air = M.cfg.steam.condenser.type === 'air';
+  sh.rect(cx0, cy0, cx1 - cx0, cy1 - cy0, { s: '#000000', w: 0.6, f: W });
+  for (let i = 0; i < 4; i++) sh.line(cx0 + 4, cy0 + 4 + i * 4.5, cx1 - 4, cy0 + 4 + i * 4.5, ST.thin);
+  equipTag(sh, cx0 - 2, cy0 + 4, '0MAG10', [air ? 'Aerocondensatore' : 'Condensatore', `${f(bt.pCond * 1000, 0)} mbar`], { anchor: 'end' });
+  instr(sh, cx1 + 10, cy0 + 4, 'PT', '520', { to: [cx1, cy0 + 4] });
+  instr(sh, cx1 + 10, cy1 + 2, 'LT', '521', { to: [cx1, cy1 - 2] });
+  pline(sh, [[cx1 + 34, cy0 + 2], [cx1, cy0 + 2]], { arrow: false });
+  if (!air) {
+    offPage(sh, cx1 + 60, cy0 + 9, 'left', 'ACQUA CIRC.', 'da pompe 0PAC10', { w: 26 });
+    pline(sh, [[cx1 + 34, cy0 + 9], [cx1, cy0 + 9]], { label: ln('CWS'), size: 1.3 });
+    valve(sh, cx1 + 26, cy0 + 9, { kind: 'butterfly', s: 2 });
+    pline(sh, [[cx1, cy0 + 16], [cx1 + 34, cy0 + 16]], { label: ln('CWR'), size: 1.3 });
+    valve(sh, cx1 + 26, cy0 + 16, { kind: 'butterfly', s: 2 });
+    offPage(sh, cx1 + 34, cy0 + 16, 'right', 'ALLA TORRE', '0PAE10', { w: 26 });
+  }
+  pump(sh, cx1 + 40, cy0 - 2, { r: 2.6 });
+  sh.text(cx1 + 45, cy0 - 5, '0MAJ10 pompe vuoto', { size: 1.3 });
+
+  // pompe condensato 2×100 %
+  const yP = 196;
+  const pxs = [150, 175];
+  sh.line(232, cy1, 232, 182, ST.med);
+  pline(sh, [[232, 182], [pxs[0], 182]], { label: ln('CDS'), size: 1.3, seg: 0 });
+  pxs.forEach((px, i) => {
+    sh.line(px, 182, px, yP - 10, ST.med);
+    strainer(sh, px, yP - 12);
+    sh.line(px, yP - 9, px, yP - 4, ST.med);
+    pump(sh, px, yP, { r: 4, tag: `0LCB10AP00${i + 1}` });
+    sh.line(px + 4, yP - 4, px + 4, yP - 14, ST.med);
+    valve(sh, px + 4, yP - 16.5, { dir: 'v', kind: 'check', s: 1.8 });
+    sh.line(px + 4, yP - 19, px + 4, yP - 26, ST.med);
+    sh.line(px + 4, yP - 26, 200, yP - 26, ST.med);
+  });
+  pline(sh, [[200, yP - 26], [110, yP - 26]], { label: hdr ? ln('CD-H') : ln('CD-1'), seg: 0, at: 0.5, size: 1.4 });
+  // condensatore vapore tenute + ricircolo
+  hx(sh, 120, yP - 26, 3.5);
+  sh.text(120, yP - 31, '0MAW10', { size: 1.4, anchor: 'middle', bold: true });
+  valve(sh, 104, yP - 26, { kind: 'control', tag: 'LCV', s: 2 });
+  instr(sh, 104, yP - 42, 'LIC', '521', { to: [104, yP - 31] });
+  offPage(sh, 90, yP - 26, 'left', 'CONDENSATO', 'a PRE GVR', { w: 26 });
+  pline(sh, [[200, yP - 26], [208, yP - 26], [208, cy1 - 4], [cx0, cy1 - 4]], { arrow: true, seg: 2 });
+  valve(sh, 208, yP - 34, { dir: 'v', kind: 'control', s: 1.8 });
+  sh.text(211, yP - 36, 'ricircolo minimo', { size: 1.2 });
+  instr(sh, 194, yP - 12, 'FT', '530', { to: [194, yP - 26] });
+
+  // pompe alimento
+  if (M.n > 1) {
+    const ax = 300, ay = 196;
+    offPage(sh, 338, ay - 32, 'left', 'DA CORPO LP', 'aspirazione', { w: 26 });
+    sh.line(312, ay - 32, 290, ay - 32, ST.med);
+    [290, 318].forEach((px, i) => {
+      sh.line(i === 0 ? px : 290, ay - 32, i === 0 ? px : 318, ay - 32, ST.med);
+      sh.line(px, ay - 32, px, ay - 12, ST.med);
+      strainer(sh, px, ay - 14);
+      pump(sh, px, ay, { r: 4, tag: `1LAC10AP00${i + 1}` });
+      sh.line(px + 4, ay - 4, px + 4, ay - 8, ST.med);
+      sh.line(px + 4, ay - 8, px + 12, ay - 8, ST.med);
+      valve(sh, px + 8, ay - 8, { kind: 'check', s: 1.6 });
+    });
+    void ax;
+    sh.line(302, ay - 8, 330, ay - 8, ST.med);
+    pline(sh, [[330, ay - 8], [372, ay - 8]], { label: ln('FW-1'), size: 1.3 });
+    offPage(sh, 372, ay - 8, 'right', 'ALIMENTO HP', 'a ECO HP GVR', { w: 28 });
+    if (M.reheat) {
+      pline(sh, [[326, ay], [372, ay]], { label: ln('FWIP-1'), size: 1.3 });
+      offPage(sh, 372, ay, 'right', 'ALIMENTO IP', 'spillamento', { w: 28 });
+    }
+    instr(sh, 344, ay - 22, 'FT', '540', { to: [344, ay - 8] });
+    instr(sh, 356, ay - 22, 'PT', '541', { to: [356, ay - 8] });
+    sh.text(300, ay + 12, `Q ${f(M.pumps.fw1.Q, 0)} m³/h · H ${f(M.pumps.fw1.H, 0)} m`, { size: 1.4, anchor: 'middle' });
+  }
+  notesBox(sh, 'NOTE E LEGENDA', [
+    ...LEGEND,
+    'Pompe di estrazione condensato 2×100 % e pompe alimento 2×100 % per GVR con ricircolo di minima portata.',
+    'Stazioni di bypass dimensionate per il 100 % della produzione di vapore (avviamento e blocco TV).',
+  ]);
+  return [sh];
+}
+
+return { pfdSheets, pid1Sheets, pid2Sheets, pid3Sheets };
+})();
+
+__m['js/docs/drawings-layout.js'] = (() => {
+// Elaborati di layout ed elettrici: plot plan, vista isometrica d'insieme,
+// isometrico della linea vapore HP, schemi elettrici unifilari.
+
+const { Sheet, ST, frame, notesBox, FRAME, wrap } = __m['js/docs/sheet.js'];
+const { textWidth } = __m['js/docs/pdf.js'];
+const { valve, equipTag, elGen, elMotor, elTrafo, elBreaker, elDisconnector, elEarth, elCT } = __m['js/docs/symbols.js'];
+
+const W = '#ffffff';
+const f = (v, d = 1) => (Number.isFinite(v) ? v.toLocaleString('it-IT', { minimumFractionDigits: d, maximumFractionDigits: d }) : '—');
+
+const GROUP = {
+  gt: { fill: '#c9d3dc', name: 'Turbogas' },
+  hrsg: { fill: '#dcc8b0', name: 'GVR e camino' },
+  st: { fill: '#cfdcc4', name: 'Turbina a vapore' },
+  el: { fill: '#e6d9a6', name: 'Elettrico' },
+  bop: { fill: '#d4d4d4', name: 'Ausiliari' },
+  bld: { fill: '#e8e8e8', name: 'Edifici' },
+  tank: { fill: '#cfdde8', name: 'Serbatoi' },
+  cool: { fill: '#c4dce2', name: 'Raffreddamento' },
+  rack: { fill: '#bdbdbd', name: 'Pipe rack' },
+};
+
+function shade(hex, k) {
+  const h = hex.replace('#', '');
+  const c = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const o = c.map((v) => Math.max(0, Math.min(255, Math.round(k >= 1 ? v + (255 - v) * (k - 1) : v * k))));
+  return '#' + o.map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+
+// Voci di legenda numerate (una per tag + nome)
+function legendItems(layout) {
+  const list = [];
+  const seen = new Set();
+  for (const it of layout.items) {
+    if (!it.name) continue;
+    const key = `${it.tag}|${it.name}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    list.push({ ...it, no: list.length + 1 });
+  }
+  return list;
+}
+
+// ------------------------------------------------------------------ plot plan
+function plotPlanSheets(M, doc) {
+  const L = M.layout;
+  const sh = new Sheet();
+  const ax0 = FRAME.x0 + 8, ay0 = FRAME.y0 + 16, aw = 290, ah = 200;
+  const need = Math.max(L.site.w / aw, L.site.d / ah) * 1000;
+  const scaleN = [250, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000].find((s) => s >= need) ?? 5000;
+  const k = 1000 / scaleN; // mm per m
+  frame(sh, M.meta, { ...doc, scale: `1:${scaleN} (A3)`, sheetNo: 1, sheetCount: 1 });
+  sh.text(FRAME.x0 + 4, FRAME.y0 + 8, 'PLANIMETRIA GENERALE (PLOT PLAN)', { size: 3.2, bold: true });
+  const ox = ax0 + (aw - L.site.w * k) / 2;
+  const oy = ay0 + (ah - L.site.d * k) / 2;
+  const X = (x) => ox + x * k;
+  const Y = (y) => oy + (L.site.d - y) * k;
+  // recinzione
+  sh.path([[X(0), Y(0)], [X(L.site.w), Y(0)], [X(L.site.w), Y(L.site.d)], [X(0), Y(L.site.d)]], { s: '#000000', w: 0.5, d: [3, 0.8, 0.6, 0.8] }, true);
+  sh.text(X(0) + 1, Y(L.site.d) - 1.5, 'Recinzione', { size: 1.6 });
+  // strada perimetrale
+  const r0 = L.inner, rw = L.road;
+  sh.rect(X(r0.x0), Y(r0.y1), (r0.x1 - r0.x0) * k, (r0.y1 - r0.y0) * k, { s: '#777777', w: 0.25, f: '#f4f4f4' });
+  sh.rect(X(r0.x0 + rw), Y(r0.y1 - rw), (r0.x1 - r0.x0 - 2 * rw) * k, (r0.y1 - r0.y0 - 2 * rw) * k, { s: '#777777', w: 0.25, f: W });
+  sh.text(X(r0.x0) + 1, Y(r0.y0) - 0.8, `strada perimetrale ${rw} m`, { size: 1.4, color: '#555555' });
+  // griglia coordinate
+  const step = scaleN <= 1000 ? 50 : 100;
+  for (let e = 0; e <= L.site.w; e += step) {
+    sh.line(X(e), Y(0), X(e), Y(0) + 2, ST.thin);
+    sh.text(X(e), Y(0) + 4.4, `E ${e}`, { size: 1.5, anchor: 'middle' });
+  }
+  for (let nn = 0; nn <= L.site.d; nn += step) {
+    sh.line(X(0), Y(nn), X(0) - 2, Y(nn), ST.thin);
+    sh.text(X(0) - 2.5, Y(nn) + 0.6, `N ${nn}`, { size: 1.5, anchor: 'end' });
+  }
+  // oggetti
+  const legend = legendItems(L);
+  const noOf = (it) => legend.find((l) => l.tag === it.tag && l.name === it.name)?.no;
+  for (const it of L.items) {
+    const g = GROUP[it.grp] ?? GROUP.bop;
+    const st = it.elevated || it.inner ? { s: '#000000', w: 0.3, d: [1.4, 0.8] } : { s: '#000000', w: 0.35, f: g.fill };
+    if (it.kind === 'cyl') {
+      sh.circle(X(it.x), Y(it.y), it.r * k, st);
+    } else {
+      sh.rect(X(it.x), Y(it.y + it.d), it.w * k, it.d * k, it.hall ? { s: '#000000', w: 0.5, f: shade(g.fill, 1.4) } : st);
+    }
+  }
+  // numeri di riferimento
+  for (const it of L.items) {
+    const no = noOf(it);
+    if (!no) continue;
+    const cx = it.kind === 'cyl' ? X(it.x) : X(it.x + it.w / 2);
+    const cy = it.kind === 'cyl' ? Y(it.y) : Y(it.y + it.d / 2);
+    const yy = it.hall ? Y(it.y + it.d) + 3 : cy;
+    sh.circle(cx, yy, 1.9, { s: '#000000', w: 0.25, f: W });
+    sh.textMid(cx, yy, String(no), { size: 1.6, anchor: 'middle', bold: true });
+  }
+  // quote principali dei treni
+  const t1 = L.trains[0];
+  const hr = t1.hr;
+  dimH(sh, X(hr.x), X(hr.x + hr.w), Y(hr.y) + 5, `${f(hr.w, 1)} m`);
+  dimH(sh, X(L.st.x), X(L.st.x + L.st.w), Y(L.st.y) + 5, `${f(L.st.w, 1)} m`);
+  dimH(sh, X(0), X(L.site.w), Y(0) + 9, `${f(L.site.w, 0)} m`);
+  dimV(sh, X(L.site.w) + 6, Y(L.site.d), Y(0), `${f(L.site.d, 0)} m`);
+  // nord e scala
+  const nx = FRAME.x0 + 290, ny = FRAME.y0 + 26;
+  sh.circle(nx, ny, 6, ST.norm);
+  sh.path([[nx, ny - 8], [nx + 2.4, ny + 2], [nx, ny], [nx - 2.4, ny + 2]], { f: '#000000' }, true);
+  sh.text(nx, ny - 9.5, 'N', { size: 2.6, anchor: 'middle', bold: true });
+  const sbX = ax0, sbY = ay0 + ah + 4;
+  const sbm = step * 2;
+  for (let i = 0; i < 4; i++) sh.rect(sbX + (i * sbm * k) / 4, sbY, (sbm * k) / 4, 1.6, { s: '#000000', w: 0.2, f: i % 2 ? W : '#000000' });
+  for (let i = 0; i <= 4; i++) sh.text(sbX + (i * sbm * k) / 4, sbY + 4.4, String((i * sbm) / 4), { size: 1.4, anchor: 'middle' });
+  sh.text(sbX + sbm * k + 3, sbY + 1.6, `m · scala 1:${scaleN}`, { size: 1.6 });
+  // legenda
+  const lx = FRAME.x1 - 92, ly0 = FRAME.y0 + 16;
+  sh.rect(lx, ly0, 88, Math.min(212, 8 + legend.length * 3.6 + 30), ST.norm);
+  sh.text(lx + 2, ly0 + 4.5, 'LEGENDA', { size: 2.2, bold: true });
+  legend.forEach((it, i) => {
+    const y = ly0 + 9 + i * 3.6;
+    sh.circle(lx + 4, y - 0.6, 1.5, { s: '#000000', w: 0.2, f: W });
+    sh.textMid(lx + 4, y - 0.6, String(it.no), { size: 1.3, anchor: 'middle', bold: true });
+    sh.text(lx + 7, y, it.tag, { size: 1.6, bold: true });
+    sh.text(lx + 22, y, it.name, { size: 1.6 });
+  });
+  const yG = ly0 + 9 + legend.length * 3.6 + 2;
+  Object.values(GROUP).forEach((g, i) => {
+    const x = lx + 2 + (i % 2) * 43, y = yG + Math.floor(i / 2) * 4;
+    sh.rect(x, y, 4, 2.4, { s: '#000000', w: 0.2, f: g.fill });
+    sh.text(x + 5.5, y + 2, g.name, { size: 1.5 });
+  });
+  const area = (L.site.w * L.site.d) / 10000;
+  notesBox(sh, 'NOTE', [
+    `Superficie recintata ${f(L.site.w, 0)} × ${f(L.site.d, 0)} m = ${f(area, 2)} ha. Coordinate di impianto in metri (E, N) con origine all'angolo sud-ovest della recinzione.`,
+    `Disposizione ${M.N}+1 multialbero: treni TG/GVR paralleli con asse est-ovest, sala macchine TV a sud, pipe rack nord-sud. Linee tratteggiate: apparecchiature in elevazione o interne agli edifici.`,
+    `Camini H ${M.meta.stackHeight} m, DI ${f(M.stackD, 1)} m. Dimensioni preliminari ricavate dalle portate di progetto.`,
+  ], { w: FRAME.tbX - FRAME.x0 - 10 });
+  return [sh];
+}
+
+function dimH(sh, x0, x1, y, txt) {
+  sh.line(x0, y, x1, y, ST.thin);
+  for (const x of [x0, x1]) { sh.line(x, y - 1.2, x, y + 1.2, ST.thin); sh.line(x - 0.7, y + 0.7, x + 0.7, y - 0.7, ST.norm); }
+  sh.text((x0 + x1) / 2, y - 0.8, txt, { size: 1.6, anchor: 'middle' });
+}
+function dimV(sh, x, y0, y1, txt) {
+  sh.line(x, y0, x, y1, ST.thin);
+  for (const y of [y0, y1]) { sh.line(x - 1.2, y, x + 1.2, y, ST.thin); sh.line(x - 0.7, y + 0.7, x + 0.7, y - 0.7, ST.norm); }
+  sh.text(x - 0.8, (y0 + y1) / 2, txt, { size: 1.6, anchor: 'middle', rot: -90 });
+}
+
+// ------------------------------------------------------------------ vista isometrica d'insieme
+const C30 = Math.cos(Math.PI / 6), S30 = Math.sin(Math.PI / 6);
+const isoUV = (x, y, z) => [(x + y) * C30, (x - y) * S30 - z];
+
+function hull(pts) {
+  const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const q of p) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  up.pop(); lo.pop();
+  return lo.concat(up);
+}
+
+function plantIsoSheets(M, doc) {
+  const L = M.layout;
+  const sh = new Sheet();
+  frame(sh, M.meta, { ...doc, scale: 'non in scala', sheetNo: 1, sheetCount: 1 });
+  sh.text(FRAME.x0 + 4, FRAME.y0 + 8, 'VISTA ISOMETRICA D\'INSIEME DELL\'IMPIANTO', { size: 3.2, bold: true });
+  sh.text(FRAME.x0 + 4, FRAME.y0 + 12, 'Vista da sud-est. Volumi preliminari degli edifici e delle apparecchiature principali.', { size: 2 });
+  // estensione proiettata
+  const allPts = [];
+  const zTop = (it) => (it.z ?? 0) + it.h;
+  for (const it of L.items) {
+    if (it.kind === 'cyl') { for (const z of [0, zTop(it)]) for (const s of [-1, 1]) for (const t of [-1, 1]) allPts.push(isoUV(it.x + s * it.r, it.y + t * it.r, z)); } else { for (const z of [0, zTop(it)]) for (const [x, y] of [[it.x, it.y], [it.x + it.w, it.y], [it.x, it.y + it.d], [it.x + it.w, it.y + it.d]]) allPts.push(isoUV(x, y, z)); }
+  }
+  for (const [x, y] of [[0, 0], [L.site.w, 0], [0, L.site.d], [L.site.w, L.site.d]]) allPts.push(isoUV(x, y, 0));
+  const umin = Math.min(...allPts.map((p) => p[0])), umax = Math.max(...allPts.map((p) => p[0]));
+  const vmin = Math.min(...allPts.map((p) => p[1])), vmax = Math.max(...allPts.map((p) => p[1]));
+  const ax0 = FRAME.x0 + 8, ay0 = FRAME.y0 + 22, aw = FRAME.x1 - FRAME.x0 - 16, ah = FRAME.revY - ay0 - 6;
+  const sc = Math.min(aw / (umax - umin), ah / (vmax - vmin));
+  const ox = ax0 + (aw - (umax - umin) * sc) / 2 - umin * sc;
+  const oy = ay0 + (ah - (vmax - vmin) * sc) / 2 - vmin * sc;
+  const P = (x, y, z) => { const [u, v] = isoUV(x, y, z); return [ox + u * sc, oy + v * sc]; };
+  // terreno e strade
+  sh.path([P(0, 0, 0), P(L.site.w, 0, 0), P(L.site.w, L.site.d, 0), P(0, L.site.d, 0)], { s: '#888888', w: 0.25, f: '#f1f3ef', d: [2, 0.8] }, true);
+  const r0 = L.inner, rw = L.road;
+  sh.path([P(r0.x0, r0.y0, 0), P(r0.x1, r0.y0, 0), P(r0.x1, r0.y1, 0), P(r0.x0, r0.y1, 0)], { s: '#9a9a9a', w: 0.2, f: '#e2e2e2' }, true);
+  sh.path([P(r0.x0 + rw, r0.y0 + rw, 0), P(r0.x1 - rw, r0.y0 + rw, 0), P(r0.x1 - rw, r0.y1 - rw, 0), P(r0.x0 + rw, r0.y1 - rw, 0)], { s: '#9a9a9a', w: 0.2, f: '#f1f3ef' }, true);
+  // ordinamento per profondità (più lontani prima)
+  const depth = (it) => {
+    const cx = it.kind === 'cyl' ? it.x : it.x + it.w / 2;
+    const cy = it.kind === 'cyl' ? it.y : it.y + it.d / 2;
+    return cx - cy;
+  };
+  const items = L.items.filter((it) => !it.inner).slice().sort((a, b) => {
+    const da = depth(a), db = depth(b);
+    if (Math.abs(da - db) > 1e-6) return da - db;
+    return (a.z ?? 0) - (b.z ?? 0);
+  });
+  const line = { s: '#333333', w: 0.18 };
+  for (const it of items) {
+    const g = GROUP[it.grp] ?? GROUP.bop;
+    const z0 = it.z ?? 0, z1 = z0 + it.h;
+    if (it.kind === 'cyl') {
+      const ring = (z) => Array.from({ length: 28 }, (_, i) => { const a = (i / 28) * Math.PI * 2; return P(it.x + it.r * Math.cos(a), it.y + it.r * Math.sin(a), z); });
+      const side = hull([...ring(z0), ...ring(z1)]);
+      sh.path(side, { ...line, f: shade(g.fill, 0.82) }, true);
+      sh.path(ring(z1), { ...line, f: shade(g.fill, 1.25) }, true);
+    } else {
+      if (it.legs) {
+        for (const [x, y] of [[it.x, it.y], [it.x + it.w, it.y], [it.x + it.w, it.y + it.d]]) sh.line(...P(x, y, 0), ...P(x, y, z0), { s: '#555555', w: 0.25 });
+      }
+      const x0 = it.x, x1 = it.x + it.w, y0 = it.y, y1 = it.y + it.d;
+      const fill = it.hall ? shade(g.fill, 1.15) : g.fill;
+      sh.path([P(x0, y0, z0), P(x1, y0, z0), P(x1, y0, z1), P(x0, y0, z1)], { ...line, f: shade(fill, 0.9) }, true); // faccia sud
+      sh.path([P(x1, y0, z0), P(x1, y1, z0), P(x1, y1, z1), P(x1, y0, z1)], { ...line, f: shade(fill, 0.74) }, true); // faccia est
+      sh.path([P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)], { ...line, f: shade(fill, 1.22) }, true); // copertura
+    }
+  }
+  // etichette con richiamo
+  const labelled = [];
+  const seen = new Set();
+  for (const it of L.items) {
+    if (!it.name || it.inner || seen.has(it.name)) continue;
+    if (!['gt', 'hrsg', 'st', 'cool', 'el', 'bld', 'tank', 'bop'].includes(it.grp)) continue;
+    if (it.grp === 'hrsg' && it.name === 'Diffusore') continue;
+    seen.add(it.name);
+    const cx = it.kind === 'cyl' ? it.x : it.x + it.w / 2;
+    const cy = it.kind === 'cyl' ? it.y : it.y + it.d / 2;
+    labelled.push({ it, p: P(cx, cy, (it.z ?? 0) + it.h) });
+  }
+  labelled.sort((a, b) => a.p[0] - b.p[0]);
+  const placed = [];
+  for (const lb of labelled) {
+    const txt = `${lb.it.tag} ${lb.it.name}`;
+    const w = textWidth(txt, 1.7);
+    let ty = lb.p[1] - 10;
+    for (let tries = 0; tries < 12; tries++) {
+      const clash = placed.some((q) => Math.abs(q.y - ty) < 3 && lb.p[0] + w + 2 > q.x0 && lb.p[0] < q.x1 + 2);
+      if (!clash) break;
+      ty -= 3.4;
+    }
+    ty = Math.max(ty, FRAME.y0 + 18);
+    sh.line(lb.p[0], lb.p[1], lb.p[0], ty + 0.8, { s: '#000000', w: 0.15 });
+    sh.circle(lb.p[0], lb.p[1], 0.45, ST.black);
+    sh.text(lb.p[0] + 0.8, ty, txt, { size: 1.7 });
+    placed.push({ x0: lb.p[0], x1: lb.p[0] + w, y: ty });
+  }
+  // nord
+  const [nx0, ny0] = [FRAME.x0 + 20, FRAME.revY - 20];
+  const dn = isoUV(0, 12, 0);
+  sh.arrow(nx0, ny0, nx0 + (dn[0] * 1), ny0 + dn[1] * 1, ST.med, 2.4);
+  sh.text(nx0 + dn[0] + 1.5, ny0 + dn[1] - 0.5, 'N', { size: 2.6, bold: true });
+  return [sh];
+}
+
+// ------------------------------------------------------------------ isometrico linea vapore HP
+function pipingIsoSheets(M, doc) {
+  const L = M.layout;
+  const line = M.lineById['MS-1'];
+  const route = L.route;
+  const sh = new Sheet();
+  frame(sh, M.meta, { ...doc, scale: 'non in scala', sheetNo: 1, sheetCount: 1 });
+  sh.text(FRAME.x0 + 4, FRAME.y0 + 8, `ISOMETRICO LINEA ${line.lineNo}`, { size: 3.2, bold: true });
+  sh.text(FRAME.x0 + 4, FRAME.y0 + 12, `Vapore HP da ${line.from} a ${M.N > 1 ? 'collettore / ' : ''}0MAA10 valvola di arresto HP`, { size: 2 });
+  const ax0 = FRAME.x0 + 14, ay0 = FRAME.y0 + 24, aw = 215, ah = 190;
+  const pts = route.map(([x, y, z]) => isoUV(x, y, z));
+  const umin = Math.min(...pts.map((p) => p[0])), umax = Math.max(...pts.map((p) => p[0]));
+  const vmin = Math.min(...pts.map((p) => p[1])), vmax = Math.max(...pts.map((p) => p[1]));
+  const sc = Math.min(aw / Math.max(umax - umin, 1), ah / Math.max(vmax - vmin, 1)) * 0.82;
+  const ox = ax0 + (aw - (umax - umin) * sc) / 2 - umin * sc;
+  const oy = ay0 + (ah - (vmax - vmin) * sc) / 2 - vmin * sc;
+  const P = (q) => { const [u, v] = isoUV(q[0], q[1], q[2]); return [ox + u * sc, oy + v * sc]; };
+  const sp = route.map(P);
+  sh.path(sp, { s: '#000000', w: 1.1 });
+  // gomiti e saldature
+  let elbows = 0;
+  for (let i = 1; i < sp.length - 1; i++) {
+    sh.circle(sp[i][0], sp[i][1], 0.9, { s: '#000000', w: 0.3, f: W });
+    elbows++;
+  }
+  sh.circle(sp[0][0], sp[0][1], 1.1, ST.black);
+  // quote dei tratti
+  let total = 0;
+  const segs = [];
+  for (let i = 1; i < route.length; i++) {
+    const a = route[i - 1], b = route[i];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+    if (len < 0.05) continue;
+    total += len;
+    const dir = Math.abs(b[2] - a[2]) > 0.01 ? 'verticale' : Math.abs(b[0] - a[0]) > 0.01 ? (b[0] > a[0] ? 'est' : 'ovest') : b[1] > a[1] ? 'nord' : 'sud';
+    segs.push({ i, len, dir });
+    const [p0, p1] = [sp[i - 1], sp[i]];
+    const dx = p1[0] - p0[0], dy = p1[1] - p0[1];
+    const dl = Math.hypot(dx, dy) || 1;
+    let nx = -dy / dl, ny = dx / dl;
+    if (ny > 0 || (Math.abs(ny) < 1e-6 && nx < 0)) { nx = -nx; ny = -ny; }
+    const off = 6;
+    const q0 = [p0[0] + nx * off, p0[1] + ny * off], q1 = [p1[0] + nx * off, p1[1] + ny * off];
+    sh.line(p0[0] + nx * 1.5, p0[1] + ny * 1.5, q0[0] + nx, q0[1] + ny, ST.hair);
+    sh.line(p1[0] + nx * 1.5, p1[1] + ny * 1.5, q1[0] + nx, q1[1] + ny, ST.hair);
+    sh.line(q0[0], q0[1], q1[0], q1[1], ST.thin);
+    for (const q of [q0, q1]) sh.line(q[0] - 0.8, q[1] + 0.8, q[0] + 0.8, q[1] - 0.8, ST.norm);
+    let ang = (Math.atan2(dy, dx) * 180) / Math.PI;
+    if (ang > 90) ang -= 180;
+    if (ang < -90) ang += 180;
+    const mx = (q0[0] + q1[0]) / 2 + nx * 1.6, my = (q0[1] + q1[1]) / 2 + ny * 1.6;
+    sh.text(mx, my, Math.round(len * 1000).toLocaleString('it-IT'), { size: 1.9, anchor: 'middle', rot: ang });
+  }
+  // valvole e componenti
+  const along = (i, t) => [sp[i - 1][0] + (sp[i][0] - sp[i - 1][0]) * t, sp[i - 1][1] + (sp[i][1] - sp[i - 1][1]) * t];
+  const isoValve = (i, t, label) => {
+    const c = along(i, t);
+    const dx = sp[i][0] - sp[i - 1][0], dy = sp[i][1] - sp[i - 1][1];
+    const dl = Math.hypot(dx, dy) || 1;
+    const ux = dx / dl, uy = dy / dl, vx = -uy, vy = ux;
+    const s = 2.6;
+    sh.path([[c[0] - ux * s + vx * s * 0.75, c[1] - uy * s + vy * s * 0.75], [c[0] - ux * s - vx * s * 0.75, c[1] - uy * s - vy * s * 0.75], [c[0] + ux * s + vx * s * 0.75, c[1] + uy * s + vy * s * 0.75], [c[0] + ux * s - vx * s * 0.75, c[1] + uy * s - vy * s * 0.75]], { s: '#000000', w: 0.3, f: W }, true);
+    const right = c[0] < ax0 + aw * 0.6;
+    sh.text(c[0] + (right ? 3.5 : -3.5), c[1] - 3, label, { size: 1.7, bold: true, anchor: right ? 'start' : 'end' });
+  };
+  isoValve(2, 0.5, '1LBA10AA001 (MOV)');
+  const rackSeg = segs.reduce((a, b) => (b.len > a.len ? b : a), segs[0]);
+  const fe = along(rackSeg.i, 0.35);
+  sh.line(fe[0] - 1.6, fe[1] - 1.6, fe[0] + 1.6, fe[1] + 1.6, ST.med);
+  sh.text(fe[0] + 2.5, fe[1] + 3.5, 'FE 1LBA10CF001 (boccaglio)', { size: 1.6 });
+  isoValve(route.length - 1, 0.55, '0MAA10AA001 (MSV)');
+  // supporti
+  let sup = 0;
+  for (const sg of segs) {
+    const nS = Math.max(1, Math.floor(sg.len / 6));
+    for (let j = 1; j <= nS; j++) {
+      if (sg.dir === 'verticale' && j > 1) continue;
+      const c = along(sg.i, j / (nS + 1));
+      sh.path([[c[0] - 1.4, c[1] + 1.8], [c[0], c[1] + 0.4], [c[0] + 1.4, c[1] + 1.8]], ST.norm);
+      sup++;
+    }
+  }
+  // freccia di flusso
+  const fa = along(1, 0.5);
+  sh.text(fa[0] + 2.5, fa[1], 'flusso', { size: 1.5 });
+  // estremi
+  const fmtc = (q) => `E ${f(q[0], 3)} · N ${f(q[1], 3)} · EL +${f(q[2], 3)}`;
+  const sAnchor = sp[0][0] > ax0 + aw * 0.6 ? 'end' : 'start';
+  const sdx = sAnchor === 'end' ? -7 : 3;
+  sh.text(sp[0][0] + sdx, sp[0][1] + 8, `INIZIO: uscita SH HP ${line.from.split(' ')[0]}`, { size: 1.7, bold: true, anchor: sAnchor });
+  sh.text(sp[0][0] + sdx, sp[0][1] + 10.5, fmtc(route[0]), { size: 1.6, anchor: sAnchor });
+  const pe = sp[sp.length - 1];
+  sh.text(pe[0] - 3, pe[1] + 4, 'FINE: 0MAA10 valvola di arresto HP', { size: 1.7, bold: true, anchor: 'end' });
+  sh.text(pe[0] - 3, pe[1] + 6.5, fmtc(route[route.length - 1]), { size: 1.6, anchor: 'end' });
+  // nord isometrico
+  const nx0 = ax0 + 6, ny0 = ay0 + 10;
+  const dn = isoUV(0, 14, 0);
+  sh.arrow(nx0, ny0, nx0 + dn[0], ny0 + dn[1], ST.med, 2.4);
+  sh.text(nx0 + dn[0] + 1.5, ny0 + dn[1], 'N', { size: 2.6, bold: true });
+
+  // tabelle a destra
+  const tx = FRAME.x1 - 150, tw = 146;
+  let ty = FRAME.y0 + 18;
+  const table = (title, rows, colW) => {
+    sh.text(tx, ty, title, { size: 2.2, bold: true });
+    ty += 1.6;
+    const rh = 3.6;
+    sh.rect(tx, ty, tw, rows.length * rh, ST.norm);
+    rows.forEach((r, i) => {
+      const y = ty + i * rh;
+      if (i) sh.line(tx, y, tx + tw, y, ST.hair);
+      let x = tx;
+      r.forEach((c, j) => {
+        sh.text(x + 1, y + 2.6, c, { size: 1.7, bold: i === 0 && rows.isHead });
+        x += colW[j];
+        if (j < r.length - 1) sh.line(x, y, x, y + rh, ST.hair);
+      });
+    });
+    ty += rows.length * rh + 6;
+  };
+  table('DATI DI LINEA', [
+    ['Numero linea', line.lineNo], ['Servizio', 'Vapore surriscaldato HP'],
+    ['Diametro', `DN ${line.DN} · OD ${f(line.OD, 1)} × ${f(line.tnom, 1)} mm (t min ${f(line.tmin, 1)})`],
+    ['Materiale', `${line.material} · classe ${line.cls}#`],
+    ['Esercizio', `${f(line.p, 1)} bar(a) · ${f(line.T, 0)} °C · ${f(line.m, 1)} kg/s · ${f(line.vel, 1)} m/s`],
+    ['Progetto', `${f(line.pDes, 1)} bar(a) · ${f(line.TDes, 0)} °C`],
+    ['Prova idraulica', `${f(line.test, 1)} bar(g)`],
+    ['Coibentazione', `${line.ins.t} mm lana minerale + lamierino Al`],
+    ['Trattamenti', line.mat === 'C' ? 'PWHT su tutte le saldature, durezza ≤ 250 HV' : 'PWHT secondo ASME B31.1'],
+    ['Controlli', 'RT/UT 100 % saldature di testa, MT/PT raccordi'],
+    ['Codice', 'ASME B31.1 Power Piping'],
+  ], [32, 114]);
+  const valves = 2;
+  const welds = 2 * (elbows + valves + 1) + 2;
+  const bom = [
+    ['Pos.', 'Descrizione', 'Q.tà'],
+    ['1', `Tubo ${line.matShort} OD ${f(line.OD, 1)} × ${f(line.tnom, 1)} mm`, `${f(total * 1.05, 1)} m`],
+    ['2', `Curva 90° raggio 3D DN ${line.DN}`, String(elbows)],
+    ['3', `Valvola di isolamento motorizzata DN ${line.DN} ${line.cls}# BW`, '1'],
+    ['4', 'Boccaglio di misura portata ASME PTC 6', '1'],
+    ['5', 'Valvola di arresto TV (fornitura TV)', '1'],
+    ['6', 'Supporti/guide (passo ~6 m)', String(sup)],
+    ['7', 'Saldature di testa', String(welds)],
+    ['8', `Coibentazione ${line.ins.t} mm`, `${f(total, 1)} m`],
+  ];
+  bom.isHead = true;
+  table('DISTINTA MATERIALI', bom, [10, 116, 20]);
+  const cr = [['Punto', 'E [m]', 'N [m]', 'EL [m]', 'Tratto']];
+  route.forEach((q, i) => cr.push([String(i), f(q[0], 3), f(q[1], 3), f(q[2], 3), i ? (segs.find((s) => s.i === i)?.dir ?? '') : 'inizio']));
+  cr.isHead = true;
+  table('COORDINATE DEI PUNTI DI INSTRADAMENTO', cr, [14, 30, 30, 30, 42]);
+  sh.text(tx, ty - 2, `Sviluppo totale ${f(total, 2)} m · ${elbows} cambi di direzione`, { size: 1.8, bold: true });
+  return [sh];
+}
+
+// ------------------------------------------------------------------ unifilare AT/MT
+function sld1Sheets(M, doc) {
+  const E = M.electrical;
+  const sh = new Sheet();
+  frame(sh, M.meta, { ...doc, sheetNo: 1, sheetCount: 1 });
+  sh.text(FRAME.x0 + 4, FRAME.y0 + 8, `SCHEMA UNIFILARE GENERALE – ALTA TENSIONE ${E.hvKV} kV E GENERAZIONE`, { size: 3.1, bold: true });
+  const yB1 = 58, yB2 = 64;
+  const x0 = 30, x1 = 400;
+  sh.line(x0, yB1, x1, yB1, ST.heavy).line(x0, yB2, x1, yB2, ST.heavy);
+  sh.text(x0, yB1 - 2, `SBARRE AT ${E.hvKV} kV – GIS 0AEA10 (doppia sbarra, Icc 50 kA)`, { size: 1.9, bold: true });
+  // stalli di linea
+  [44, 70].forEach((x, i) => {
+    sh.line(x, yB1, x, 32, ST.norm);
+    elDisconnector(sh, x, 51, 4);
+    elBreaker(sh, x, 43, 3);
+    elCT(sh, x, 39);
+    sh.arrow(x, 34, x, 27, ST.norm, 2);
+    sh.text(x + 2, 30, `Linea ${i + 1} RTN`, { size: 1.6 });
+  });
+  // parallelo sbarre
+  sh.line(92, yB1, 92, yB2 + 8, ST.norm).line(98, yB2, 98, yB2 + 8, ST.norm).line(92, yB2 + 8, 98, yB2 + 8, ST.norm);
+  elBreaker(sh, 95 - 1.4, yB2 + 6.6, 2.8);
+  sh.text(95, yB2 + 14, 'Parallelo sbarre', { size: 1.4, anchor: 'middle' });
+  // stalli di macchina
+  const gens = E.gens;
+  const n = gens.length;
+  const span = (x1 - 120) / n;
+  const uatByGen = Object.fromEntries(E.uats.map((u) => [u.from, u]));
+  const mvBusX = {};
+  gens.forEach((g, i) => {
+    const x = 130 + span * i + span / 2 - 20;
+    const t = E.gsu[i];
+    sh.line(x, yB1, x, yB2 + 2, ST.norm);
+    sh.circle(x, yB1, 0.7, ST.black);
+    elDisconnector(sh, x, yB2 + 2, 4);
+    let y = yB2 + 8;
+    sh.line(x, yB2 + 6, x, y, ST.norm);
+    y = elBreaker(sh, x, y, 3);
+    elCT(sh, x, y + 3);
+    sh.line(x, y, x, y + 7, ST.norm);
+    const yT = y + 7;
+    const yTb = elTrafo(sh, x, yT, 4.6);
+    sh.text(x + 7, yT + 4, t.tag, { size: 1.8, bold: true });
+    sh.text(x + 7, yT + 6.6, `${t.MVA} MVA · ${t.ratio}`, { size: 1.5 });
+    sh.text(x + 7, yT + 9, `YNd11 · ucc ${t.uk} % · ONAF`, { size: 1.5 });
+    elEarth(sh, x - 6, yT + 6);
+    sh.line(x - 6, yT + 6, x - 3.5, yT + 6, ST.thin);
+    // condotto a fasi isolate
+    const yG = 182;
+    sh.line(x, yTb, x, yG - 7, ST.thick);
+    sh.text(x - 2, yTb + 14, `CFI ${String(g.kV).replace('.', ',')} kV`, { size: 1.4, anchor: 'end', rot: -90 });
+    const yGCB = yG - 24;
+    elBreaker(sh, x, yGCB, 3.4);
+    sh.text(x + 3, yGCB + 2.6, g.tag.replace('MKA', 'BAC'), { size: 1.6, bold: true });
+    sh.text(x + 3, yGCB + 4.8, 'GCB', { size: 1.4 });
+    elGen(sh, x, yG, 7);
+    sh.text(x, yG + 11, g.tag, { size: 1.9, bold: true, anchor: 'middle' });
+    sh.text(x, yG + 13.6, `${g.name}`, { size: 1.5, anchor: 'middle' });
+    sh.text(x, yG + 16, `${g.MVA} MVA · ${String(g.kV).replace('.', ',')} kV · cosφ 0,85`, { size: 1.5, anchor: 'middle' });
+    sh.text(x, yG + 18.4, `raffr. ${g.cooling}`, { size: 1.4, anchor: 'middle' });
+    // trasformatore di unità
+    const u = uatByGen[g.tag];
+    const yTap = yGCB - 10;
+    if (u) {
+      sh.circle(x, yTap, 0.8, ST.black);
+      const xu = x + 22;
+      sh.line(x, yTap, xu, yTap, ST.norm);
+      sh.line(xu, yTap, xu, yTap + 3, ST.norm);
+      const yub = elTrafo(sh, xu, yTap + 3, 3.4);
+      sh.text(xu + 5, yTap + 6, u.tag, { size: 1.7, bold: true });
+      sh.text(xu + 5, yTap + 8.4, `${String(u.MVA).replace('.', ',')} MVA · ${u.ratio}`, { size: 1.4 });
+      sh.line(xu, yub, xu, yub + 4, ST.norm);
+      elBreaker(sh, xu, yub + 4, 2.6);
+      sh.line(xu, yub + 6.6, xu, 214, ST.norm);
+      mvBusX[u.bus] = xu;
+    }
+    // SFC per i TG
+    if (g.unit > 0) {
+      const xs = x - 22;
+      sh.rect(xs - 7, yG - 4, 14, 8, { s: '#000000', w: 0.35, f: W });
+      sh.text(xs, yG - 0.6, 'SFC', { size: 1.8, anchor: 'middle', bold: true });
+      sh.text(xs, yG + 2.2, `${g.unit}MBJ10`, { size: 1.3, anchor: 'middle' });
+      sh.path([[xs + 7, yG], [x - 7, yG]], ST.dash);
+      sh.line(xs, yG + 4, xs, 214, ST.dash);
+    }
+  });
+  // sbarre MT
+  const yM = 214;
+  const xa0 = 110, xa1 = 250, xb0 = 262, xb1 = 400;
+  sh.line(xa0, yM, xa1, yM, ST.heavy).line(xb0, yM, xb1, yM, ST.heavy);
+  sh.text(xa0, yM + 4, `0BBA – QUADRO MT ${E.mvKV} kV SEMISBARRA A`, { size: 1.8, bold: true });
+  sh.text(xb0, yM + 4, `0BBB – QUADRO MT ${E.mvKV} kV SEMISBARRA B`, { size: 1.8, bold: true });
+  sh.line(xa1, yM, xa1 + 4, yM, ST.norm).line(xb0 - 4, yM, xb0, yM, ST.norm);
+  elBreaker(sh, (xa1 + xb0) / 2 - 1.4, yM - 1.4, 2.8);
+  sh.text((xa1 + xb0) / 2, yM - 3, 'congiuntore', { size: 1.3, anchor: 'middle' });
+  sh.text(xb1, yM + 8, 'Utenze MT e BT: vedi schema unifilare servizi ausiliari', { size: 1.6, anchor: 'end' });
+  notesBox(sh, 'NOTE', [
+    `Potenza installata: ${gens.map((g) => `${g.tag} ${g.MVA} MVA`).join(', ')}. Tensione di consegna ${E.hvKV} kV.`,
+    'Avviamento TG tramite convertitore statico (SFC) alimentato dalle sbarre MT; servizi di unità derivati tra interruttore di generatore e trasformatore elevatore (alimentazione dalla rete a macchina ferma).',
+    'Simbologia IEC 60617. Valori di corto circuito da confermare con lo studio di rete.',
+  ], { w: 95 });
+  return [sh];
+}
+
+// ------------------------------------------------------------------ unifilare MT/BT
+function sld2Sheets(M, doc) {
+  const E = M.electrical;
+  const loads = M.loads;
+  const sh = new Sheet();
+  frame(sh, M.meta, { ...doc, sheetNo: 1, sheetCount: 1 });
+  sh.text(FRAME.x0 + 4, FRAME.y0 + 8, `SCHEMA UNIFILARE SERVIZI AUSILIARI – MT ${E.mvKV} kV / BT 400 V`, { size: 3.1, bold: true });
+  const yM = 40;
+  const A = [22, 205], B = [217, 404];
+  sh.line(A[0], yM, A[1], yM, ST.heavy).line(B[0], yM, B[1], yM, ST.heavy);
+  sh.text(A[0], yM - 9, `0BBA ${E.mvKV} kV`, { size: 2, bold: true });
+  sh.text(B[0], yM - 9, `0BBB ${E.mvKV} kV`, { size: 2, bold: true });
+  elBreaker(sh, (A[1] + B[0]) / 2 - 1.4, yM - 1.4, 2.8);
+  sh.line(A[1], yM, (A[1] + B[0]) / 2 - 1.4, yM, ST.norm).line((A[1] + B[0]) / 2 + 1.4, yM, B[0], yM, ST.norm);
+  // arrivi dai trasformatori di unità
+  E.uats.forEach((u, i) => {
+    const x = i === 0 ? A[0] + 10 : B[0] + 10;
+    sh.line(x, 18, x, yM, ST.norm);
+    elBreaker(sh, x, yM - 8, 2.8);
+    sh.arrow(x, 24, x, 18, ST.norm, 1.6);
+    sh.text(x + 2.5, 21, `da ${u.tag} ${String(u.MVA).replace('.', ',')} MVA`, { size: 1.5 });
+  });
+  // utenze MT distribuite su A/B
+  const mv = [];
+  for (const l of loads.filter((q) => q.kV >= 1)) {
+    const nInst = Math.min(l.qtyInst, 3);
+    for (let j = 0; j < (l.qtyInst > 4 ? 1 : nInst); j++) mv.push({ l, side: j % 2, suffix: l.qtyInst > 4 ? ` ×${l.qtyInst}` : String.fromCharCode(65 + j) });
+  }
+  // trasformatori BT
+  const lvT = E.lvTr;
+  const feedA = [], feedB = [];
+  for (const m of mv) (m.side === 0 ? feedA : feedB).push({ type: 'mv', ...m });
+  lvT.forEach((t, i) => (i % 2 === 0 ? feedA : feedB).push({ type: 'tr', t }));
+  const drawFeeders = (list, [x0, x1]) => {
+    const n = list.length;
+    const step = Math.min(16, (x1 - x0 - 24) / Math.max(n, 1));
+    list.forEach((fd, i) => {
+      const x = x0 + 24 + i * step;
+      sh.line(x, yM, x, yM + 3, ST.norm);
+      elBreaker(sh, x, yM + 3, 2.6);
+      sh.line(x, yM + 5.6, x, yM + 14, ST.norm);
+      if (fd.type === 'mv') {
+        elMotor(sh, x, yM + 17.2, 3.2);
+        const lab = `${fd.l.tag}${fd.l.qtyInst > 1 && !fd.suffix.startsWith(' ') ? fd.suffix : fd.suffix}`;
+        sh.text(x + 0.7, yM + 22, lab, { size: 1.45, rot: 90 });
+        sh.text(x - 1.6, yM + 22, `${fd.l.rated.toLocaleString('it-IT')} kW`, { size: 1.35, rot: 90 });
+      } else {
+        const yb = elTrafo(sh, x, yM + 14, 3.2);
+        sh.text(x + 4.5, yM + 18, fd.t.tag, { size: 1.5, bold: true });
+        sh.text(x + 4.5, yM + 20.4, `${fd.t.kVA} kVA`, { size: 1.35 });
+        sh.line(x, yb, x, 118, ST.norm);
+        fd.t._x = x;
+      }
+    });
+  };
+  drawFeeders(feedA, A);
+  drawFeeders(feedB, B);
+  // quadri BT (PCC)
+  const yL = 122;
+  const pccA = [22, 205], pccB = [217, 404];
+  sh.line(pccA[0], yL, pccA[1], yL, ST.heavy).line(pccB[0], yL, pccB[1], yL, ST.heavy);
+  sh.text(pccA[0], yL - 2, '0BFA PCC 400 V', { size: 1.9, bold: true });
+  sh.text(pccB[0], yL - 2, '0BFB PCC 400 V', { size: 1.9, bold: true });
+  for (const t of lvT) if (t._x) { elBreaker(sh, t._x, 118 - 2.6, 2.6); sh.line(t._x, 118, t._x, yL, ST.norm); }
+  elBreaker(sh, (pccA[1] + pccB[0]) / 2 - 1.4, yL - 1.4, 2.8);
+  sh.line(pccA[1], yL, (pccA[1] + pccB[0]) / 2 - 1.4, yL, ST.norm).line((pccA[1] + pccB[0]) / 2 + 1.4, yL, pccB[0], yL, ST.norm);
+  const lv = loads.filter((q) => q.kV < 1);
+  const half = Math.ceil(lv.length / 2);
+  const drawLV = (list, [x0, x1]) => {
+    const step = Math.min(9.5, (x1 - x0 - 10) / Math.max(list.length, 1));
+    list.forEach((l, i) => {
+      const x = x0 + 8 + i * step;
+      sh.line(x, yL, x, yL + 3, ST.norm);
+      elBreaker(sh, x, yL + 3, 2);
+      sh.line(x, yL + 5, x, yL + 11, ST.norm);
+      const motor = /Pompa|Ventil|Viratore|Compress|Estrattore|Gru|Centralina/.test(l.desc);
+      if (motor) elMotor(sh, x, yL + 13.4, 2.4);
+      else sh.arrow(x, yL + 11, x, yL + 15, ST.norm, 1.4);
+      sh.text(x + 0.6, yL + 17.5, l.tag, { size: 1.3, rot: 90 });
+      sh.text(x - 1.3, yL + 17.5, `${l.rated.toLocaleString('it-IT')} kW`, { size: 1.2, rot: 90 });
+    });
+  };
+  drawLV(lv.slice(0, half), pccA);
+  drawLV(lv.slice(half), pccB);
+  // emergenza
+  const yE = 185;
+  sh.line(250, yE, 330, yE, ST.heavy);
+  sh.text(250, yE - 2, '0BMA SBARRA DI EMERGENZA 400 V', { size: 1.8, bold: true });
+  sh.path([[200, yL], [200, yE - 10], [262, yE - 10], [262, yE]], ST.norm);
+  elBreaker(sh, 262, yE - 8, 2.4);
+  elGen(sh, 318, yE + 16, 5);
+  sh.line(318, yE + 11, 318, yE, ST.norm);
+  elBreaker(sh, 318, yE + 4, 2.4);
+  sh.text(325, yE + 16, `0XJA10 diesel ${E.edgKVA} kVA`, { size: 1.6, bold: true });
+  sh.line(285, yE, 285, yE + 8, ST.norm);
+  sh.rect(279, yE + 8, 12, 8, { s: '#000000', w: 0.35, f: W });
+  sh.text(285, yE + 13, 'UPS', { size: 1.8, anchor: 'middle', bold: true });
+  sh.text(285, yE + 20, '0BRA10 230 V c.a. / 220 V c.c.', { size: 1.4, anchor: 'middle' });
+  // riepilogo carichi
+  const S = E.summary;
+  notesBox(sh, 'BILANCIO DI POTENZA AUSILIARI', [
+    `Carico contemporaneo MT ${f(S.mvP / 1000, 2)} MW, BT ${f(S.lvP / 1000, 2)} MW, totale ${f(S.totKW / 1000, 2)} MW / ${f(S.totKVA / 1000, 2)} MVA (vedi load list).`,
+    `Stima ausiliari del simulatore al punto di progetto: ${f(S.simAux / 1000, 2)} MW. Trasformatori di unità ${E.uats.length} × ${String(E.uats[0].MVA).replace('.', ',')} MVA, trasformatori MT/BT ${lvT.length} × ${lvT[0].kVA} kVA (2×100 %).`,
+  ], { w: 200 });
+  return [sh];
+}
+
+
+return { wrap, plotPlanSheets, plantIsoSheets, pipingIsoSheets, sld1Sheets, sld2Sheets };
+})();
+
+__m['js/docs/index.js'] = (() => {
+// Catalogo degli elaborati di ingegneria generati dal modello: numerazione,
+// costruzione dei fogli, esportazione PDF/SVG/CSV.
+
+const { engineeringModel } = __m['js/docs/engineering.js'];
+const { tableSheets, sheetToSVG } = __m['js/docs/sheet.js'];
+const { buildPdf } = __m['js/docs/pdf.js'];
+const { pfdSheets, pid1Sheets, pid2Sheets, pid3Sheets } = __m['js/docs/drawings-process.js'];
+const { plotPlanSheets, plantIsoSheets, pipingIsoSheets, sld1Sheets, sld2Sheets } = __m['js/docs/drawings-layout.js'];
+
+const n = (v, d = 1) => (Number.isFinite(v) ? v.toLocaleString('it-IT', { minimumFractionDigits: d, maximumFractionDigits: d }) : '');
+
+const FLUIDS = {
+  FG: 'Gas naturale', MS: 'Vapore HP', CR: 'Vapore RH freddo', HR: 'Vapore RH caldo', IS: 'Vapore IP', LS: 'Vapore LP',
+  FW: 'Acqua alimento', SW: 'Acqua attemperamento', CD: 'Condensato', BP: 'Vapore di bypass', BD: 'Spurghi',
+  CW: 'Acqua di circolazione', ED: 'Vapore di scarico TV',
+};
+
+// ------------------------------------------------------------------ liste
+function lineListTable(M) {
+  const columns = [
+    { key: 'lineNo', title: 'Numero linea', w: 30 }, { key: 'kks', title: 'KKS', w: 20 }, { key: 'fluid', title: 'Fluido', w: 22 },
+    { key: 'from', title: 'Da', w: 36 }, { key: 'to', title: 'A', w: 36 }, { key: 'DN', title: 'DN', w: 9, align: 'right' },
+    { key: 'odt', title: 'OD × s [mm]', w: 19, align: 'right' }, { key: 'mat', title: 'Materiale', w: 18 }, { key: 'cls', title: 'Classe', w: 10, align: 'right' },
+    { key: 'm', title: 'Portata [kg/s]', w: 13, align: 'right' }, { key: 'p', title: 'p eserc. [bar a]', w: 13, align: 'right' },
+    { key: 'T', title: 'T eserc. [°C]', w: 12, align: 'right' }, { key: 'vel', title: 'Vel. [m/s]', w: 11, align: 'right' },
+    { key: 'pD', title: 'p prog. [bar a]', w: 13, align: 'right' }, { key: 'TD', title: 'T prog. [°C]', w: 12, align: 'right' },
+    { key: 'test', title: 'Prova [bar g]', w: 12, align: 'right' }, { key: 'ins', title: 'Coib. [mm]', w: 11, align: 'right' },
+  ];
+  const rows = [];
+  let lastUnit = null;
+  for (const l of M.lines) {
+    if (l.unit !== lastUnit) { rows.push({ group: l.unit === 0 ? 'Linee comuni' : `Treno ${l.unit} (GVR${l.unit})` }); lastUnit = l.unit; }
+    rows.push({
+      lineNo: l.lineNo, kks: l.kks, fluid: FLUIDS[l.fluid] || l.fluid, from: l.from, to: l.to, DN: l.DN,
+      odt: `${n(l.OD, 1)} × ${n(l.tnom, 1)}`, mat: l.matShort, cls: `${l.cls}#`, m: n(l.m, 2), p: l.p < 1 ? n(l.p, 3) : n(l.p, 1), T: n(l.T, 0),
+      vel: n(l.vel, 1), pD: n(l.pDes, 1), TD: n(l.TDes, 0), test: n(l.test, 1), ins: l.ins.t ? `${l.ins.code} ${l.ins.t}` : l.ins.code,
+    });
+  }
+  return { columns, rows, notes: [
+    'Diametri scelti per la velocità massima ammessa (vapore HP 45 m/s, RH caldo 55 m/s, vapore IP/LP e RH freddo 40 m/s, acqua alimento 3 m/s, condensato 2 m/s, aspirazioni 1-1,2 m/s, acqua di circolazione 2,5 m/s, gas 20 m/s) con portata di progetto pari al 110 % della portata al punto ISO.',
+    'Spessore minimo secondo ASME B31.1 104.1.2: t = P·D / 2(S·E + P·y) + c, con tolleranza di laminazione 12,5 %. Classe di rating secondo ASME B16.34 (valori preliminari). Pressione di progetto = 1,1 × esercizio, temperatura di progetto = esercizio + 10 °C (vapore).',
+  ] };
+}
+
+function equipmentTable(M) {
+  const columns = [
+    { key: 'no', title: 'N.', w: 7 }, { key: 'tag', title: 'Tag KKS', w: 24 }, { key: 'desc', title: 'Descrizione', w: 50 },
+    { key: 'qty', title: 'Q.tà', w: 16 }, { key: 'kind', title: 'Tipo / costruzione', w: 50 }, { key: 'data', title: 'Dati principali', w: 110 },
+    { key: 'pDes', title: 'P prog. [bar]', w: 13, align: 'right' }, { key: 'TDes', title: 'T prog. [°C]', w: 13, align: 'right' },
+    { key: 'mat', title: 'Materiale', w: 30 }, { key: 'kW', title: 'P el. [kW]', w: 13, align: 'right' },
+  ];
+  const rows = M.eq.map((e) => (e.group ? { group: e.group } : e));
+  return { columns, rows, notes: [
+    `Codifica KKS semplificata; "1..${M.N}" indica apparecchiature uguali per ciascun treno. Superfici di scambio stimate con coefficienti globali tipici riferiti alla superficie alettata.`,
+    'Spessore dei corpi cilindrici secondo ASME VIII Div.1 UG-27 con S = 118 MPa (SA-516 Gr.70) e sovraspessore di corrosione 3 mm.',
+  ] };
+}
+
+function loadTable(M) {
+  const columns = [
+    { key: 'no', title: 'N.', w: 7 }, { key: 'tag', title: 'Tag KKS', w: 24 }, { key: 'desc', title: 'Utenza', w: 70 },
+    { key: 'q', title: 'Inst./eserc.', w: 14, align: 'center' }, { key: 'kV', title: 'V [kV]', w: 10, align: 'right' },
+    { key: 'rated', title: 'Pn [kW]', w: 14, align: 'right' }, { key: 'abs', title: 'Pa albero [kW]', w: 14, align: 'right' },
+    { key: 'eff', title: 'η', w: 10, align: 'right' }, { key: 'pf', title: 'cosφ', w: 10, align: 'right' }, { key: 'ku', title: 'Ku', w: 9, align: 'right' },
+    { key: 'duty', title: 'Serv.', w: 9, align: 'center' }, { key: 'cont', title: 'P contemp. [kW]', w: 16, align: 'right' },
+    { key: 'kvar', title: 'Q contemp. [kvar]', w: 16, align: 'right' }, { key: 'board', title: 'Quadro', w: 28 },
+  ];
+  const rows = [];
+  const groups = [['Media tensione 6 kV', (l) => l.kV >= 1], ['Bassa tensione 400 V', (l) => l.kV < 1]];
+  let i = 0;
+  for (const [g, flt] of groups) {
+    rows.push({ group: g });
+    for (const l of M.loads.filter(flt)) {
+      rows.push({
+        no: String(++i), tag: l.tag, desc: l.desc, q: `${l.qtyInst}/${l.qtyOp}`, kV: n(l.kV, l.kV < 1 ? 1 : 0), rated: n(l.rated, l.rated < 10 ? 1 : 0),
+        abs: n(l.abs, 0), eff: n(l.eff, 2), pf: n(l.pf, 2), ku: n(l.ku, 2), duty: l.duty, cont: n(l.cont, 0), kvar: n(l.kvar, 0), board: l.board,
+      });
+    }
+  }
+  const S = M.electrical.summary;
+  return {
+    columns, rows,
+    totals: [
+      `Totale MT: ${n(S.mvP, 0)} kW · ${n(S.mvQ, 0)} kvar    Totale BT: ${n(S.lvP, 0)} kW · ${n(S.lvQ, 0)} kvar (${n(S.lvKVA, 0)} kVA)`,
+      `Carico ausiliario contemporaneo: ${n(S.totKW / 1000, 2)} MW · ${n(S.totKVA / 1000, 2)} MVA — stima del simulatore ${n(S.simAux / 1000, 2)} MW`,
+    ],
+    notes: [
+      'Servizio: C continuo, I intermittente (coefficiente 0,3), S riserva o solo avviamento (non contemporaneo). P contemporanea = n. in esercizio × Pa/η × Ku.',
+      'Le utenze ridondate (A/B) sono ripartite sulle due semisbarre. L\'avviatore statico SFC è un carico intermittente di avviamento e determina il dimensionamento dei trasformatori di unità.',
+    ],
+  };
+}
+
+// ------------------------------------------------------------------ catalogo
+function documentCatalog(meta) {
+  const P = meta.prefix || 'CCGT';
+  return [
+    { id: 'pfd', number: `${P}-PR-PFD-001`, title: 'Schema di processo (PFD) e bilancio di massa ed energia', short: 'PFD e bilancio H&MB', group: 'Processo', build: pfdSheets },
+    { id: 'pid1', number: `${P}-PR-PID-001`, title: 'P&ID turbogas e gas combustibile', short: 'P&ID turbogas', group: 'Processo', build: pid1Sheets },
+    { id: 'pid2', number: `${P}-PR-PID-002`, title: 'P&ID GVR circuito acqua/vapore', short: 'P&ID GVR', group: 'Processo', build: pid2Sheets },
+    { id: 'pid3', number: `${P}-PR-PID-003`, title: 'P&ID turbina a vapore, condensato e alimento', short: 'P&ID TV e condensato', group: 'Processo', build: pid3Sheets },
+    { id: 'll', number: `${P}-PI-LST-001`, title: 'Line list', short: 'Line list', group: 'Liste', table: lineListTable, csv: true },
+    { id: 'el', number: `${P}-ME-LST-001`, title: 'Equipment list', short: 'Equipment list', group: 'Liste', table: equipmentTable, csv: true },
+    { id: 'load', number: `${P}-EL-LST-001`, title: 'Load list – elenco utenze elettriche', short: 'Load list', group: 'Liste', table: loadTable, csv: true },
+    { id: 'sld1', number: `${P}-EL-SLD-001`, title: 'Schema unifilare AT e generazione', short: 'Unifilare AT', group: 'Elettrico', build: sld1Sheets },
+    { id: 'sld2', number: `${P}-EL-SLD-002`, title: 'Schema unifilare servizi ausiliari MT/BT', short: 'Unifilare MT/BT', group: 'Elettrico', build: sld2Sheets },
+    { id: 'pp', number: `${P}-CV-PLT-001`, title: 'Planimetria generale (plot plan)', short: 'Plot plan', group: 'Layout', build: plotPlanSheets },
+    { id: 'iso', number: `${P}-GA-ISO-001`, title: 'Vista isometrica d\'insieme', short: 'Vista isometrica', group: 'Layout', build: plantIsoSheets },
+    { id: 'piso', number: `${P}-PI-ISO-001`, title: 'Isometrico linea vapore HP', short: 'Isometrico vapore HP', group: 'Layout', build: pipingIsoSheets },
+  ];
+}
+
+/** Genera i fogli di un documento. */
+function buildDocument(M, entry) {
+  const doc = { number: entry.number, title: entry.title, scale: '—' };
+  if (entry.table) {
+    const t = entry.table(M);
+    return tableSheets(M.meta, doc, t.columns, t.rows, { notes: t.notes, totals: t.totals });
+  }
+  return entry.build(M, doc);
+}
+
+/** Elenco elaborati (prima pagina del pacchetto). */
+function registerSheets(M, catalog, sheetCounts) {
+  const columns = [
+    { key: 'no', title: 'N.', w: 8 }, { key: 'number', title: 'Numero documento', w: 40 }, { key: 'title', title: 'Titolo', w: 120 },
+    { key: 'group', title: 'Disciplina', w: 24 }, { key: 'sheets', title: 'Fogli', w: 12, align: 'right' }, { key: 'rev', title: 'Rev.', w: 10, align: 'center' },
+    { key: 'fmt', title: 'Formato', w: 14, align: 'center' },
+  ];
+  const rows = catalog.map((c, i) => ({ no: String(i + 1), number: c.number, title: c.title, group: c.group, sheets: String(sheetCounts[c.id] ?? ''), rev: M.meta.rev, fmt: 'A3' }));
+  const r = M.r;
+  return tableSheets(M.meta, { number: `${M.meta.prefix}-GE-REG-001`, title: 'Elenco elaborati', subtitle: `${M.N}+1 · ${M.gtClass} · ${n(r.net, 1)} MW netti · η ${n(r.eta * 100, 2)} %`, scale: '—' }, columns, rows, {
+    notes: [
+      'Elaborati generati automaticamente dal punto di progetto del simulatore (ISO 15 °C, 1013 mbar, 60 % UR, carico base). Livello di definizione: ingegneria di base / prefattibilità, da sviluppare con i dati dei fornitori.',
+    ],
+  });
+}
+
+function csvFor(M, entry) {
+  const t = entry.table(M);
+  const esc = (v) => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const lines = [t.columns.map((c) => esc(c.title)).join(';')];
+  for (const r of t.rows) {
+    if (r.group) { lines.push(esc(r.group)); continue; }
+    lines.push(t.columns.map((c) => esc(r[c.key])).join(';'));
+  }
+  for (const tt of t.totals || []) lines.push(esc(tt));
+  return '﻿' + lines.join('\r\n');
+}
+
+
+return { engineeringModel, sheetToSVG, buildPdf, documentCatalog, buildDocument, registerSheets, csvFor };
+})();
+
+__m['js/ui/docs-ui.js'] = (() => {
+// Sezione "Documentazione di ingegneria": elenco elaborati, anteprima dei fogli,
+// esportazione PDF / SVG / CSV e pacchetto completo.
+
+const { defaultProjectMeta } = __m['js/docs/engineering.js'];
+const { documentCatalog, buildDocument, registerSheets, engineeringModel, buildPdf, sheetToSVG, csvFor } = __m['js/docs/index.js'];
+
+const $ = (id) => document.getElementById(id);
+const META_KEYS = ['project', 'client', 'site', 'prefix', 'rev', 'revDesc', 'date', 'author', 'checked', 'approved', 'stackHeight'];
+
+// Salvataggio file: capability "downloads" della pagina pubblicata, altrimenti download del browser.
+let dlPromise = null;
+function downloadsCap() {
+  if (!dlPromise) {
+    dlPromise = window.claude && typeof window.claude.use === 'function'
+      ? window.claude.use('downloads').catch(() => null)
+      : Promise.resolve(null);
+  }
+  return dlPromise;
+}
+
+async function saveFile(filename, data, mime) {
+  const blob = data instanceof Blob ? data : new Blob([data], { type: mime });
+  const dl = await downloadsCap();
+  if (dl) {
+    try {
+      await dl.save({ filename, data: blob });
+      return { ok: true, msg: `${filename} salvato` };
+    } catch (e) {
+      if (e && e.code === 'declined') return { ok: false, msg: 'Salvataggio annullato' };
+      if (e && e.code === 'rate_limited') return { ok: false, msg: 'Un salvataggio è già in corso: riprova tra poco' };
+      if (e && !['unavailable', 'not_granted', 'capability_disabled', 'capability_removed'].includes(e.code)) return { ok: false, msg: `Salvataggio non riuscito (${e.code || 'errore'})` };
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return { ok: true, msg: `${filename} scaricato` };
+}
+
+/**
+ * @param {() => {cfg: object, des: object}} getDesign restituisce configurazione e progetto correnti
+ */
+function initDocs(getDesign) {
+  const meta = defaultProjectMeta();
+  const D = { meta, model: null, sig: '', current: 'pfd', sheetIdx: 0, zoom: 1, sheets: null, sheetsFor: '' };
+
+  const status = (s) => { $('docs-status').textContent = s; };
+
+  // campi del cartiglio
+  for (const k of META_KEYS) {
+    const el = $(`dm-${k}`);
+    el.value = meta[k];
+    el.addEventListener('change', () => {
+      meta[k] = k === 'stackHeight' ? Math.min(120, Math.max(30, parseFloat(el.value) || 60)) : el.value.trim();
+      if (k === 'stackHeight') el.value = meta[k];
+      D.sig = '';
+      renderList();
+      renderCurrent();
+    });
+  }
+
+  const catalog = () => documentCatalog(meta);
+
+  function model() {
+    const { cfg, des } = getDesign();
+    const sig = JSON.stringify([cfg, meta]);
+    if (sig !== D.sig || !D.model) {
+      D.model = engineeringModel(cfg, des, { ...meta });
+      D.sig = sig;
+      D.sheets = null;
+    }
+    return D.model;
+  }
+
+  function sheetsOf(entry) {
+    const M = model();
+    const key = `${D.sig}|${entry.id}`;
+    if (D.sheetsFor !== key || !D.sheets) {
+      D.sheets = buildDocument(M, entry);
+      D.sheetsFor = key;
+    }
+    return D.sheets;
+  }
+
+  function renderList() {
+    const nav = $('docs-list');
+    let html = '';
+    let grp = '';
+    for (const c of catalog()) {
+      if (c.group !== grp) { grp = c.group; html += `<div class="grp">${grp}</div>`; }
+      html += `<button type="button" class="doc-item${c.id === D.current ? ' is-on' : ''}" data-doc="${c.id}"><span class="dn">${c.number}</span><span class="dt">${c.short}</span></button>`;
+    }
+    nav.innerHTML = html;
+  }
+
+  function renderCurrent() {
+    const entry = catalog().find((c) => c.id === D.current);
+    let sheets;
+    try {
+      sheets = sheetsOf(entry);
+    } catch (e) {
+      $('docs-paper').innerHTML = `<p class="muted">Impossibile generare l'elaborato: ${e.message}</p>`;
+      return;
+    }
+    D.sheetIdx = Math.min(D.sheetIdx, sheets.length - 1);
+    $('doc-number').textContent = entry.number;
+    $('doc-title').textContent = entry.title;
+    $('doc-sheet').textContent = `${D.sheetIdx + 1} / ${sheets.length}`;
+    $('doc-prev').disabled = D.sheetIdx === 0;
+    $('doc-next').disabled = D.sheetIdx >= sheets.length - 1;
+    $('btn-doc-csv').hidden = !entry.csv;
+    const svg = sheetToSVG(sheets[D.sheetIdx]).replace(/width="420mm" height="297mm"/, `style="width:${D.zoom * 100}%;min-width:${D.zoom > 1 ? 0 : 640}px"`);
+    $('docs-paper').innerHTML = svg;
+  }
+
+  const fileBase = (entry) => `${entry.number}_rev${meta.rev || 'A'}`;
+
+  $('docs-list').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-doc]');
+    if (!b) return;
+    D.current = b.dataset.doc;
+    D.sheetIdx = 0;
+    renderList();
+    renderCurrent();
+  });
+  $('doc-prev').addEventListener('click', () => { D.sheetIdx = Math.max(0, D.sheetIdx - 1); renderCurrent(); });
+  $('doc-next').addEventListener('click', () => { D.sheetIdx += 1; renderCurrent(); });
+  for (const b of document.querySelectorAll('.docs-toolbar [data-zoom]')) {
+    b.addEventListener('click', () => {
+      D.zoom = parseFloat(b.dataset.zoom);
+      for (const o of document.querySelectorAll('.docs-toolbar [data-zoom]')) {
+        o.classList.toggle('is-on', o === b);
+        o.setAttribute('aria-checked', String(o === b));
+      }
+      renderCurrent();
+    });
+  }
+  $('btn-doc-pdf').addEventListener('click', async () => {
+    const entry = catalog().find((c) => c.id === D.current);
+    const pdf = buildPdf(sheetsOf(entry), { title: `${entry.number} ${entry.title}`, author: meta.author, subject: meta.project });
+    status((await saveFile(`${fileBase(entry)}.pdf`, pdf, 'application/pdf')).msg);
+  });
+  $('btn-doc-svg').addEventListener('click', async () => {
+    const entry = catalog().find((c) => c.id === D.current);
+    const svg = sheetToSVG(sheetsOf(entry)[D.sheetIdx]);
+    const suffix = sheetsOf(entry).length > 1 ? `_f${D.sheetIdx + 1}` : '';
+    status((await saveFile(`${fileBase(entry)}${suffix}.svg`, svg, 'image/svg+xml')).msg);
+  });
+  $('btn-doc-csv').addEventListener('click', async () => {
+    const entry = catalog().find((c) => c.id === D.current);
+    status((await saveFile(`${fileBase(entry)}.csv`, csvFor(model(), entry), 'text/csv')).msg);
+  });
+  $('btn-pkg').addEventListener('click', async () => {
+    const btn = $('btn-pkg');
+    btn.disabled = true;
+    status('Generazione del pacchetto…');
+    await new Promise((r) => setTimeout(r, 20));
+    try {
+      const M = model();
+      const cat = catalog();
+      const all = [];
+      const counts = {};
+      for (const c of cat) {
+        const sh = buildDocument(M, c);
+        counts[c.id] = sh.length;
+        all.push(...sh);
+      }
+      const reg = registerSheets(M, cat, counts);
+      const pdf = buildPdf([...reg, ...all], { title: `${meta.project} – elaborati di ingegneria rev. ${meta.rev}`, author: meta.author, subject: meta.project });
+      const res = await saveFile(`${meta.prefix || 'CCGT'}_pacchetto_elaborati_rev${meta.rev || 'A'}.pdf`, pdf, 'application/pdf');
+      status(res.ok ? `${res.msg} (${reg.length + all.length} fogli A3)` : res.msg);
+    } catch (e) {
+      status(`Errore nella generazione: ${e.message}`);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  renderList();
+  // generazione differita per non rallentare il primo disegno della pagina
+  setTimeout(renderCurrent, 50);
+
+  return {
+    /** Da chiamare quando cambia il progetto. */
+    invalidate() {
+      D.sig = '';
+      D.model = null;
+      renderCurrent();
+    },
+  };
+}
+
+return { initDocs };
+})();
+
 __m['js/ui/app.js'] = (() => {
 // Controller dell'interfaccia: stato, input, ciclo di simulazione e aggiornamento delle viste.
 
@@ -3527,6 +6660,7 @@ const { fmt } = __m['js/ui/format.js'];
 const { sparkline, redrawAll } = __m['js/ui/charts.js'];
 const { buildMimic, updateMimic, mimicSignature } = __m['js/ui/mimic.js'];
 const { renderTQ, renderTS, computeCurves, renderCurves, renderTrend, renderStreams, renderBalance } = __m['js/ui/views.js'];
+const { initDocs } = __m['js/ui/docs-ui.js'];
 
 const $ = (id) => document.getElementById(id);
 const TICK_MS = 250;
@@ -3568,6 +6702,7 @@ function redesign() {
   fillNGTon();
   updateBrand();
   syncDesignInputs();
+  if (S.docs) S.docs.invalidate();
 }
 
 function opKey(op, load) {
@@ -4068,6 +7203,7 @@ function init() {
   bindOperation();
   bindControls();
   redesign();
+  S.docs = initDocs(() => ({ cfg: S.cfg, des: S.des }));
   S.sim.log('Simulatore avviato: unità in servizio a carico base');
   tick();
   setInterval(tick, TICK_MS);
