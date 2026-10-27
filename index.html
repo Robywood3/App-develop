@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulatore Ciclo Combinato</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Simulatore di impianto a ciclo combinato turbogas + ciclo a vapore a recupero, con modello termodinamico IAPWS-IF97 e simulazione dinamica.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!--APP-START-->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M4 12 L16 16 L16 24 L4 28 Z" class="bm-c"/>
+        <path d="M20 16 L32 12 L32 28 L20 24 Z" class="bm-t"/>
+        <path d="M34 20 h4" class="bm-s"/>
+        <path d="M2 20 h36" class="bm-s"/>
+      </svg>
+      <div>
+        <div class="brand-name">Simulatore Ciclo Combinato</div>
+        <div class="brand-sub" id="brand-sub">Classe F · 1+1 · GVR 3 livelli + RH</div>
+      </div>
+    </div>
+
+    <div class="unit-status">
+      <span class="state-pill" id="state-pill" data-state="IN_SERVIZIO">In servizio</span>
+      <div class="status-text">
+        <span id="phase-text">Regolazione di carico</span>
+        <span class="sim-clock" id="sim-clock" title="Tempo di simulazione">00:00:00</span>
+      </div>
+    </div>
+
+    <div class="sim-controls" role="group" aria-label="Comandi di simulazione">
+      <div class="seg" role="radiogroup" aria-label="Modalità di calcolo">
+        <button type="button" id="mode-dyn" class="seg-btn is-on" role="radio" aria-checked="true">Dinamico</button>
+        <button type="button" id="mode-ss" class="seg-btn" role="radio" aria-checked="false">Stazionario</button>
+      </div>
+      <div class="dyn-only cluster">
+        <button type="button" id="btn-play" class="btn icon-btn" aria-label="Pausa" title="Pausa / riprendi">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path id="play-icon" d="M4 3h3v10H4zM9 3h3v10H9z"/></svg>
+        </button>
+        <label class="sr-only" for="sim-speed">Velocità</label>
+        <select id="sim-speed" class="select-sm" title="Velocità di simulazione">
+          <option value="1">1×</option>
+          <option value="10" selected>10×</option>
+          <option value="60">60×</option>
+          <option value="300">300×</option>
+        </select>
+        <button type="button" id="btn-start" class="btn">Avvia</button>
+        <button type="button" id="btn-stop" class="btn">Arresta</button>
+        <button type="button" id="btn-trip" class="btn btn-trip">Blocco TG</button>
+        <button type="button" id="btn-ack" class="btn" hidden>Riconosci</button>
+      </div>
+      <button type="button" id="btn-theme" class="btn icon-btn" aria-label="Tema chiaro/scuro" title="Tema">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 2v10a5 5 0 0 1 0-10z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+  <section class="kpis" aria-label="Prestazioni dell'impianto">
+    <div class="kpi kpi-main">
+      <div class="kpi-label">Potenza netta</div>
+      <div class="kpi-value"><span id="k-net">—</span><small>MW</small></div>
+      <canvas id="k-spark" class="spark" aria-hidden="true"></canvas>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Rendimento netto <abbr title="riferito al potere calorifico inferiore">PCI</abbr></div>
+      <div class="kpi-value"><span id="k-eta">—</span><small>%</small></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Heat rate netto</div>
+      <div class="kpi-value"><span id="k-hr">—</span><small>kJ/kWh</small></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">TG / TV</div>
+      <div class="kpi-value kpi-split"><span id="k-gt">—</span><i>/</i><span id="k-st">—</span><small>MW</small></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Combustibile</div>
+      <div class="kpi-value"><span id="k-fuel">—</span><small>MW<sub>t</sub></small></div>
+      <div class="kpi-foot" id="k-fuel-mass">— t/h</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Emissioni CO₂</div>
+      <div class="kpi-value"><span id="k-co2">—</span><small>kg/MWh</small></div>
+      <div class="kpi-foot" id="k-co2-h">— t/h</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Costo marginale</div>
+      <div class="kpi-value"><span id="k-cost">—</span><small>€/MWh</small></div>
+      <div class="kpi-foot" id="k-margin">—</div>
+    </div>
+  </section>
+
+  <div class="console">
+    <aside class="panel" aria-label="Pannello comandi">
+      <div class="tabs" role="tablist" aria-label="Sezioni del pannello">
+        <button type="button" class="tab is-on" role="tab" aria-selected="true" data-tab="p-op" id="t-op">Esercizio</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="p-des" id="t-des">Progetto</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="p-mkt" id="t-mkt">Mercato</button>
+      </div>
+
+      <div class="tab-panel" id="p-op" role="tabpanel" aria-labelledby="t-op">
+        <div class="field-group">
+          <div class="group-title">Carico</div>
+          <div class="field range-field">
+            <label for="in-load"><span id="lbl-load">Set-point carico TG</span><output id="out-load">100 %</output></label>
+            <input type="range" id="in-load" min="0" max="100" step="1" value="100">
+          </div>
+          <div class="field range-field dyn-only">
+            <label for="in-ramp">Gradiente di carico<output id="out-ramp">8 %/min</output></label>
+            <input type="range" id="in-ramp" min="1" max="20" step="1" value="8">
+          </div>
+          <div class="field" id="f-ngton" hidden>
+            <label for="in-ngton">TG in servizio</label>
+            <select id="in-ngton"></select>
+          </div>
+          <div class="field check-field">
+            <input type="checkbox" id="in-sliding" checked>
+            <label for="in-sliding">Pressione HP scorrevole</label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="group-title">Condizioni ambiente</div>
+          <div class="field range-field">
+            <label for="in-tamb">Temperatura aria<output id="out-tamb">15,0 °C</output></label>
+            <input type="range" id="in-tamb" min="-20" max="45" step="0.5" value="15">
+          </div>
+          <div class="field check-field dyn-only">
+            <input type="checkbox" id="in-daily">
+            <label for="in-daily">Profilo giornaliero (±8 °C)</label>
+          </div>
+          <div class="field range-field">
+            <label for="in-pamb">Pressione atmosferica<output id="out-pamb">1013 mbar</output></label>
+            <input type="range" id="in-pamb" min="850" max="1040" step="1" value="1013">
+          </div>
+          <div class="field range-field">
+            <label for="in-rh">Umidità relativa<output id="out-rh">60 %</output></label>
+            <input type="range" id="in-rh" min="5" max="100" step="1" value="60">
+          </div>
+          <div class="field range-field" id="f-tcw">
+            <label for="in-tcw">Acqua di raffreddamento<output id="out-tcw">18,0 °C</output></label>
+            <input type="range" id="in-tcw" min="5" max="35" step="0.5" value="18">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="group-title">Post-combustione</div>
+          <div class="field check-field">
+            <input type="checkbox" id="in-db">
+            <label for="in-db">Bruciatori in condotto attivi</label>
+          </div>
+          <div class="field range-field" id="f-dbt" hidden>
+            <label for="in-dbt">Temperatura fumi a valle<output id="out-dbt">700 °C</output></label>
+            <input type="range" id="in-dbt" min="620" max="820" step="5" value="700">
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="p-des" role="tabpanel" aria-labelledby="t-des" hidden>
+        <p class="hint">Le modifiche ricalcolano il punto di progetto (ISO 15 °C, 1013 mbar, 60 %) usato come riferimento per il fuori progetto.</p>
+        <div class="field-group">
+          <div class="group-title">Configurazione</div>
+          <div class="field">
+            <label for="d-gt">Turbina a gas</label>
+            <select id="d-gt"></select>
+          </div>
+          <div class="field">
+            <label for="d-ngt">Disposizione</label>
+            <select id="d-ngt">
+              <option value="1">1+1 (una TG, una TV)</option>
+              <option value="2">2+1 (due TG, una TV)</option>
+              <option value="3">3+1 (tre TG, una TV)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="d-hrsg">Generatore di vapore a recupero</label>
+            <select id="d-hrsg">
+              <option value="3PRH">3 livelli + risurriscaldamento</option>
+              <option value="2P">2 livelli</option>
+              <option value="1P">1 livello</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="d-fuel">Combustibile</label>
+            <select id="d-fuel"></select>
+          </div>
+        </div>
+
+        <details class="field-group" open>
+          <summary class="group-title">Turbina a gas</summary>
+          <div class="grid2">
+            <div class="field"><label for="d-mair">Portata aria ISO <span class="u">kg/s</span></label><input type="number" id="d-mair" step="5"></div>
+            <div class="field"><label for="d-pr">Rapporto di compressione</label><input type="number" id="d-pr" step="0.1"></div>
+            <div class="field"><label for="d-tit">T uscita combustore <span class="u">°C</span></label><input type="number" id="d-tit" step="5"></div>
+            <div class="field"><label for="d-cool">Aria raffreddamento <span class="u">%</span></label><input type="number" id="d-cool" step="0.5"></div>
+            <div class="field"><label for="d-etac">η is. compressore</label><input type="number" id="d-etac" step="0.005"></div>
+            <div class="field"><label for="d-etat">η is. turbina</label><input type="number" id="d-etat" step="0.005"></div>
+            <div class="field"><label for="d-tet">Isoterma scarico <span class="u">°C</span></label><input type="number" id="d-tet" step="5"></div>
+            <div class="field"><label for="d-igv">Portata minima IGV <span class="u">%</span></label><input type="number" id="d-igv" step="1"></div>
+          </div>
+        </details>
+
+        <details class="field-group" open>
+          <summary class="group-title">Ciclo a vapore</summary>
+          <div class="levels" id="d-levels"></div>
+          <div class="grid2">
+            <div class="field" id="f-trh"><label for="d-trh">T risurriscaldato <span class="u">°C</span></label><input type="number" id="d-trh" step="5"></div>
+            <div class="field"><label for="d-pinch">Pinch point <span class="u">K</span></label><input type="number" id="d-pinch" step="1"></div>
+            <div class="field"><label for="d-etahp">η TV alta pressione</label><input type="number" id="d-etahp" step="0.005"></div>
+            <div class="field"><label for="d-etaip">η TV media pressione</label><input type="number" id="d-etaip" step="0.005"></div>
+            <div class="field"><label for="d-etalp">η TV bassa pressione</label><input type="number" id="d-etalp" step="0.005"></div>
+            <div class="field"><label for="d-tstack">T minima camino <span class="u">°C</span></label><input type="number" id="d-tstack" step="1"></div>
+          </div>
+        </details>
+
+        <details class="field-group" open>
+          <summary class="group-title">Condensazione</summary>
+          <div class="field">
+            <label for="d-cond">Tipo di condensatore</label>
+            <select id="d-cond">
+              <option value="water">Ad acqua (torre / circuito aperto)</option>
+              <option value="air">Aerocondensatore (ACC)</option>
+            </select>
+          </div>
+          <div class="grid2">
+            <div class="field cond-water"><label for="d-tcwd">T acqua di progetto <span class="u">°C</span></label><input type="number" id="d-tcwd" step="0.5"></div>
+            <div class="field cond-water"><label for="d-dtcw">Salto termico acqua <span class="u">K</span></label><input type="number" id="d-dtcw" step="0.5"></div>
+            <div class="field cond-water"><label for="d-ttd">Differenza terminale <span class="u">K</span></label><input type="number" id="d-ttd" step="0.5"></div>
+            <div class="field cond-air" hidden><label for="d-itd">ITD aerocondensatore <span class="u">K</span></label><input type="number" id="d-itd" step="1"></div>
+          </div>
+        </details>
+        <div class="design-notes" id="design-notes" hidden></div>
+        <button type="button" class="btn btn-wide" id="btn-reset-design">Ripristina valori tipici</button>
+      </div>
+
+      <div class="tab-panel" id="p-mkt" role="tabpanel" aria-labelledby="t-mkt" hidden>
+        <div class="field-group">
+          <div class="group-title">Prezzi</div>
+          <div class="field range-field">
+            <label for="m-gas">Gas naturale (PSV/TTF, PCS)<output id="out-gas">35 €/MWh</output></label>
+            <input type="range" id="m-gas" min="5" max="150" step="1" value="35">
+          </div>
+          <div class="field range-field">
+            <label for="m-co2">Quote CO₂ (EUA)<output id="out-co2">70 €/t</output></label>
+            <input type="range" id="m-co2" min="0" max="200" step="1" value="70">
+          </div>
+          <div class="field range-field">
+            <label for="m-om">O&amp;M variabile<output id="out-om">3,0 €/MWh</output></label>
+            <input type="range" id="m-om" min="0" max="10" step="0.5" value="3">
+          </div>
+          <div class="field range-field">
+            <label for="m-pun">Prezzo energia elettrica (PUN)<output id="out-pun">110 €/MWh</output></label>
+            <input type="range" id="m-pun" min="0" max="400" step="1" value="110">
+          </div>
+        </div>
+        <dl class="econ" id="econ"></dl>
+      </div>
+    </aside>
+
+    <section class="mimic-wrap" aria-label="Sinottico dell'impianto">
+      <div class="mimic-scroll">
+        <svg id="mimic" viewBox="0 0 1180 600" role="img" aria-label="Schema dell'impianto a ciclo combinato con valori in tempo reale"></svg>
+      </div>
+      <div class="mimic-foot">
+        <div class="alarms" id="alarms" aria-live="polite"></div>
+        <ol class="events" id="events" aria-label="Registro eventi"></ol>
+      </div>
+    </section>
+  </div>
+
+  <section class="analysis" aria-label="Analisi">
+    <div class="tabs" role="tablist" aria-label="Viste di analisi">
+      <button type="button" class="tab is-on" role="tab" aria-selected="true" data-view="v-tq" id="tv-tq">Diagramma T-Q</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-ts" id="tv-ts">Diagramma T-s</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-curves" id="tv-curves">Curve di prestazione</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-trend" id="tv-trend">Trend</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-streams" id="tv-streams">Correnti</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-balance" id="tv-balance">Bilancio energetico</button>
+    </div>
+
+    <div class="view" id="v-tq" role="tabpanel" aria-labelledby="tv-tq">
+      <div class="view-head">
+        <p>Profili di temperatura nel GVR (un generatore): fumi dall'ingresso al camino e acqua/vapore per ogni banco. I punti di pinch sono le minime differenze tra le curve.</p>
+      </div>
+      <div class="chart-box tall"><canvas id="c-tq"></canvas></div>
+      <div class="table-scroll"><table class="data" id="tbl-banks"></table></div>
+    </div>
+
+    <div class="view" id="v-ts" role="tabpanel" aria-labelledby="tv-ts" hidden>
+      <div class="view-head"><p>Ciclo a vapore sul piano temperatura-entropia, con campana di saturazione IAPWS-IF97 (tracciata fino a 165 bar).</p></div>
+      <div class="chart-box tall"><canvas id="c-ts"></canvas></div>
+    </div>
+
+    <div class="view" id="v-curves" role="tabpanel" aria-labelledby="tv-curves" hidden>
+      <div class="view-head">
+        <p>Prestazioni nette al variare del carico (condizioni ambiente attuali) e della temperatura dell'aria (carico base). Il punto evidenziato è il funzionamento corrente.</p>
+        <button type="button" class="btn" id="btn-curves">Ricalcola curve</button>
+        <span class="muted" id="curves-status"></span>
+      </div>
+      <div class="chart-grid">
+        <div class="chart-box"><canvas id="c-eta-load"></canvas></div>
+        <div class="chart-box"><canvas id="c-p-load"></canvas></div>
+        <div class="chart-box"><canvas id="c-eta-t"></canvas></div>
+        <div class="chart-box"><canvas id="c-p-t"></canvas></div>
+      </div>
+    </div>
+
+    <div class="view" id="v-trend" role="tabpanel" aria-labelledby="tv-trend" hidden>
+      <div class="view-head"><p>Andamento nel tempo di simulazione. Il ciclo a vapore segue la turbina a gas con l'inerzia termica del GVR (costante di tempo circa 4 minuti).</p></div>
+      <div class="chart-grid">
+        <div class="chart-box"><canvas id="c-trend-p"></canvas></div>
+        <div class="chart-box"><canvas id="c-trend-t"></canvas></div>
+      </div>
+    </div>
+
+    <div class="view" id="v-streams" role="tabpanel" aria-labelledby="tv-streams" hidden>
+      <div class="view-head"><p>Condizioni di regime delle correnti principali (portate totali d'impianto).</p></div>
+      <div class="table-scroll"><table class="data" id="tbl-streams"></table></div>
+    </div>
+
+    <div class="view" id="v-balance" role="tabpanel" aria-labelledby="tv-balance" hidden>
+      <div class="view-head"><p>Destinazione dell'energia del combustibile (PCI). Le perdite al camino sono riferite all'aria ambiente.</p></div>
+      <div class="balance" id="balance"></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>Modello: proprietà del vapore IAPWS-IF97 (regioni 1, 2, 4), gas ideali con coefficienti di Shomate (NIST), TG con turbina in blocco sonico e regolazione IGV/isoterma, GVR risolto per pinch point, TV con legge del cono di Stodola, correzione di Baumann e perdita allo scarico. Strumento didattico e di prefattibilità: i risultati non sostituiscono i dati dei costruttori.</p>
+  </footer>
+</div>
+<!--APP-END-->
+<script type="module" src="js/ui/app.js"></script>
+</body>
+</html>

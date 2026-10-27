@@ -1,0 +1,4084 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulatore Ciclo Combinato</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: console di sala controllo a tre zone — barra di stato, fascia KPI,
+   pannello comandi + sinottico, area analisi. Neutri grigio-blu in stile HMI
+   ISA-101: il colore è riservato alle correnti di processo e agli allarmi. */
+:root {
+  --bg: #e3e7ea;
+  --surface: #eef1f3;
+  --surface-2: #f8f9fa;
+  --line: #c5ccd2;
+  --line-soft: #d6dce1;
+  --fg: #1c242b;
+  --muted: #5a6670;
+  --accent: #1d5d89;
+  --accent-ink: #ffffff;
+  --gas: #b0612b;
+  --air: #8796a3;
+  --fuel: #a8841f;
+  --hp: #ad3443;
+  --ip: #8456b3;
+  --lp: #2f8565;
+  --water: #2c69ab;
+  --metal: #9aa5ae;
+  --metal-2: #b9c2c9;
+  --ok: #2b7d3c;
+  --warn: #b77d00;
+  --alarm: #c42b2b;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  --font-body: 'Barlow', 'Segoe UI', system-ui, sans-serif;
+  --font-data: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14191e;
+    --surface: #1b2228;
+    --surface-2: #232b32;
+    --line: #34404a;
+    --line-soft: #2a333b;
+    --fg: #dbe2e7;
+    --muted: #8d99a3;
+    --accent: #5aa6d4;
+    --accent-ink: #0d1a24;
+    --gas: #e08a4f;
+    --air: #7a8995;
+    --fuel: #d6b24a;
+    --hp: #e8687a;
+    --ip: #b48ae2;
+    --lp: #5cbf96;
+    --water: #5d9fe3;
+    --metal: #55626c;
+    --metal-2: #3f4a53;
+    --ok: #4fb867;
+    --warn: #e5b33c;
+    --alarm: #f05454;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14191e;
+  --surface: #1b2228;
+  --surface-2: #232b32;
+  --line: #34404a;
+  --line-soft: #2a333b;
+  --fg: #dbe2e7;
+  --muted: #8d99a3;
+  --accent: #5aa6d4;
+  --accent-ink: #0d1a24;
+  --gas: #e08a4f;
+  --air: #7a8995;
+  --fuel: #d6b24a;
+  --hp: #e8687a;
+  --ip: #b48ae2;
+  --lp: #5cbf96;
+  --water: #5d9fe3;
+  --metal: #55626c;
+  --metal-2: #3f4a53;
+  --ok: #4fb867;
+  --warn: #e5b33c;
+  --alarm: #f05454;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.45;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--surface);
+}
+[hidden] { display: none !important; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.muted { color: var(--muted); }
+abbr { text-decoration: none; }
+
+/* ------------------------------------------------------------- barra */
+.topbar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 24px;
+  padding-block: 8px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-mark { width: 34px; height: 34px; flex: none; }
+.brand-mark .bm-c { fill: var(--metal-2); stroke: var(--fg); stroke-width: 1.4; }
+.brand-mark .bm-t { fill: var(--gas); stroke: var(--fg); stroke-width: 1.4; }
+.brand-mark .bm-s { stroke: var(--fg); stroke-width: 1.6; fill: none; }
+.brand-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.brand-sub { font-size: 12px; color: var(--muted); }
+
+.unit-status { display: flex; align-items: center; gap: 10px; margin-right: auto; min-width: 0; }
+.state-pill {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.state-pill[data-state="IN_SERVIZIO"] { color: var(--ok); }
+.state-pill[data-state="AVVIAMENTO"], .state-pill[data-state="ARRESTO"] { color: var(--warn); }
+.state-pill[data-state="BLOCCO"] { color: var(--surface); background: var(--alarm); border-color: var(--alarm); }
+.state-pill[data-state="FERMO"] { color: var(--muted); }
+.state-pill[data-state="STAZ"] { color: var(--accent); }
+.status-text { display: flex; flex-direction: column; font-size: 12px; line-height: 1.25; min-width: 0; }
+.status-text #phase-text { color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sim-clock { font-family: var(--font-data); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.sim-controls, .cluster { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  border-radius: var(--r);
+  padding: 5px 12px;
+  cursor: pointer;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.btn:hover { border-color: var(--accent); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.btn-trip { color: var(--alarm); border-color: color-mix(in srgb, var(--alarm) 45%, var(--line)); }
+.btn-trip:hover { background: var(--alarm); color: var(--surface-2); border-color: var(--alarm); }
+.btn-wide { width: 100%; }
+.icon-btn { padding: 5px 8px; display: inline-grid; place-items: center; }
+.icon-btn svg { width: 16px; height: 16px; fill: currentColor; }
+.select-sm {
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  border-radius: var(--r);
+  padding: 4px 6px;
+}
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.seg-btn {
+  appearance: none;
+  border: 0;
+  background: var(--surface-2);
+  padding: 5px 11px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.seg-btn + .seg-btn { border-left: 1px solid var(--line); }
+.seg-btn.is-on { background: var(--accent); color: var(--accent-ink); }
+
+/* ------------------------------------------------------------- pagina */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-block: 14px 24px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1680px;
+  margin: 0 auto;
+}
+
+/* KPI */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.kpi {
+  background: var(--surface);
+  padding: 10px 14px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  position: relative;
+}
+.kpi-label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.kpi-value {
+  font-family: var(--font-data);
+  font-weight: 500;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.kpi-value small { font-family: var(--font-body); font-size: 12px; color: var(--muted); margin-left: 4px; font-weight: 400; }
+.kpi-value.kpi-split { font-size: 19px; }
+.kpi-split i { font-style: normal; color: var(--muted); margin: 0 3px; }
+.kpi-foot { font-family: var(--font-data); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.kpi-main .kpi-value { font-size: 30px; color: var(--accent); }
+.kpi-main { grid-column: span 2; }
+.spark { position: absolute; right: 12px; bottom: 10px; width: 42%; height: 34px; }
+
+/* console */
+.console {
+  display: grid;
+  grid-template-columns: minmax(270px, 320px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  min-width: 0;
+}
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 9px 14px 8px;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--fg); }
+.tab.is-on { color: var(--fg); border-bottom-color: var(--accent); }
+.tab-panel { padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+.hint { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+.field-group { display: flex; flex-direction: column; gap: 10px; }
+details.field-group > summary { cursor: pointer; list-style: none; }
+details.field-group > summary::-webkit-details-marker { display: none; }
+details.field-group > summary::after { content: " ▾"; color: var(--muted); }
+details.field-group:not([open]) > summary::after { content: " ▸"; }
+.group-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 13px; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.field label .u { color: var(--muted); font-size: 11.5px; }
+.field output { font-family: var(--font-data); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.field input[type="number"], .field select {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  border-radius: var(--r);
+  padding: 5px 8px;
+  font-family: var(--font-data);
+  font-size: 13px;
+}
+.field select { font-family: var(--font-body); font-size: 13.5px; }
+.check-field { flex-direction: row; align-items: center; gap: 8px; }
+.check-field input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+.check-field label { display: inline; }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid2 .field label { display: block; font-size: 12.5px; }
+.levels { display: flex; flex-direction: column; gap: 8px; }
+.level-row { display: grid; grid-template-columns: 34px 1fr 1fr; gap: 8px; align-items: end; }
+.level-row .lvl {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  padding-bottom: 6px;
+}
+.level-row .field label { font-size: 12px; display: block; }
+.design-notes {
+  font-size: 12.5px;
+  border-left: 3px solid var(--warn);
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface));
+}
+.econ { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 13px; }
+.econ dt { color: var(--muted); }
+.econ dd { margin: 0; font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; }
+.econ .sep { grid-column: 1 / -1; border-top: 1px solid var(--line-soft); }
+.econ .strong { color: var(--fg); font-weight: 600; }
+.pos { color: var(--ok); }
+.neg { color: var(--alarm); }
+
+/* sinottico */
+.mimic-wrap {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.mimic-scroll { overflow-x: auto; }
+#mimic { display: block; width: 100%; min-width: 760px; height: auto; }
+.mimic-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 10px 14px 12px;
+}
+.alarms { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.alarm {
+  font-size: 12.5px;
+  padding: 5px 9px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--warn) 60%, var(--line));
+  background: color-mix(in srgb, var(--warn) 12%, var(--surface));
+}
+.alarm.ok { border-color: var(--line); background: var(--surface-2); color: var(--muted); }
+.events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 128px;
+  overflow-y: auto;
+  font-size: 12.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.events li { display: grid; grid-template-columns: 74px 1fr; gap: 8px; }
+.events time { font-family: var(--font-data); color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11.5px; padding-top: 1px; }
+.events li.alarm-ev span { color: var(--alarm); font-weight: 600; }
+
+/* SVG sinottico */
+#mimic text { font-family: var(--font-body); fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+#mimic .lbl { font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase; }
+#mimic .lbl-sm { font-family: var(--font-display); font-weight: 600; font-size: 11px; letter-spacing: 0.04em; fill: var(--muted); }
+#mimic .val { font-family: var(--font-data); font-size: 11px; }
+#mimic .val-lg { font-family: var(--font-data); font-size: 14px; font-weight: 500; }
+#mimic .val-muted { font-family: var(--font-data); font-size: 10.5px; fill: var(--muted); }
+#mimic .equip { fill: var(--metal-2); stroke: var(--fg); stroke-width: 1.4; }
+#mimic .equip-hot { fill: color-mix(in srgb, var(--gas) 35%, var(--metal-2)); stroke: var(--fg); stroke-width: 1.4; }
+#mimic .casing { fill: var(--surface-2); stroke: var(--fg); stroke-width: 1.4; }
+#mimic .bank { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+#mimic .tube { stroke-width: 1.2; fill: none; }
+#mimic .shaft { stroke: var(--fg); stroke-width: 3; }
+#mimic .tag { fill: var(--surface-2); stroke: var(--line); stroke-width: 1; }
+#mimic .pipe { fill: none; stroke-width: 3.5; stroke-linejoin: round; stroke-linecap: round; }
+#mimic .pipe-bg { fill: none; stroke-width: 6; stroke: var(--surface); stroke-linejoin: round; }
+#mimic .flow { fill: none; stroke-width: 1.6; stroke: var(--surface-2); stroke-dasharray: 4 10; stroke-linecap: round; opacity: 0.9; animation: flow 1s linear infinite; }
+#mimic .flow.off { animation-play-state: paused; opacity: 0; }
+#mimic .duct { fill: color-mix(in srgb, var(--gas) 12%, var(--surface)); stroke: var(--fg); stroke-width: 1.4; }
+#mimic .flame { fill: var(--gas); opacity: 0.9; transform-box: fill-box; transform-origin: 50% 100%; animation: flicker 0.6s ease-in-out infinite alternate; }
+#mimic .flame.off { opacity: 0; animation: none; }
+#mimic .s-gas { stroke: var(--gas); }
+#mimic .s-air { stroke: var(--air); }
+#mimic .s-fuel { stroke: var(--fuel); }
+#mimic .s-hp { stroke: var(--hp); }
+#mimic .s-ip { stroke: var(--ip); }
+#mimic .s-lp { stroke: var(--lp); }
+#mimic .s-water { stroke: var(--water); }
+#mimic .f-hp { fill: var(--hp); }
+#mimic .f-ip { fill: var(--ip); }
+#mimic .f-lp { fill: var(--lp); }
+#mimic .f-water { fill: var(--water); }
+#mimic .gen { fill: var(--surface-2); stroke: var(--fg); stroke-width: 1.4; }
+#mimic .gen-on { fill: color-mix(in srgb, var(--accent) 22%, var(--surface-2)); }
+#mimic .smoke { fill: var(--air); opacity: 0.25; }
+@keyframes flow { to { stroke-dashoffset: -28; } }
+@keyframes flicker { from { transform: scaleY(0.85); } to { transform: scaleY(1.08); } }
+@media (prefers-reduced-motion: reduce) {
+  #mimic .flow, #mimic .flame { animation: none; }
+}
+
+/* analisi */
+.analysis {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  min-width: 0;
+}
+.view { padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.view-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.view-head p { margin: 0; color: var(--muted); font-size: 13px; max-width: 80ch; flex: 1 1 320px; }
+.chart-box { position: relative; height: 280px; min-width: 0; }
+.chart-box.tall { height: 380px; }
+.chart-box canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 14px; }
+.table-scroll { overflow-x: auto; }
+table.data { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+table.data th, table.data td { padding: 5px 10px; border-bottom: 1px solid var(--line-soft); text-align: right; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { text-align: left; }
+table.data thead th {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+}
+table.data td { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+table.data td:first-child { font-family: var(--font-body); }
+table.data tr.grp td { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding-top: 12px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+.balance { display: flex; flex-direction: column; gap: 10px; max-width: 860px; }
+.bal-row { display: grid; grid-template-columns: 200px 1fr 160px; gap: 12px; align-items: center; font-size: 13px; }
+.bal-bar { height: 18px; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 3px; overflow: hidden; }
+.bal-bar span { display: block; height: 100%; }
+.bal-val { font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; font-size: 12.5px; }
+.bal-row.total { font-weight: 600; border-top: 1px solid var(--line); padding-top: 8px; }
+
+.foot p { margin: 0; font-size: 12px; color: var(--muted); max-width: 120ch; }
+
+/* responsive */
+@media (max-width: 1080px) {
+  .console { grid-template-columns: 1fr; }
+  .panel { order: 2; }
+}
+@media (max-width: 640px) {
+  .kpi-main { grid-column: 1 / -1; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi-value { font-size: 19px; }
+  .mimic-foot { grid-template-columns: 1fr; }
+  .bal-row { grid-template-columns: 110px 1fr 92px; gap: 8px; }
+  .unit-status { margin-right: 0; width: 100%; }
+  .chart-box.tall { height: 320px; }
+}
+
+</style>
+
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M4 12 L16 16 L16 24 L4 28 Z" class="bm-c"/>
+        <path d="M20 16 L32 12 L32 28 L20 24 Z" class="bm-t"/>
+        <path d="M34 20 h4" class="bm-s"/>
+        <path d="M2 20 h36" class="bm-s"/>
+      </svg>
+      <div>
+        <div class="brand-name">Simulatore Ciclo Combinato</div>
+        <div class="brand-sub" id="brand-sub">Classe F · 1+1 · GVR 3 livelli + RH</div>
+      </div>
+    </div>
+
+    <div class="unit-status">
+      <span class="state-pill" id="state-pill" data-state="IN_SERVIZIO">In servizio</span>
+      <div class="status-text">
+        <span id="phase-text">Regolazione di carico</span>
+        <span class="sim-clock" id="sim-clock" title="Tempo di simulazione">00:00:00</span>
+      </div>
+    </div>
+
+    <div class="sim-controls" role="group" aria-label="Comandi di simulazione">
+      <div class="seg" role="radiogroup" aria-label="Modalità di calcolo">
+        <button type="button" id="mode-dyn" class="seg-btn is-on" role="radio" aria-checked="true">Dinamico</button>
+        <button type="button" id="mode-ss" class="seg-btn" role="radio" aria-checked="false">Stazionario</button>
+      </div>
+      <div class="dyn-only cluster">
+        <button type="button" id="btn-play" class="btn icon-btn" aria-label="Pausa" title="Pausa / riprendi">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path id="play-icon" d="M4 3h3v10H4zM9 3h3v10H9z"/></svg>
+        </button>
+        <label class="sr-only" for="sim-speed">Velocità</label>
+        <select id="sim-speed" class="select-sm" title="Velocità di simulazione">
+          <option value="1">1×</option>
+          <option value="10" selected>10×</option>
+          <option value="60">60×</option>
+          <option value="300">300×</option>
+        </select>
+        <button type="button" id="btn-start" class="btn">Avvia</button>
+        <button type="button" id="btn-stop" class="btn">Arresta</button>
+        <button type="button" id="btn-trip" class="btn btn-trip">Blocco TG</button>
+        <button type="button" id="btn-ack" class="btn" hidden>Riconosci</button>
+      </div>
+      <button type="button" id="btn-theme" class="btn icon-btn" aria-label="Tema chiaro/scuro" title="Tema">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 2v10a5 5 0 0 1 0-10z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+  <section class="kpis" aria-label="Prestazioni dell'impianto">
+    <div class="kpi kpi-main">
+      <div class="kpi-label">Potenza netta</div>
+      <div class="kpi-value"><span id="k-net">—</span><small>MW</small></div>
+      <canvas id="k-spark" class="spark" aria-hidden="true"></canvas>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Rendimento netto <abbr title="riferito al potere calorifico inferiore">PCI</abbr></div>
+      <div class="kpi-value"><span id="k-eta">—</span><small>%</small></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Heat rate netto</div>
+      <div class="kpi-value"><span id="k-hr">—</span><small>kJ/kWh</small></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">TG / TV</div>
+      <div class="kpi-value kpi-split"><span id="k-gt">—</span><i>/</i><span id="k-st">—</span><small>MW</small></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Combustibile</div>
+      <div class="kpi-value"><span id="k-fuel">—</span><small>MW<sub>t</sub></small></div>
+      <div class="kpi-foot" id="k-fuel-mass">— t/h</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Emissioni CO₂</div>
+      <div class="kpi-value"><span id="k-co2">—</span><small>kg/MWh</small></div>
+      <div class="kpi-foot" id="k-co2-h">— t/h</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Costo marginale</div>
+      <div class="kpi-value"><span id="k-cost">—</span><small>€/MWh</small></div>
+      <div class="kpi-foot" id="k-margin">—</div>
+    </div>
+  </section>
+
+  <div class="console">
+    <aside class="panel" aria-label="Pannello comandi">
+      <div class="tabs" role="tablist" aria-label="Sezioni del pannello">
+        <button type="button" class="tab is-on" role="tab" aria-selected="true" data-tab="p-op" id="t-op">Esercizio</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="p-des" id="t-des">Progetto</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="p-mkt" id="t-mkt">Mercato</button>
+      </div>
+
+      <div class="tab-panel" id="p-op" role="tabpanel" aria-labelledby="t-op">
+        <div class="field-group">
+          <div class="group-title">Carico</div>
+          <div class="field range-field">
+            <label for="in-load"><span id="lbl-load">Set-point carico TG</span><output id="out-load">100 %</output></label>
+            <input type="range" id="in-load" min="0" max="100" step="1" value="100">
+          </div>
+          <div class="field range-field dyn-only">
+            <label for="in-ramp">Gradiente di carico<output id="out-ramp">8 %/min</output></label>
+            <input type="range" id="in-ramp" min="1" max="20" step="1" value="8">
+          </div>
+          <div class="field" id="f-ngton" hidden>
+            <label for="in-ngton">TG in servizio</label>
+            <select id="in-ngton"></select>
+          </div>
+          <div class="field check-field">
+            <input type="checkbox" id="in-sliding" checked>
+            <label for="in-sliding">Pressione HP scorrevole</label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="group-title">Condizioni ambiente</div>
+          <div class="field range-field">
+            <label for="in-tamb">Temperatura aria<output id="out-tamb">15,0 °C</output></label>
+            <input type="range" id="in-tamb" min="-20" max="45" step="0.5" value="15">
+          </div>
+          <div class="field check-field dyn-only">
+            <input type="checkbox" id="in-daily">
+            <label for="in-daily">Profilo giornaliero (±8 °C)</label>
+          </div>
+          <div class="field range-field">
+            <label for="in-pamb">Pressione atmosferica<output id="out-pamb">1013 mbar</output></label>
+            <input type="range" id="in-pamb" min="850" max="1040" step="1" value="1013">
+          </div>
+          <div class="field range-field">
+            <label for="in-rh">Umidità relativa<output id="out-rh">60 %</output></label>
+            <input type="range" id="in-rh" min="5" max="100" step="1" value="60">
+          </div>
+          <div class="field range-field" id="f-tcw">
+            <label for="in-tcw">Acqua di raffreddamento<output id="out-tcw">18,0 °C</output></label>
+            <input type="range" id="in-tcw" min="5" max="35" step="0.5" value="18">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="group-title">Post-combustione</div>
+          <div class="field check-field">
+            <input type="checkbox" id="in-db">
+            <label for="in-db">Bruciatori in condotto attivi</label>
+          </div>
+          <div class="field range-field" id="f-dbt" hidden>
+            <label for="in-dbt">Temperatura fumi a valle<output id="out-dbt">700 °C</output></label>
+            <input type="range" id="in-dbt" min="620" max="820" step="5" value="700">
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="p-des" role="tabpanel" aria-labelledby="t-des" hidden>
+        <p class="hint">Le modifiche ricalcolano il punto di progetto (ISO 15 °C, 1013 mbar, 60 %) usato come riferimento per il fuori progetto.</p>
+        <div class="field-group">
+          <div class="group-title">Configurazione</div>
+          <div class="field">
+            <label for="d-gt">Turbina a gas</label>
+            <select id="d-gt"></select>
+          </div>
+          <div class="field">
+            <label for="d-ngt">Disposizione</label>
+            <select id="d-ngt">
+              <option value="1">1+1 (una TG, una TV)</option>
+              <option value="2">2+1 (due TG, una TV)</option>
+              <option value="3">3+1 (tre TG, una TV)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="d-hrsg">Generatore di vapore a recupero</label>
+            <select id="d-hrsg">
+              <option value="3PRH">3 livelli + risurriscaldamento</option>
+              <option value="2P">2 livelli</option>
+              <option value="1P">1 livello</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="d-fuel">Combustibile</label>
+            <select id="d-fuel"></select>
+          </div>
+        </div>
+
+        <details class="field-group" open>
+          <summary class="group-title">Turbina a gas</summary>
+          <div class="grid2">
+            <div class="field"><label for="d-mair">Portata aria ISO <span class="u">kg/s</span></label><input type="number" id="d-mair" step="5"></div>
+            <div class="field"><label for="d-pr">Rapporto di compressione</label><input type="number" id="d-pr" step="0.1"></div>
+            <div class="field"><label for="d-tit">T uscita combustore <span class="u">°C</span></label><input type="number" id="d-tit" step="5"></div>
+            <div class="field"><label for="d-cool">Aria raffreddamento <span class="u">%</span></label><input type="number" id="d-cool" step="0.5"></div>
+            <div class="field"><label for="d-etac">η is. compressore</label><input type="number" id="d-etac" step="0.005"></div>
+            <div class="field"><label for="d-etat">η is. turbina</label><input type="number" id="d-etat" step="0.005"></div>
+            <div class="field"><label for="d-tet">Isoterma scarico <span class="u">°C</span></label><input type="number" id="d-tet" step="5"></div>
+            <div class="field"><label for="d-igv">Portata minima IGV <span class="u">%</span></label><input type="number" id="d-igv" step="1"></div>
+          </div>
+        </details>
+
+        <details class="field-group" open>
+          <summary class="group-title">Ciclo a vapore</summary>
+          <div class="levels" id="d-levels"></div>
+          <div class="grid2">
+            <div class="field" id="f-trh"><label for="d-trh">T risurriscaldato <span class="u">°C</span></label><input type="number" id="d-trh" step="5"></div>
+            <div class="field"><label for="d-pinch">Pinch point <span class="u">K</span></label><input type="number" id="d-pinch" step="1"></div>
+            <div class="field"><label for="d-etahp">η TV alta pressione</label><input type="number" id="d-etahp" step="0.005"></div>
+            <div class="field"><label for="d-etaip">η TV media pressione</label><input type="number" id="d-etaip" step="0.005"></div>
+            <div class="field"><label for="d-etalp">η TV bassa pressione</label><input type="number" id="d-etalp" step="0.005"></div>
+            <div class="field"><label for="d-tstack">T minima camino <span class="u">°C</span></label><input type="number" id="d-tstack" step="1"></div>
+          </div>
+        </details>
+
+        <details class="field-group" open>
+          <summary class="group-title">Condensazione</summary>
+          <div class="field">
+            <label for="d-cond">Tipo di condensatore</label>
+            <select id="d-cond">
+              <option value="water">Ad acqua (torre / circuito aperto)</option>
+              <option value="air">Aerocondensatore (ACC)</option>
+            </select>
+          </div>
+          <div class="grid2">
+            <div class="field cond-water"><label for="d-tcwd">T acqua di progetto <span class="u">°C</span></label><input type="number" id="d-tcwd" step="0.5"></div>
+            <div class="field cond-water"><label for="d-dtcw">Salto termico acqua <span class="u">K</span></label><input type="number" id="d-dtcw" step="0.5"></div>
+            <div class="field cond-water"><label for="d-ttd">Differenza terminale <span class="u">K</span></label><input type="number" id="d-ttd" step="0.5"></div>
+            <div class="field cond-air" hidden><label for="d-itd">ITD aerocondensatore <span class="u">K</span></label><input type="number" id="d-itd" step="1"></div>
+          </div>
+        </details>
+        <div class="design-notes" id="design-notes" hidden></div>
+        <button type="button" class="btn btn-wide" id="btn-reset-design">Ripristina valori tipici</button>
+      </div>
+
+      <div class="tab-panel" id="p-mkt" role="tabpanel" aria-labelledby="t-mkt" hidden>
+        <div class="field-group">
+          <div class="group-title">Prezzi</div>
+          <div class="field range-field">
+            <label for="m-gas">Gas naturale (PSV/TTF, PCS)<output id="out-gas">35 €/MWh</output></label>
+            <input type="range" id="m-gas" min="5" max="150" step="1" value="35">
+          </div>
+          <div class="field range-field">
+            <label for="m-co2">Quote CO₂ (EUA)<output id="out-co2">70 €/t</output></label>
+            <input type="range" id="m-co2" min="0" max="200" step="1" value="70">
+          </div>
+          <div class="field range-field">
+            <label for="m-om">O&amp;M variabile<output id="out-om">3,0 €/MWh</output></label>
+            <input type="range" id="m-om" min="0" max="10" step="0.5" value="3">
+          </div>
+          <div class="field range-field">
+            <label for="m-pun">Prezzo energia elettrica (PUN)<output id="out-pun">110 €/MWh</output></label>
+            <input type="range" id="m-pun" min="0" max="400" step="1" value="110">
+          </div>
+        </div>
+        <dl class="econ" id="econ"></dl>
+      </div>
+    </aside>
+
+    <section class="mimic-wrap" aria-label="Sinottico dell'impianto">
+      <div class="mimic-scroll">
+        <svg id="mimic" viewBox="0 0 1180 600" role="img" aria-label="Schema dell'impianto a ciclo combinato con valori in tempo reale"></svg>
+      </div>
+      <div class="mimic-foot">
+        <div class="alarms" id="alarms" aria-live="polite"></div>
+        <ol class="events" id="events" aria-label="Registro eventi"></ol>
+      </div>
+    </section>
+  </div>
+
+  <section class="analysis" aria-label="Analisi">
+    <div class="tabs" role="tablist" aria-label="Viste di analisi">
+      <button type="button" class="tab is-on" role="tab" aria-selected="true" data-view="v-tq" id="tv-tq">Diagramma T-Q</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-ts" id="tv-ts">Diagramma T-s</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-curves" id="tv-curves">Curve di prestazione</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-trend" id="tv-trend">Trend</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-streams" id="tv-streams">Correnti</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-balance" id="tv-balance">Bilancio energetico</button>
+    </div>
+
+    <div class="view" id="v-tq" role="tabpanel" aria-labelledby="tv-tq">
+      <div class="view-head">
+        <p>Profili di temperatura nel GVR (un generatore): fumi dall'ingresso al camino e acqua/vapore per ogni banco. I punti di pinch sono le minime differenze tra le curve.</p>
+      </div>
+      <div class="chart-box tall"><canvas id="c-tq"></canvas></div>
+      <div class="table-scroll"><table class="data" id="tbl-banks"></table></div>
+    </div>
+
+    <div class="view" id="v-ts" role="tabpanel" aria-labelledby="tv-ts" hidden>
+      <div class="view-head"><p>Ciclo a vapore sul piano temperatura-entropia, con campana di saturazione IAPWS-IF97 (tracciata fino a 165 bar).</p></div>
+      <div class="chart-box tall"><canvas id="c-ts"></canvas></div>
+    </div>
+
+    <div class="view" id="v-curves" role="tabpanel" aria-labelledby="tv-curves" hidden>
+      <div class="view-head">
+        <p>Prestazioni nette al variare del carico (condizioni ambiente attuali) e della temperatura dell'aria (carico base). Il punto evidenziato è il funzionamento corrente.</p>
+        <button type="button" class="btn" id="btn-curves">Ricalcola curve</button>
+        <span class="muted" id="curves-status"></span>
+      </div>
+      <div class="chart-grid">
+        <div class="chart-box"><canvas id="c-eta-load"></canvas></div>
+        <div class="chart-box"><canvas id="c-p-load"></canvas></div>
+        <div class="chart-box"><canvas id="c-eta-t"></canvas></div>
+        <div class="chart-box"><canvas id="c-p-t"></canvas></div>
+      </div>
+    </div>
+
+    <div class="view" id="v-trend" role="tabpanel" aria-labelledby="tv-trend" hidden>
+      <div class="view-head"><p>Andamento nel tempo di simulazione. Il ciclo a vapore segue la turbina a gas con l'inerzia termica del GVR (costante di tempo circa 4 minuti).</p></div>
+      <div class="chart-grid">
+        <div class="chart-box"><canvas id="c-trend-p"></canvas></div>
+        <div class="chart-box"><canvas id="c-trend-t"></canvas></div>
+      </div>
+    </div>
+
+    <div class="view" id="v-streams" role="tabpanel" aria-labelledby="tv-streams" hidden>
+      <div class="view-head"><p>Condizioni di regime delle correnti principali (portate totali d'impianto).</p></div>
+      <div class="table-scroll"><table class="data" id="tbl-streams"></table></div>
+    </div>
+
+    <div class="view" id="v-balance" role="tabpanel" aria-labelledby="tv-balance" hidden>
+      <div class="view-head"><p>Destinazione dell'energia del combustibile (PCI). Le perdite al camino sono riferite all'aria ambiente.</p></div>
+      <div class="balance" id="balance"></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>Modello: proprietà del vapore IAPWS-IF97 (regioni 1, 2, 4), gas ideali con coefficienti di Shomate (NIST), TG con turbina in blocco sonico e regolazione IGV/isoterma, GVR risolto per pinch point, TV con legge del cono di Stodola, correzione di Baumann e perdita allo scarico. Strumento didattico e di prefattibilità: i risultati non sostituiscono i dati dei costruttori.</p>
+  </footer>
+</div>
+
+<script>
+(() => {
+'use strict';
+const __m = {};
+__m['js/engine/steam.js'] = (() => {
+// Proprietà dell'acqua/vapore secondo IAPWS-IF97 (regioni 1, 2 e 4).
+// API pubblica in unità ingegneristiche: pressione [bar], temperatura [°C],
+// entalpia [kJ/kg], entropia [kJ/(kg·K)], volume specifico [m³/kg].
+// La regione 3 non è implementata: il campo di validità usato dal simulatore
+// è p ≤ 165 bar (sotto il punto in cui la saturazione entra in regione 3).
+
+const R_W = 0.461526; // kJ/(kg·K)
+const TK = 273.15;
+
+// ---------------------------------------------------------------- Regione 1
+const R1_I = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 8, 8, 21, 23, 29, 30, 31, 32];
+const R1_J = [-2, -1, 0, 1, 2, 3, 4, 5, -9, -7, -1, 0, 1, 3, -3, 0, 1, 3, 17, -4, 0, 6, -5, -2, 10, -8, -11, -6, -29, -31, -38, -39, -40, -41];
+const R1_N = [
+  0.14632971213167, -0.84548187169114, -0.3756360367204e1, 0.33855169168385e1, -0.95791963387872,
+  0.15772038513228, -0.16616417199501e-1, 0.81214629983568e-3, 0.28319080123804e-3, -0.60706301565874e-3,
+  -0.18990068218419e-1, -0.32529748770505e-1, -0.21841717175414e-1, -0.5283835796993e-4, -0.47184321073267e-3,
+  -0.30001780793026e-3, 0.47661393906987e-4, -0.44141845330846e-5, -0.72694996297594e-15, -0.31679644845054e-4,
+  -0.28270797985312e-5, -0.85205128120103e-9, -0.22425281908e-5, -0.65171222895601e-6, -0.14341729937924e-12,
+  -0.40516996860117e-6, -0.12734301741641e-8, -0.17424871230634e-9, -0.68762131295531e-18, 0.14478307828521e-19,
+  0.26335781662795e-22, -0.11947622640071e-22, 0.18228094581404e-23, -0.93537087292458e-25,
+];
+
+function region1(pMPa, T) {
+  const pi = pMPa / 16.53;
+  const tau = 1386 / T;
+  const a = 7.1 - pi;
+  const b = tau - 1.222;
+  let g = 0, gp = 0, gt = 0, gtt = 0;
+  for (let i = 0; i < 34; i++) {
+    const I = R1_I[i], J = R1_J[i], n = R1_N[i];
+    const aI = Math.pow(a, I), bJ = Math.pow(b, J);
+    g += n * aI * bJ;
+    gp += -n * I * Math.pow(a, I - 1) * bJ;
+    gt += n * aI * J * Math.pow(b, J - 1);
+    gtt += n * aI * J * (J - 1) * Math.pow(b, J - 2);
+  }
+  return {
+    T,
+    p: pMPa,
+    v: (R_W * T / (pMPa * 1000)) * pi * gp,
+    h: R_W * T * tau * gt,
+    s: R_W * (tau * gt - g),
+    cp: -R_W * tau * tau * gtt,
+  };
+}
+
+// ---------------------------------------------------------------- Regione 2
+const R2_J0 = [0, 1, -5, -4, -3, -2, -1, 2, 3];
+const R2_N0 = [
+  -0.96927686500217e1, 0.10086655968018e2, -0.5608791128302e-2, 0.71452738081455e-1, -0.40710498223928,
+  0.14240819171444e1, -0.4383951131945e1, -0.28408632460772, 0.21268463753307e-1,
+];
+const R2_I = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 5, 6, 6, 6, 7, 7, 7, 8, 8, 9, 10, 10, 10, 16, 16, 18, 20, 20, 20, 21, 22, 23, 24, 24, 24];
+const R2_J = [0, 1, 2, 3, 6, 1, 2, 4, 7, 36, 0, 1, 3, 6, 35, 1, 2, 3, 7, 3, 16, 35, 0, 11, 25, 8, 36, 13, 4, 10, 14, 29, 50, 57, 20, 35, 48, 21, 53, 39, 26, 40, 58];
+const R2_N = [
+  -0.17731742473213e-2, -0.17834862292358e-1, -0.45996013696365e-1, -0.57581259083432e-1, -0.5032527872793e-1,
+  -0.33032641670203e-4, -0.18948987516315e-3, -0.39392777243355e-2, -0.43797295650573e-1, -0.26674547914087e-4,
+  0.20481737692309e-7, 0.43870667284435e-6, -0.3227767723857e-4, -0.15033924542148e-2, -0.40668253562649e-1,
+  -0.78847309559367e-9, 0.12790717852285e-7, 0.48225372718507e-6, 0.22922076337661e-5, -0.16714766451061e-10,
+  -0.21171472321355e-2, -0.23895741934104e2, -0.5905956432427e-17, -0.12621808899101e-5, -0.38946842435739e-1,
+  0.11256211360459e-10, -0.82311340897998e1, 0.19809712802088e-7, 0.10406965210174e-18, -0.10234747095929e-12,
+  -0.10018179379511e-8, -0.80882908646985e-10, 0.10693031879409, -0.33662250574171, 0.89185845355421e-24,
+  0.30629316876232e-12, -0.42002467698208e-5, -0.59056029685639e-25, 0.37826947613457e-5, -0.12768608934681e-14,
+  0.73087610595061e-28, 0.55414715350778e-16, -0.9436970724121e-6,
+];
+
+function region2(pMPa, T) {
+  const pi = pMPa;
+  const tau = 540 / T;
+  let g0 = Math.log(pi), g0t = 0, g0tt = 0;
+  for (let i = 0; i < 9; i++) {
+    const J = R2_J0[i], n = R2_N0[i];
+    g0 += n * Math.pow(tau, J);
+    g0t += n * J * Math.pow(tau, J - 1);
+    g0tt += n * J * (J - 1) * Math.pow(tau, J - 2);
+  }
+  const b = tau - 0.5;
+  let gr = 0, grp = 0, grt = 0, grtt = 0;
+  for (let i = 0; i < 43; i++) {
+    const I = R2_I[i], J = R2_J[i], n = R2_N[i];
+    const pI = Math.pow(pi, I), bJ = Math.pow(b, J);
+    gr += n * pI * bJ;
+    grp += n * I * Math.pow(pi, I - 1) * bJ;
+    grt += n * pI * J * Math.pow(b, J - 1);
+    grtt += n * pI * J * (J - 1) * Math.pow(b, J - 2);
+  }
+  return {
+    T,
+    p: pMPa,
+    v: (R_W * T / (pMPa * 1000)) * pi * (1 / pi + grp),
+    h: R_W * T * tau * (g0t + grt),
+    s: R_W * (tau * (g0t + grt) - (g0 + gr)),
+    cp: -R_W * tau * tau * (g0tt + grtt),
+  };
+}
+
+// ---------------------------------------------------------------- Regione 4
+const R4_N = [
+  0.11670521452767e4, -0.72421316703206e6, -0.17073846940092e2, 0.1202082470247e5, -0.32325550322333e7,
+  0.1491510861353e2, -0.48232657361591e4, 0.40511340542057e6, -0.23855557567849, 0.65017534844798e3,
+];
+
+function psatMPa(T) {
+  const n = R4_N;
+  const th = T + n[8] / (T - n[9]);
+  const A = th * th + n[0] * th + n[1];
+  const B = n[2] * th * th + n[3] * th + n[4];
+  const C = n[5] * th * th + n[6] * th + n[7];
+  return Math.pow((2 * C) / (-B + Math.sqrt(B * B - 4 * A * C)), 4);
+}
+
+function tsatK(pMPa) {
+  const n = R4_N;
+  const be = Math.pow(pMPa, 0.25);
+  const E = be * be + n[2] * be + n[5];
+  const F = n[0] * be * be + n[3] * be + n[6];
+  const G = n[1] * be * be + n[4] * be + n[7];
+  const D = (2 * G) / (-F - Math.sqrt(F * F - 4 * E * G));
+  return (n[9] + D - Math.sqrt((n[9] + D) * (n[9] + D) - 4 * (n[8] + n[9] * D))) / 2;
+}
+
+// ------------------------------------------------------------ API pubblica
+const P_MAX_BAR = 165;
+
+function mpa(pBar) {
+  return pBar / 10;
+}
+
+/** Temperatura di saturazione [°C] alla pressione [bar]. */
+function Tsat(pBar) {
+  return tsatK(mpa(pBar)) - TK;
+}
+
+/** Pressione di saturazione [bar] alla temperatura [°C]. */
+function psat(TC) {
+  return psatMPa(TC + TK) * 10;
+}
+
+/** Proprietà di liquido e vapore saturi alla pressione [bar]. */
+function satP(pBar) {
+  const p = mpa(pBar);
+  const T = tsatK(p);
+  const L = region1(p, T);
+  const V = region2(p, T);
+  return { T: T - TK, hL: L.h, hV: V.h, sL: L.s, sV: V.s, vL: L.v, vV: V.v };
+}
+
+/** Proprietà monofase (liquido o vapore surriscaldato) a p [bar], T [°C]. */
+function propsPT(pBar, TC) {
+  const p = mpa(pBar);
+  const T = TC + TK;
+  const ts = tsatK(p);
+  const r = T <= ts ? region1(p, T) : region2(p, T);
+  return { T: TC, p: pBar, h: r.h, s: r.s, v: r.v, cp: r.cp, x: T <= ts ? 0 : 1 };
+}
+
+function hPT(pBar, TC) {
+  return propsPT(pBar, TC).h;
+}
+
+function sPT(pBar, TC) {
+  return propsPT(pBar, TC).s;
+}
+
+// Newton monodimensionale sulla temperatura in una regione monofase.
+function solveT(fn, target, deriv, Tguess, Tmin, Tmax) {
+  let T = Math.min(Math.max(Tguess, Tmin), Tmax);
+  for (let k = 0; k < 50; k++) {
+    const r = fn(T);
+    const err = deriv.value(r) - target;
+    const d = deriv.slope(r, T);
+    let dT = -err / d;
+    if (dT > 100) dT = 100;
+    if (dT < -100) dT = -100;
+    T = Math.min(Math.max(T + dT, Tmin), Tmax);
+    if (Math.abs(dT) < 1e-7) break;
+  }
+  return T;
+}
+
+const BY_H = { value: (r) => r.h, slope: (r) => r.cp };
+const BY_S = { value: (r) => r.s, slope: (r, T) => r.cp / T };
+
+/** Stato completo da p [bar] e h [kJ/kg]. */
+function propsPH(pBar, h) {
+  const p = mpa(pBar);
+  const ts = tsatK(p);
+  const L = region1(p, ts);
+  const V = region2(p, ts);
+  if (h < L.h) {
+    const T = solveT((t) => region1(p, t), h, BY_H, ts - (L.h - h) / 4.2, 273.15, ts);
+    const r = region1(p, T);
+    return { T: T - TK, p: pBar, h, s: r.s, v: r.v, x: 0, phase: 'liquido' };
+  }
+  if (h > V.h) {
+    const T = solveT((t) => region2(p, t), h, BY_H, ts + (h - V.h) / 2.2, ts, 1073.15);
+    const r = region2(p, T);
+    return { T: T - TK, p: pBar, h, s: r.s, v: r.v, x: 1, phase: 'vapore' };
+  }
+  const x = (h - L.h) / (V.h - L.h);
+  return { T: ts - TK, p: pBar, h, s: L.s + x * (V.s - L.s), v: L.v + x * (V.v - L.v), x, phase: 'bifase' };
+}
+
+/** Stato completo da p [bar] e s [kJ/(kg·K)]. */
+function propsPS(pBar, s) {
+  const p = mpa(pBar);
+  const ts = tsatK(p);
+  const L = region1(p, ts);
+  const V = region2(p, ts);
+  if (s < L.s) {
+    const T = solveT((t) => region1(p, t), s, BY_S, ts - 10, 273.15, ts);
+    const r = region1(p, T);
+    return { T: T - TK, p: pBar, h: r.h, s, v: r.v, x: 0, phase: 'liquido' };
+  }
+  if (s > V.s) {
+    const T = solveT((t) => region2(p, t), s, BY_S, ts + 50, ts, 1073.15);
+    const r = region2(p, T);
+    return { T: T - TK, p: pBar, h: r.h, s, v: r.v, x: 1, phase: 'vapore' };
+  }
+  const x = (s - L.s) / (V.s - L.s);
+  return { T: ts - TK, p: pBar, h: L.h + x * (V.h - L.h), s, v: L.v + x * (V.v - L.v), x, phase: 'bifase' };
+}
+
+function hPS(pBar, s) {
+  return propsPS(pBar, s).h;
+}
+
+// Funzioni esposte per i test di verifica IAPWS (unità SI MPa/K).
+const _internal = { region1, region2, psatMPa, tsatK };
+
+return { P_MAX_BAR, Tsat, psat, satP, propsPT, hPT, sPT, propsPH, propsPS, hPS, _internal };
+})();
+
+__m['js/engine/gas.js'] = (() => {
+// Proprietà termodinamiche di aria e fumi come miscele di gas ideali
+// (N2, O2, Ar, CO2, H2O) con coefficienti di Shomate (NIST Webbook) e
+// modello di combustione del gas naturale.
+// Unità: T [°C], h [kJ/kg] sensibile riferita a 25 °C, s0 [kJ/(kg·K)].
+
+const { psat } = __m['js/engine/steam.js'];
+
+const TREF = 298.15;
+const R_U = 8.314462618; // J/(mol·K)
+
+const SPECIES = ['N2', 'O2', 'Ar', 'CO2', 'H2O'];
+
+const MW = { N2: 28.0134, O2: 31.9988, Ar: 39.948, CO2: 44.0095, H2O: 18.01528 };
+
+// Segmenti [Tmax, A, B, C, D, E]; cp [J/(mol·K)] = A + B t + C t² + D t³ + E/t², t = T/1000.
+const SHOMATE = {
+  N2: [
+    [500, 28.98641, 1.853978, -9.647459, 16.63537, 0.000117],
+    [2000, 19.50583, 19.88705, -8.598535, 1.369784, 0.527601],
+    [6000, 35.51872, 1.128728, -0.196103, 0.014662, -4.55376],
+  ],
+  O2: [
+    [700, 31.32234, -20.23531, 57.86644, -36.50624, -0.007374],
+    [2000, 30.03235, 8.772972, -3.988133, 0.788313, -0.741599],
+    [6000, 20.91111, 10.72071, -2.020498, 0.146449, 9.245722],
+  ],
+  Ar: [[6000, 20.786, 0, 0, 0, 0]],
+  CO2: [
+    [1200, 24.99735, 55.18696, -33.69137, 7.948387, -0.136638],
+    [6000, 58.16639, 2.720074, -0.492289, 0.038844, -6.447293],
+  ],
+  H2O: [
+    [1700, 30.092, 6.832514, 6.793435, -2.53448, 0.082139],
+    [6000, 41.96426, 8.622053, -1.49978, 0.098119, -11.15764],
+  ],
+};
+
+const cpSeg = (c, t) => c[1] + c[2] * t + c[3] * t * t + c[4] * t * t * t + c[5] / (t * t);
+// ∫cp dT in kJ/mol
+const hSeg = (c, t) => c[1] * t + (c[2] * t * t) / 2 + (c[3] * t ** 3) / 3 + (c[4] * t ** 4) / 4 - c[5] / t;
+// ∫cp/T dT in J/(mol·K)
+const sSeg = (c, t) => c[1] * Math.log(t) + c[2] * t + (c[3] * t * t) / 2 + (c[4] * t ** 3) / 3 - c[5] / (2 * t * t);
+
+// Costanti di continuità per ogni segmento, con zero a TREF.
+const OFFSETS = {};
+for (const sp of SPECIES) {
+  const segs = SHOMATE[sp];
+  const off = [];
+  let hAcc = 0, sAcc = 0;
+  // segmento che contiene TREF
+  const k0 = segs.findIndex((s) => TREF <= s[0]);
+  off[k0] = { h: -hSeg(segs[k0], TREF / 1000), s: -sSeg(segs[k0], TREF / 1000) };
+  for (let k = k0 + 1; k < segs.length; k++) {
+    const tb = segs[k - 1][0] / 1000;
+    hAcc = hSeg(segs[k - 1], tb) + off[k - 1].h;
+    sAcc = sSeg(segs[k - 1], tb) + off[k - 1].s;
+    off[k] = { h: hAcc - hSeg(segs[k], tb), s: sAcc - sSeg(segs[k], tb) };
+  }
+  for (let k = k0 - 1; k >= 0; k--) {
+    const tb = segs[k][0] / 1000;
+    hAcc = hSeg(segs[k + 1], tb) + off[k + 1].h;
+    sAcc = sSeg(segs[k + 1], tb) + off[k + 1].s;
+    off[k] = { h: hAcc - hSeg(segs[k], tb), s: sAcc - sSeg(segs[k], tb) };
+  }
+  OFFSETS[sp] = off;
+}
+
+function segIndex(sp, T) {
+  const segs = SHOMATE[sp];
+  for (let k = 0; k < segs.length; k++) if (T <= segs[k][0]) return k;
+  return segs.length - 1;
+}
+
+function speciesH(sp, T) {
+  const k = segIndex(sp, T);
+  return hSeg(SHOMATE[sp][k], T / 1000) + OFFSETS[sp][k].h; // kJ/mol
+}
+function speciesS(sp, T) {
+  const k = segIndex(sp, T);
+  return sSeg(SHOMATE[sp][k], T / 1000) + OFFSETS[sp][k].s; // J/(mol·K)
+}
+function speciesCp(sp, T) {
+  return cpSeg(SHOMATE[sp][segIndex(sp, T)], T / 1000); // J/(mol·K)
+}
+
+// ------------------------------------------------------------- Miscele
+/** Normalizza le frazioni molari di una miscela. */
+function normalize(x) {
+  let sum = 0;
+  for (const sp of SPECIES) sum += x[sp] || 0;
+  const out = {};
+  for (const sp of SPECIES) out[sp] = (x[sp] || 0) / sum;
+  return out;
+}
+
+function molarMass(x) {
+  let m = 0;
+  for (const sp of SPECIES) m += x[sp] * MW[sp];
+  return m; // g/mol = kg/kmol
+}
+
+function gasR(x) {
+  return R_U / molarMass(x); // kJ/(kg·K)
+}
+
+function gasH(x, TC) {
+  const T = TC + 273.15;
+  let h = 0;
+  for (const sp of SPECIES) if (x[sp]) h += x[sp] * speciesH(sp, T);
+  return (h * 1000) / molarMass(x);
+}
+
+function gasCp(x, TC) {
+  const T = TC + 273.15;
+  let c = 0;
+  for (const sp of SPECIES) if (x[sp]) c += x[sp] * speciesCp(sp, T);
+  return c / molarMass(x);
+}
+
+/** Parte dipendente dalla temperatura dell'entropia, φ(T) [kJ/(kg·K)]. */
+function gasPhi(x, TC) {
+  const T = TC + 273.15;
+  let s = 0;
+  for (const sp of SPECIES) if (x[sp]) s += x[sp] * speciesS(sp, T);
+  return s / molarMass(x);
+}
+
+/** Temperatura [°C] corrispondente all'entalpia h [kJ/kg]. */
+function gasT(x, h, guess = 500) {
+  let T = guess;
+  for (let k = 0; k < 40; k++) {
+    const dT = (h - gasH(x, T)) / gasCp(x, T);
+    T += dT;
+    if (Math.abs(dT) < 1e-6) break;
+  }
+  return T;
+}
+
+/** Temperatura dopo una trasformazione isoentropica da (T1, p1) a p2. */
+function isentropicT(x, T1, p1, p2) {
+  const target = gasPhi(x, T1) + gasR(x) * Math.log(p2 / p1);
+  let T = (T1 + 273.15) * Math.pow(p2 / p1, 0.28) - 273.15;
+  for (let k = 0; k < 40; k++) {
+    const dT = ((target - gasPhi(x, T)) * (T + 273.15)) / gasCp(x, T);
+    T += dT;
+    if (Math.abs(dT) < 1e-6) break;
+  }
+  return T;
+}
+
+/** Aria umida: frazioni molari dati T [°C], p [bar], umidità relativa [0-1]. */
+function humidAir(TC, pBar, rh) {
+  const xw = Math.min(0.2, (rh * psat(TC)) / pBar);
+  const dry = { N2: 0.78084, O2: 0.209476, Ar: 0.00934, CO2: 0.000412 };
+  const sd = dry.N2 + dry.O2 + dry.Ar + dry.CO2;
+  const x = { H2O: xw };
+  for (const k of Object.keys(dry)) x[k] = (dry[k] / sd) * (1 - xw);
+  return normalize(x);
+}
+
+/** Miscelazione adiabatica di due correnti gassose. */
+function mixStreams(a, b) {
+  const na = a.m / molarMass(a.x);
+  const nb = b.m / molarMass(b.x);
+  const x = {};
+  for (const sp of SPECIES) x[sp] = (na * a.x[sp] + nb * b.x[sp]) / (na + nb);
+  const m = a.m + b.m;
+  const h = (a.m * gasH(a.x, a.T) + b.m * gasH(b.x, b.T)) / m;
+  return { m, x, T: gasT(x, h, (a.T * a.m + b.T * b.m) / m) };
+}
+
+// ------------------------------------------------------------ Combustibile
+// massa molare [kg/kmol], PCI e PCS [kJ/mol], atomi di C e H
+const FUEL_SPECIES = {
+  CH4: { M: 16.043, lhv: 802.3, hhv: 890.6, C: 1, H: 4 },
+  C2H6: { M: 30.07, lhv: 1428.6, hhv: 1560.7, C: 2, H: 6 },
+  C3H8: { M: 44.097, lhv: 2043.1, hhv: 2219.2, C: 3, H: 8 },
+  C4H10: { M: 58.123, lhv: 2657.3, hhv: 2877.5, C: 4, H: 10 },
+  CO2: { M: 44.0095, lhv: 0, hhv: 0, C: 1, H: 0, inertCO2: true },
+  N2: { M: 28.0134, lhv: 0, hhv: 0, C: 0, H: 0, inertN2: true },
+};
+
+const FUEL_PRESETS = {
+  'Gas naturale tipico (rete IT)': { CH4: 0.925, C2H6: 0.04, C3H8: 0.01, C4H10: 0.003, CO2: 0.007, N2: 0.015 },
+  'Metano puro': { CH4: 1 },
+  'Gas naturale povero (alto N2)': { CH4: 0.84, C2H6: 0.03, C3H8: 0.005, C4H10: 0, CO2: 0.015, N2: 0.11 },
+};
+
+/** Caratteristiche derivate di una composizione di combustibile (frazioni molari). */
+function fuelProperties(comp) {
+  let sum = 0;
+  for (const k of Object.keys(comp)) sum += comp[k];
+  let M = 0, lhv = 0, hhv = 0, o2 = 0, co2 = 0, h2o = 0, n2 = 0;
+  for (const k of Object.keys(comp)) {
+    const y = comp[k] / sum;
+    const f = FUEL_SPECIES[k];
+    M += y * f.M;
+    lhv += y * f.lhv;
+    hhv += y * f.hhv;
+    if (f.inertCO2) co2 += y;
+    else if (f.inertN2) n2 += y;
+    else {
+      o2 += y * (f.C + f.H / 4);
+      co2 += y * f.C;
+      h2o += (y * f.H) / 2;
+    }
+  }
+  return {
+    M,
+    lhvMolar: lhv, // kJ/mol
+    lhv: (lhv / M) * 1000, // kJ/kg
+    hhv: (hhv / M) * 1000, // kJ/kg
+    hhvToLhv: hhv / lhv,
+    o2PerMol: o2,
+    co2PerMol: co2,
+    h2oPerMol: h2o,
+    n2PerMol: n2,
+    co2PerKg: (co2 * 44.0095) / M, // kg CO2 / kg combustibile
+  };
+}
+
+/** Prodotti della combustione completa di mf [kg/s] di combustibile in un ossidante. */
+function burn(ox, fuel, mf) {
+  const no = ox.m / molarMass(ox.x); // kmol/s
+  const nf = mf / fuel.M;
+  const moles = {};
+  for (const sp of SPECIES) moles[sp] = no * ox.x[sp];
+  moles.O2 -= nf * fuel.o2PerMol;
+  moles.CO2 += nf * fuel.co2PerMol;
+  moles.H2O += nf * fuel.h2oPerMol;
+  moles.N2 += nf * fuel.n2PerMol;
+  const deficit = moles.O2 < 0;
+  if (deficit) moles.O2 = 0;
+  return { x: normalize(moles), m: ox.m + mf, o2Deficit: deficit };
+}
+
+/**
+ * Portata di combustibile necessaria per portare l'ossidante a Tout.
+ * Bilancio: m_ox·h_ox(Tin) + m_f·(h_f + η·PCI) = (m_ox+m_f)·h_prod(Tout).
+ */
+function fuelForTemperature(ox, fuel, Tout, { eta = 0.998, Tfuel = 25 } = {}) {
+  const hox = gasH(ox.x, ox.T);
+  const hf = 2.2 * (Tfuel - 25);
+  let f = 0.02;
+  let prod = burn(ox, fuel, f * ox.m);
+  for (let k = 0; k < 8; k++) {
+    const hp = gasH(prod.x, Tout);
+    f = (hp - hox) / (hf + eta * fuel.lhv - hp);
+    if (f < 0) f = 0;
+    prod = burn(ox, fuel, f * ox.m);
+  }
+  return { mf: f * ox.m, prod: { ...prod, T: Tout } };
+}
+
+return { SPECIES, normalize, molarMass, gasR, gasH, gasCp, gasPhi, gasT, isentropicT, humidAir, mixStreams, FUEL_PRESETS, fuelProperties, burn, fuelForTemperature };
+})();
+
+__m['js/engine/gt.js'] = (() => {
+// Modello della turbina a gas (ciclo Brayton) con:
+// - compressore e turbina con rendimenti isoentropici;
+// - aria di raffreddamento (quota statorica miscelata prima dell'espansione,
+//   quota rotorica a metà espansione);
+// - comportamento fuori progetto con portata corretta e turbina in blocco sonico
+//   (m·√(R·T)/p = cost.);
+// - regolazione a carico parziale: chiusura IGV a temperatura di scarico costante,
+//   poi riduzione della temperatura di combustione.
+
+const { gasH, gasT, gasR, isentropicT, humidAir, mixStreams, fuelForTemperature } = __m['js/engine/gas.js'];
+
+const P_ISO = 1.01325;
+const T_ISO = 15;
+
+const GT_PRESETS = {
+  'Classe F (~300 MW)': {
+    mAirISO: 660, PR: 18.5, TIT: 1480, coolFrac: 0.19, etaC: 0.885, etaT: 0.905,
+    dpInlet: 10, dpExhaust: 32, dpComb: 0.04, etaMG: 0.986, TETiso: 640, igvMin: 0.62,
+    Tfuel: 185, etaComb: 0.998, PmaxFactor: 1.12,
+  },
+  'Classe H/J (~450 MW)': {
+    mAirISO: 840, PR: 23.5, TIT: 1600, coolFrac: 0.2, etaC: 0.9, etaT: 0.915,
+    dpInlet: 10, dpExhaust: 35, dpComb: 0.04, etaMG: 0.988, TETiso: 655, igvMin: 0.6,
+    Tfuel: 200, etaComb: 0.999, PmaxFactor: 1.1,
+  },
+  'Classe E (~170 MW)': {
+    mAirISO: 480, PR: 13, TIT: 1260, coolFrac: 0.14, etaC: 0.875, etaT: 0.895,
+    dpInlet: 10, dpExhaust: 30, dpComb: 0.035, etaMG: 0.984, TETiso: 590, igvMin: 0.68,
+    Tfuel: 25, etaComb: 0.997, PmaxFactor: 1.12,
+  },
+};
+
+const NOZZLE_SHARE = 0.6; // quota dell'aria di raffreddamento miscelata prima dello statore
+
+/**
+ * Calcola un punto di funzionamento della TG.
+ * @param {object} d parametri di progetto della TG (vedi GT_PRESETS) + fuel
+ * @param {object} amb {T, p, rh} condizioni ambiente [°C, bar, -]
+ * @param {object} op {igv, TIT} posizione IGV (frazione di portata) e temperatura di combustione
+ * @param {object|null} ref riferimento di progetto per il funzionamento fuori progetto
+ */
+function gtPoint(d, amb, op, ref = null) {
+  const air = humidAir(amb.T, amb.p, amb.rh);
+  const p1 = amb.p - d.dpInlet / 1000;
+  const T1 = amb.T;
+  const p4 = amb.p + d.dpExhaust / 1000;
+  const igv = op.igv;
+
+  // Portata d'aria: portata corretta m·√T/p costante a IGV fissati, ridotta inoltre
+  // dalla diminuzione della velocità corretta N/√T quando l'aria è più calda.
+  const thetaR = (T_ISO + 273.15) / (T1 + 273.15);
+  const mAir = d.mAirISO * (p1 / (P_ISO - d.dpInlet / 1000)) * Math.sqrt(thetaR) * Math.pow(thetaR, 0.6) * igv;
+
+  // Rendimento del compressore penalizzato dalla chiusura IGV.
+  const etaC = d.etaC * (1 - 0.15 * (1 - igv) ** 2);
+
+  let PR = ref ? d.PR * igv : d.PR;
+  let res = null;
+  for (let it = 0; it < 30; it++) {
+    const p2 = p1 * PR;
+    const T2s = isentropicT(air, T1, p1, p2);
+    const h1 = gasH(air, T1);
+    const h2 = h1 + (gasH(air, T2s) - h1) / etaC;
+    const T2 = gasT(air, h2, T2s);
+
+    const mCool = d.coolFrac * mAir;
+    const mCombAir = mAir - mCool;
+    const comb = fuelForTemperature({ m: mCombAir, x: air, T: T2 }, d.fuel, op.TIT, { eta: d.etaComb, Tfuel: d.Tfuel });
+    const p3 = p2 * (1 - d.dpComb);
+
+    // Miscelazione dell'aria di raffreddamento statorica -> temperatura ingresso rotore
+    const rit = mixStreams({ m: comb.prod.m, x: comb.prod.x, T: op.TIT }, { m: mCool * NOZZLE_SHARE, x: air, T: T2 });
+
+    // Turbina in blocco sonico: aggiorna il rapporto di compressione
+    if (ref) {
+      const p3new = ref.p3 * (rit.m / ref.mRit) * Math.sqrt(((rit.T + 273.15) * gasR(rit.x)) / ref.TRrit);
+      const PRnew = p3new / (1 - d.dpComb) / p1;
+      if (Math.abs(PRnew - PR) > 1e-6) {
+        PR = PR + 0.8 * (PRnew - PR);
+        continue;
+      }
+    }
+
+    // Espansione in due tratti con miscelazione dell'aria rotorica
+    const pm = Math.sqrt(p3 * p4);
+    const hA0 = gasH(rit.x, rit.T);
+    const TAs = isentropicT(rit.x, rit.T, p3, pm);
+    const hA1 = hA0 - d.etaT * (hA0 - gasH(rit.x, TAs));
+    const TA1 = gasT(rit.x, hA1, TAs);
+    const mid = mixStreams({ m: rit.m, x: rit.x, T: TA1 }, { m: mCool * (1 - NOZZLE_SHARE), x: air, T: T2 });
+    const hB0 = gasH(mid.x, mid.T);
+    const TBs = isentropicT(mid.x, mid.T, pm, p4);
+    const hB1 = hB0 - d.etaT * (hB0 - gasH(mid.x, TBs));
+    const T4 = gasT(mid.x, hB1, TBs);
+
+    const Wc = mAir * (h2 - h1) / 1000; // MW
+    const Wt = (rit.m * (hA0 - hA1) + mid.m * (hB0 - hB1)) / 1000;
+    const Pshaft = Wt - Wc;
+    const P = Pshaft * d.etaMG;
+    const Qfuel = (comb.mf * d.fuel.lhv) / 1000; // MW (PCI)
+
+    res = {
+      igv, TIT: op.TIT, PR, mAir, mFuel: comb.mf, mExh: mid.m, xExh: mid.x,
+      T1, p1, T2, p2, p3, Trit: rit.T, T4, p4, Wc, Wt, P, Qfuel,
+      eta: P / Qfuel, heatRate: (3600 / (P / Qfuel)),
+      air, mRit: rit.m, TRrit: (rit.T + 273.15) * gasR(rit.x),
+    };
+    break;
+  }
+  return res;
+}
+
+/** Punto di progetto ISO della TG: definisce il riferimento per il fuori progetto. */
+function gtDesign(d) {
+  const r = gtPoint(d, { T: T_ISO, p: P_ISO, rh: 0.6 }, { igv: 1, TIT: d.TIT }, null);
+  return { p3: r.p3, mRit: r.mRit, TRrit: r.TRrit, Piso: r.P, T4iso: r.T4, point: r };
+}
+
+// Ricerca di radice con regula falsi (variante Illinois) su funzione monotona.
+function solveMonotone(f, a, b, tol = 1e-4, maxIt = 40) {
+  let fa = f(a), fb = f(b);
+  if (fa * fb > 0) return Math.abs(fa) < Math.abs(fb) ? a : b;
+  let side = 0, c = a;
+  for (let i = 0; i < maxIt; i++) {
+    c = (a * fb - b * fa) / (fb - fa);
+    const fc = f(c);
+    if (Math.abs(fc) < tol || Math.abs(b - a) < tol * 1e-3) break;
+    if (fc * fb > 0) {
+      b = c; fb = fc;
+      if (side === -1) fa /= 2;
+      side = -1;
+    } else {
+      a = c; fa = fc;
+      if (side === 1) fb /= 2;
+      side = 1;
+    }
+  }
+  return c;
+}
+
+/**
+ * Punto di funzionamento della TG a un dato carico relativo (rispetto al carico
+ * base alle condizioni ambiente attuali), secondo la logica di regolazione.
+ */
+function gtAtLoad(d, ref, amb, load) {
+  const Pmax = ref.Piso * d.PmaxFactor;
+  const point = (igv, TIT) => gtPoint(d, amb, { igv, TIT }, ref);
+
+  // TIT che rispetta il limite di temperatura allo scarico per una data apertura IGV
+  const titAtIgv = (igv, TETlim) => {
+    const hot = point(igv, d.TIT);
+    if (hot.T4 <= TETlim) return { TIT: d.TIT, pt: hot };
+    const TIT = solveMonotone((t) => point(igv, t).T4 - TETlim, 700, d.TIT, 0.05);
+    return { TIT, pt: point(igv, TIT) };
+  };
+
+  // Carico base: IGV aperti, TIT di progetto, limiti su scarico e potenza generatore.
+  let base = titAtIgv(1, Math.max(d.TETiso, ref.T4iso + 5)).pt;
+  if (base.P > Pmax) {
+    const TIT = solveMonotone((t) => point(1, t).P - Pmax, 700, base.TIT, 0.01);
+    base = point(1, TIT);
+  }
+  if (load >= 0.9999) return { ...base, load: 1, Pbase: base.P, mode: base.P >= Pmax - 0.1 ? 'Limite generatore' : 'Carico base' };
+
+  const target = Math.max(0.02, load) * base.P;
+  const atIgvMin = titAtIgv(d.igvMin, d.TETiso);
+  if (target >= atIgvMin.pt.P) {
+    // Regolazione IGV a temperatura di scarico (isoterma)
+    const igv = solveMonotone((g) => titAtIgv(g, d.TETiso).pt.P - target, d.igvMin, 1, 0.01);
+    const r = titAtIgv(igv, d.TETiso).pt;
+    return { ...r, load: r.P / base.P, Pbase: base.P, mode: 'Regolazione IGV' };
+  }
+  // IGV al minimo: riduzione della temperatura di combustione
+  const TIT = solveMonotone((t) => point(d.igvMin, t).P - target, 500, atIgvMin.TIT, 0.01);
+  const r = point(d.igvMin, TIT);
+  return { ...r, load: r.P / base.P, Pbase: base.P, mode: 'Riduzione TIT' };
+}
+
+return { GT_PRESETS, gtPoint, gtDesign, gtAtLoad };
+})();
+
+__m['js/engine/bottoming.js'] = (() => {
+// Ciclo a vapore sottoposto: generatore di vapore a recupero (GVR) a 1, 2 o 3
+// livelli di pressione con risurriscaldamento opzionale, turbina a vapore a più
+// sezioni, condensatore ad acqua o aerocondensatore, pompe.
+//
+// Il GVR è risolto con il metodo dei pinch point: il lato fumi è diviso in zone
+// delimitate dalle uscite degli evaporatori (T_sat + pinch); in ogni zona il
+// bilancio energetico fornisce la portata di vapore del livello corrispondente.
+
+const { gasH, gasT } = __m['js/engine/gas.js'];
+const { Tsat, psat, satP, hPT, propsPH, propsPS, P_MAX_BAR } = __m['js/engine/steam.js'];
+
+const HRSG_TYPES = {
+  '3PRH': '3 livelli + risurriscaldamento',
+  '2P': '2 livelli',
+  '1P': '1 livello',
+};
+
+const LEVEL_NAMES = { '3PRH': ['HP', 'IP', 'LP'], '2P': ['HP', 'LP'], '1P': ['HP'] };
+
+const P_COND_MIN = 0.02; // bar
+const P_COND_MAX = 0.25;
+
+function sectionName(type, k, n) {
+  if (k === n - 1 && n > 1) return 'LP';
+  if (k === 0) return 'HP';
+  return 'IP';
+}
+
+// Espansione in una sezione di turbina; per l'ultima sezione considera
+// la correzione di Baumann per l'umidità e la perdita allo scarico.
+function expand(hin, pin, pout, eta, { wet = false, m = 0, area = 0 } = {}) {
+  const sIn = propsPH(pin, hin).s;
+  const iso = propsPS(pout, sIn);
+  const dhs = hin - iso.h;
+  let e = eta;
+  let out = propsPH(pout, hin - e * dhs);
+  if (wet) {
+    const yIn = 1 - propsPH(pin, hin).x;
+    for (let k = 0; k < 8; k++) {
+      const yAvg = (yIn + (1 - out.x)) / 2;
+      e = eta * (1 - yAvg);
+      out = propsPH(pout, hin - e * dhs);
+    }
+  }
+  let exhLoss = 0, vax = 0;
+  if (area > 0) {
+    vax = (m * out.v) / area;
+    exhLoss = (0.85 * vax * vax) / 2 / 1000; // kJ/kg
+  }
+  return { out, hOut: out.h, ueep: out.h + exhLoss, eta: e, dhs, exhLoss, vax };
+}
+
+function partLoadEta(etaD, ratio) {
+  const r = Math.min(Math.max(ratio, 0.05), 1.3);
+  return etaD * (1 - 0.3 * (1 - r) ** 2);
+}
+
+/**
+ * Risolve il ciclo a vapore per una data corrente di fumi.
+ * @param {object} c configurazione del ciclo a vapore (vedi plant.js)
+ * @param {object} gas {m, x, T} corrente di fumi all'ingresso GVR (per un GVR)
+ * @param {object} cond {Tcw, Tamb} condizioni del pozzo freddo
+ * @param {object} opt {nHRSG, ref, slidingHP}
+ */
+function solveBottoming(c, gas, cond, opt) {
+  const { ref = null, nHRSG = 1, slidingHP = true } = opt;
+  const n = c.levels.length;
+  const reheat = c.type === '3PRH';
+  const names = LEVEL_NAMES[c.type];
+
+  // Pressioni di ammissione (bar): progetto o valori iniziali per il fuori progetto
+  let pAdm = ref ? ref.pAdm.slice() : c.levels.map((l) => l.p);
+  let pCond = ref ? ref.pCond : 0.05;
+  let result = null;
+  const warm = {};
+
+  for (let outer = 0; outer < 60; outer++) {
+    const r = solveAtPressures(c, gas, pAdm, pCond, ref, nHRSG, reheat, names, warm);
+    result = r;
+
+    // --- aggiornamento pressioni
+    let pCondNew;
+    const Q = r.Qcond; // MW (totale)
+    if (!ref) {
+      const Ts = c.condenser.type === 'air'
+        ? cond.Tamb + c.condenser.ITD
+        : cond.Tcw + c.condenser.dTcw + c.condenser.TTD;
+      pCondNew = psat(Ts);
+    } else {
+      const q = Q / ref.Qcond;
+      const Ts = c.condenser.type === 'air'
+        ? cond.Tamb + c.condenser.ITD * q
+        : cond.Tcw + (c.condenser.dTcw + c.condenser.TTD) * q;
+      pCondNew = psat(Ts);
+    }
+    pCondNew = Math.min(Math.max(pCondNew, P_COND_MIN), P_COND_MAX);
+
+    let pAdmNew = pAdm.slice();
+    if (ref) {
+      for (let k = 0; k < n; k++) {
+        const sec = r.sections[k];
+        const sRef = ref.sections[k];
+        let p = ref.pAdm[k] * (sec.m / sRef.m) * Math.sqrt((sec.Tin + 273.15) / (sRef.Tin + 273.15));
+        // con RH la pressione di ammissione IP (a valle del RH) è proporzionale a quella
+        // del risurriscaldamento freddo, quindi la legge si applica direttamente a pAdm[1]
+        if (k === 0 && !slidingHP) p = Math.max(p, ref.pAdm[0]);
+        const pMin = k === 0 ? ref.pAdm[0] * c.pMinFracHP : ref.pAdm[k] * 0.15;
+        p = Math.min(Math.max(p, pMin), k === 0 ? Math.min(P_MAX_BAR * (1 - c.dpSH), ref.pAdm[0] * 1.25) : ref.pAdm[k] * 1.6);
+        if (k === 0 && !slidingHP) p = Math.min(p, ref.pAdm[0]);
+        // la pressione di un livello deve restare sopra quella del livello inferiore
+        pAdmNew[k] = p;
+      }
+      for (let k = n - 2; k >= 0; k--) pAdmNew[k] = Math.max(pAdmNew[k], pAdmNew[k + 1] * 1.5);
+    }
+
+    let maxErr = Math.abs(pCondNew - pCond) / pCond;
+    for (let k = 0; k < n; k++) maxErr = Math.max(maxErr, Math.abs(pAdmNew[k] - pAdm[k]) / pAdm[k]);
+    const w = 0.6;
+    pCond = pCond + w * (pCondNew - pCond);
+    for (let k = 0; k < n; k++) pAdm[k] = pAdm[k] + w * (pAdmNew[k] - pAdm[k]);
+    if (maxErr < 1e-5) break;
+  }
+  return result;
+}
+
+function solveAtPressures(c, gas, pAdm, pCond, ref, nHRSG, reheat, names, warm) {
+  const n = c.levels.length;
+  const mg = gas.m;
+  const xg = gas.x;
+  const keep = 1 - c.hrsgLoss;
+  const hg = (T) => gasH(xg, T);
+
+  // Pressioni nei corpi cilindrici
+  const pDrum = pAdm.map((p) => p / (1 - c.dpSH));
+  const sat = pDrum.map((p) => satP(p));
+  const Ts = sat.map((s) => s.T);
+  const pLP = pDrum[n - 1];
+  const pRHout = reheat ? pAdm[1] * (1 - c.dpRH) : 0;
+
+  // Pompe
+  const condSat = satP(pCond);
+  const vCond = condSat.vL;
+  const pCondPumpOut = pLP * 1.25 + 1;
+  const hCondOut = condSat.hL + (vCond * (pCondPumpOut - pCond) * 100) / c.etaPump;
+  const TCondOut = propsPH(pCondPumpOut, hCondOut).T;
+  const hFeed = [];
+  for (let j = 0; j < n; j++) {
+    hFeed[j] = j === n - 1 ? sat[n - 1].hL : sat[n - 1].hL + (sat[n - 1].vL * (pDrum[j] * 1.15 - pLP) * 100) / c.etaPump;
+  }
+
+  // Temperature dei surriscaldatori
+  const Tg0 = gas.T;
+  const Tsh = [];
+  const hSh = [];
+  const Trh = reheat ? Math.min(c.Trh, Tg0 - c.dTsh) : 0;
+  const hRh = reheat ? hPT(pRHout, Math.max(Trh, Tsat(pRHout) + 1)) : 0;
+
+  // Entalpie costanti alle pressioni fissate
+  const hInEva = Ts.map((T, k) => hPT(pDrum[k], T - c.approach[k]));
+  const hSubMax = hInEva[n - 1];
+  // eco[k][j]: tratto di economizzatore del livello j (j < k) nella zona k
+  const eco = [];
+  for (let k = 1; k < n; k++) {
+    eco[k] = [];
+    for (let j = 0; j < k; j++) {
+      const TwTop = j === k - 1 ? Ts[j] - c.approach[j] : Ts[k - 1];
+      const hTop = hPT(pDrum[j], TwTop);
+      const hLow = k === n - 1 ? hFeed[j] : hPT(pDrum[j], Ts[k]);
+      eco[k][j] = { TwTop, hLow, dh: hTop - hLow, TwLow: propsPH(pDrum[j], hLow).T };
+    }
+  }
+  const setSh = (k, Ttop) => {
+    Tsh[k] = Math.max(Math.min(c.levels[k].Tsh, Ttop - c.dTsh), Ts[k] + 0.5);
+    hSh[k] = hPT(pAdm[k], Tsh[k]);
+  };
+  setSh(0, Tg0);
+  for (let k = 1; k < n; k++) setSh(k, Ts[k - 1] + c.pinch[k - 1]);
+  // gas disponibile sopra la temperatura di pinch di ogni livello
+  const hg0 = hg(Tg0);
+  const avail = Ts.map((T, k) => mg * keep * (hg0 - hg(Math.min(T + c.pinch[k], Tg0))));
+
+  // Incognite (avvio a caldo dalla soluzione precedente, se disponibile)
+  let m = warm.m && warm.m.length === n ? warm.m.slice() : ref ? ref.mLevels.map((v) => v * 0.9) : Array(n).fill(20);
+  let hSub = warm.hSub ?? hSubMax;
+  let cap = Array(n).fill(Infinity);
+  let hCRH = 0;
+  let zones = [];
+  let Tstack = 0;
+  let mPre = 0;
+  let m0Exp = -1;
+
+  for (let it = 0; it < 150; it++) {
+    const mOld = m.slice();
+    zones = [];
+
+    // Espansione HP (serve l'entalpia del risurriscaldamento freddo)
+    if (reheat && Math.abs(m[0] - m0Exp) > 1e-4 * Math.max(m[0], 1)) {
+      const etaHP = ref ? partLoadEta(c.etaHP, (m[0] * nHRSG) / ref.sections[0].m) : c.etaHP;
+      hCRH = expand(hSh[0], pAdm[0], pAdm[1], etaHP).hOut;
+      m0Exp = m[0];
+    }
+
+    let Ttop = Tg0;
+    let absorbed = 0; // calore ceduto dai fumi nelle zone superiori
+    const newCap = Array(n).fill(Infinity);
+    for (let k = 0; k < n; k++) {
+      const lowest = k === n - 1;
+      const TbotPinch = Math.min(Ts[k] + c.pinch[k], Ttop);
+      const Qg = mg * (hg(Ttop) - hg(TbotPinch)) * keep;
+      const items = [];
+      if (k > 0) setSh(k, Ttop);
+
+      // Economizzatori dei livelli superiori presenti nella zona
+      let Qeco = 0;
+      for (let j = 0; j < k; j++) {
+        const e = eco[k][j];
+        const q = m[j] * e.dh;
+        Qeco += q;
+        items.push({ level: j, Q: q, TwIn: e.TwLow, TwOut: e.TwTop, m: m[j] });
+      }
+      // Vincolo di fattibilità: gli economizzatori non possono assorbire più calore
+      // di quello disponibile sopra il pinch del livello k -> limita il livello k-1.
+      // Nella zona più fredda va compreso anche il riscaldamento fino a saturazione
+      // dell'acqua di alimento nel corpo cilindrico LP (degasaggio).
+      if (k > 0) {
+        let viol = absorbed + Qeco - avail[k];
+        const j = k - 1;
+        let d = hSh[j] - eco[k][j].hLow;
+        if (reheat && j === 0) d += hRh - hCRH;
+        if (reheat && j === 1) d += hRh - hSh[1];
+        if (lowest) {
+          let mUp = 0;
+          for (let i = 0; i < k; i++) mUp += m[i];
+          viol += mUp * (sat[k].hL - hSub);
+          d += sat[k].hL - hSub;
+        }
+        newCap[j] = Math.max(0, m[j] - viol / d);
+      }
+
+      let mk;
+      const hV = sat[k].hV;
+      if (k === 0) {
+        if (reheat) mk = (Qg - m[1] * (hRh - hSh[1])) / (hSh[0] - hInEva[0] + (hRh - hCRH));
+        else if (lowest) mk = Qg / (hSh[0] - hSub); // un livello: alimento dal preriscaldatore
+        else mk = Qg / (hSh[0] - hInEva[0]);
+      } else if (lowest) {
+        let mUp = 0;
+        for (let j = 0; j < k; j++) mUp += m[j];
+        mk = (Qg - Qeco - mUp * (sat[k].hL - hSub)) / (hSh[k] - hSub);
+      } else {
+        mk = (Qg - Qeco) / (hSh[k] - hInEva[k]);
+      }
+      if (!(mk > 0)) mk = 0;
+      m[k] = Math.min(mk, cap[k]);
+
+      // Duty dei singoli banchi
+      const Qsh = m[k] * (hSh[k] - hV);
+      let Qeva, Qsub;
+      if (lowest) {
+        let mTot = 0;
+        for (let j = 0; j < n; j++) mTot += m[j];
+        Qsub = mTot * (sat[k].hL - hSub);
+        Qeva = m[k] * (hV - sat[k].hL) + Qsub;
+      } else {
+        Qsub = m[k] * (sat[k].hL - hInEva[k]);
+        Qeva = m[k] * (hV - hInEva[k]);
+      }
+      let Qrh = 0;
+      if (reheat && k === 0) Qrh = m[0] * (hRh - hCRH) + m[1] * (hRh - hSh[1]);
+      const Qzone = Qsh + Qeva + Qeco + Qrh;
+      absorbed += Qzone;
+      const Tbot = gasT(xg, hg0 - absorbed / (mg * keep), TbotPinch);
+      zones.push({ level: k, Ttop, Tbot, Qsh, Qrh, Qeva, Qsub, items, Tsh: Tsh[k] });
+      Ttop = Tbot;
+    }
+    cap = newCap;
+
+    // Preriscaldatore condensato (zona fredda) e vincolo di temperatura al camino
+    let mTot = 0;
+    for (let j = 0; j < n; j++) mTot += m[j];
+    mPre = mTot;
+    const TgIn = Ttop;
+    const TstackMin = Math.max(c.TstackMin, Math.max(TCondOut, c.TwPreMin) + 5);
+    const Qavail = Math.max(0, mg * (hg(TgIn) - hg(Math.min(TstackMin, TgIn))) * keep);
+    const Qreq = mTot * (hSubMax - hCondOut);
+    const hSubNew = Qreq <= Qavail || mTot < 1e-6 ? hSubMax : hCondOut + Qavail / mTot;
+    hSub = 0.3 * hSub + 0.7 * hSubNew;
+    const Qpre = mTot * (hSub - hCondOut);
+    Tstack = gasT(xg, hg(TgIn) - Qpre / (mg * keep), TgIn - 50);
+
+    let err = Math.abs(hSub - hSubNew) / 100;
+    for (let k = 0; k < n; k++) err = Math.max(err, Math.abs(m[k] - mOld[k]));
+    if (err < 1e-6 && it > 2) break;
+  }
+  warm.m = m.slice();
+  warm.hSub = hSub;
+
+  // ------------------------------------------------- Turbina a vapore
+  const N = nHRSG;
+  const sections = [];
+  let hIn = hSh[0];
+  let pIn = pAdm[0];
+  let mSec = m[0] * N;
+  let Pst = 0;
+  const expPts = []; // per diagramma T-s
+  const stPoints = {};
+  for (let k = 0; k < n; k++) {
+    const last = k === n - 1;
+    const pOut = last ? pCond : pAdm[k + 1];
+    const name = sectionName(c.type, k, n);
+    const etaD = name === 'HP' ? c.etaHP : name === 'IP' ? c.etaIP : c.etaLP;
+    const ratio = ref ? mSec / ref.sections[k].m : 1;
+    const eta = ref ? partLoadEta(etaD, ratio) : etaD;
+    const area = last ? (ref ? ref.lpArea : 0) : 0;
+    const e = expand(hIn, pIn, pOut, eta, { wet: last, m: mSec, area });
+    let ueep = e.ueep;
+    let exhLoss = e.exhLoss;
+    let vax = e.vax;
+    let lpArea = 0;
+    if (last && !ref) {
+      // dimensionamento della sezione di scarico per 240 m/s al punto di progetto
+      lpArea = (mSec * e.out.v) / 240;
+      vax = 240;
+      exhLoss = (0.85 * vax * vax) / 2 / 1000;
+      ueep = e.hOut + exhLoss;
+    }
+    const W = (mSec * (hIn - ueep)) / 1000;
+    Pst += W;
+    const inState = propsPH(pIn, hIn);
+    sections.push({
+      name, m: mSec, pIn, Tin: inState.T, hIn, sIn: inState.s, pOut, hOut: e.hOut, ueep, eta: e.eta,
+      W, exhLoss, vax, xOut: e.out.x, Tout: e.out.T, sOut: e.out.s, lpArea,
+    });
+    expPts.push({ name, pIn, hIn, pOut, hOut: e.hOut });
+
+    if (!last) {
+      // miscelazione con il vapore del livello successivo (ed eventuale RH)
+      const mNext = m[k + 1] * N;
+      if (reheat && k === 0) {
+        stPoints.crh = { p: pAdm[1], h: e.hOut, m: mSec };
+        const hMix = mSec + mNext > 0 ? (mSec * e.hOut + mNext * hSh[1]) / (mSec + mNext) : e.hOut;
+        stPoints.crhMix = { p: pAdm[1], h: hMix, m: mSec + mNext };
+        hIn = hRh;
+        pIn = pRHout;
+        stPoints.hrh = { p: pRHout, h: hRh, m: mSec + mNext };
+      } else {
+        hIn = mSec + mNext > 0 ? (mSec * e.hOut + mNext * hSh[k + 1]) / (mSec + mNext) : e.hOut;
+        pIn = pOut;
+      }
+      mSec += mNext;
+    }
+  }
+  const lastSec = sections[n - 1];
+  const QcondTot = (lastSec.m * (lastSec.ueep - condSat.hL)) / 1000;
+  Pst *= c.etaMG;
+
+  // Potenza pompe (MW, totale)
+  let Ppump = (mPre * N * vCond * (pCondPumpOut - pCond) * 100) / c.etaPump / 1000;
+  for (let j = 0; j < n - 1; j++) Ppump += (m[j] * N * sat[n - 1].vL * (pDrum[j] * 1.15 - pLP) * 100) / c.etaPump / 1000;
+
+  // Dettaglio banchi GVR in ordine lato fumi (per un GVR)
+  const banks = [];
+  for (const z of zones) {
+    const k = z.level;
+    let T = z.Ttop;
+    const push = (name, Q, TwIn, TwOut, extra = {}) => {
+      if (Q <= 1e-6) return;
+      const Tout = gasT(xg, hg(T) - Q / (mg * keep), T - 10);
+      banks.push({ name, Q: Q / 1000, TgIn: T, TgOut: Tout, TwIn, TwOut, ...extra });
+      T = Tout;
+    };
+    if (k === 0 && reheat) {
+      // SH HP e RH in parallelo sul lato fumi (banchi interlacciati)
+      const Qtot = z.Qsh + z.Qrh;
+      const Tout = gasT(xg, hg(T) - Qtot / (mg * keep), T - 10);
+      const TcrhMix = propsPH(pAdm[1], stPoints.crhMix ? stPoints.crhMix.h : hCRH).T;
+      banks.push({ name: `SH ${names[0]}`, Q: z.Qsh / 1000, TgIn: T, TgOut: Tout, TwIn: Ts[0], TwOut: Tsh[0], parallel: true });
+      banks.push({ name: 'RH', Q: z.Qrh / 1000, TgIn: T, TgOut: Tout, TwIn: TcrhMix, TwOut: Trh, parallel: true });
+      T = Tout;
+    } else {
+      push(`SH ${names[k]}`, z.Qsh, Ts[k], Tsh[k]);
+    }
+    // gli economizzatori dei livelli superiori nella stessa zona lavorano in parallelo sul lato fumi
+    const ecos = z.items.filter((it) => it.Q > 1e-6);
+    if (ecos.length === 1) push(`ECO ${names[ecos[0].level]}`, ecos[0].Q, ecos[0].TwIn, ecos[0].TwOut);
+    else if (ecos.length > 1) {
+      const Qtot = ecos.reduce((a, it) => a + it.Q, 0);
+      const Tout = gasT(xg, hg(T) - Qtot / (mg * keep), T - 10);
+      for (const it of ecos) banks.push({ name: `ECO ${names[it.level]}`, Q: it.Q / 1000, TgIn: T, TgOut: Tout, TwIn: it.TwIn, TwOut: it.TwOut, parallel: true });
+      T = Tout;
+    }
+    push(`EVA ${names[k]}`, z.Qeva, k === n - 1 ? propsPH(pLP, hSub).T : Ts[k] - c.approach[k], Ts[k], { subFrac: z.Qeva > 0 ? z.Qsub / z.Qeva : 0 });
+  }
+  {
+    const Qpre = mPre * (hSub - hCondOut);
+    let T = zones[zones.length - 1].Tbot;
+    const Tout = gasT(xg, hg(T) - Qpre / (mg * keep), T - 10);
+    if (Qpre > 1e-6) banks.push({ name: 'PRE (condensato)', Q: Qpre / 1000, TgIn: T, TgOut: Tout, TwIn: Math.max(TCondOut, Math.min(c.TwPreMin, propsPH(pLP, hSub).T - 1)), TwOut: propsPH(pLP, hSub).T });
+  }
+  const Qhrsg = banks.reduce((a, b) => a + b.Q, 0); // MW per GVR
+
+  return {
+    type: c.type,
+    names,
+    pAdm: pAdm.slice(),
+    pDrum,
+    Tsat: Ts,
+    Tsh: Tsh.slice(),
+    Trh,
+    pRHout,
+    mLevels: m.slice(),
+    mLevelsTot: m.map((v) => v * N),
+    sections,
+    stPoints,
+    Pst,
+    Ppump,
+    pCond,
+    Tcond: condSat.T,
+    hCondL: condSat.hL,
+    Qcond: QcondTot,
+    Tstack,
+    TCondOut,
+    banks,
+    Qhrsg,
+    hSub,
+    TsubLP: propsPH(pLP, hSub).T,
+    expPts,
+    mSteamTot: (m.reduce((a, b) => a + b, 0)) * N,
+    lpArea: sections[n - 1].lpArea,
+  };
+}
+
+return { HRSG_TYPES, LEVEL_NAMES, solveBottoming };
+})();
+
+__m['js/engine/plant.js'] = (() => {
+// Integrazione dell'impianto a ciclo combinato: N turbine a gas, ciascuna con il
+// proprio GVR, una turbina a vapore comune, ausiliari, emissioni ed economia.
+
+const { fuelProperties, FUEL_PRESETS, fuelForTemperature, gasH, molarMass } = __m['js/engine/gas.js'];
+const { GT_PRESETS, gtDesign, gtAtLoad } = __m['js/engine/gt.js'];
+const { solveBottoming, LEVEL_NAMES } = __m['js/engine/bottoming.js'];
+
+const ISO = { Tamb: 15, pamb: 1.01325, rh: 0.6 };
+
+const STEAM_DEFAULTS = {
+  '3PRH': {
+    levels: [{ p: 125, Tsh: 565 }, { p: 28, Tsh: 310 }, { p: 4.5, Tsh: 290 }],
+    pinch: [8, 8, 8], approach: [5, 5, 5], Trh: 565,
+  },
+  '2P': {
+    levels: [{ p: 80, Tsh: 540 }, { p: 6, Tsh: 230 }],
+    pinch: [8, 8], approach: [5, 5], Trh: 0,
+  },
+  '1P': {
+    levels: [{ p: 60, Tsh: 500 }],
+    pinch: [10], approach: [5], Trh: 0,
+  },
+};
+
+// Condizioni vapore tipiche del ciclo 3 livelli + RH per classe di TG
+const CLASS_STEAM_3PRH = {
+  'Classe F (~300 MW)': { hp: 125, ip: 28, tsh: 565, trh: 565 },
+  'Classe H/J (~450 MW)': { hp: 150, ip: 36, tsh: 585, trh: 585 },
+  'Classe E (~170 MW)': { hp: 95, ip: 24, tsh: 540, trh: 540 },
+};
+
+const LIMITS = { pHPmax: 150, TshMax: 600 };
+
+/** Configurazione predefinita dell'impianto. */
+function defaultConfig(gtName = 'Classe F (~300 MW)', type = '3PRH') {
+  const s = JSON.parse(JSON.stringify(STEAM_DEFAULTS[type]));
+  const cls = CLASS_STEAM_3PRH[gtName];
+  if (type === '3PRH' && cls) {
+    s.levels[0] = { p: cls.hp, Tsh: cls.tsh };
+    s.levels[1].p = cls.ip;
+    s.Trh = cls.trh;
+  }
+  return {
+    gtName,
+    gt: { ...GT_PRESETS[gtName] },
+    fuelName: 'Gas naturale tipico (rete IT)',
+    fuelComp: { ...FUEL_PRESETS['Gas naturale tipico (rete IT)'] },
+    nGT: 1,
+    steam: {
+      type,
+      levels: s.levels.map((l) => ({ ...l })),
+      pinch: s.pinch.slice(),
+      approach: s.approach.slice(),
+      Trh: s.Trh,
+      dTsh: 25,
+      dpSH: 0.06,
+      dpRH: 0.08,
+      hrsgLoss: 0.005,
+      TstackMin: 70,
+      TwPreMin: 55,
+      etaHP: 0.87,
+      etaIP: 0.91,
+      etaLP: 0.89,
+      etaMG: 0.985,
+      etaPump: 0.8,
+      pMinFracHP: 0.4,
+      condenser: { type: 'water', TcwDesign: 18, dTcw: 10, TTD: 3, ITD: 28 },
+    },
+    aux: { miscFrac: 0.004, trafoFrac: 0.003, gtAuxMW: 0.8, cwHeadBar: 2.5, fanFrac: 0.012 },
+  };
+}
+
+function defaultOperation() {
+  return {
+    Tamb: 15, pamb: 1.01325, rh: 0.6,
+    load: 1, nGTon: 1, Tcw: 18, ductT: 0, slidingHP: true,
+    gasPrice: 35, co2Price: 70, omVar: 3, powerPrice: 110,
+  };
+}
+
+/**
+ * Corregge i parametri di progetto fuori campo (in loco) e restituisce gli avvisi.
+ * Il modello IF97 implementato copre p ≤ 165 bar nei corpi cilindrici.
+ */
+function sanitizeConfig(cfg) {
+  const notes = [];
+  const lv = cfg.steam.levels;
+  if (lv[0].p > LIMITS.pHPmax) {
+    notes.push(`Pressione HP limitata a ${LIMITS.pHPmax} bar (campo di validità del modello).`);
+    lv[0].p = LIMITS.pHPmax;
+  }
+  for (let k = 1; k < lv.length; k++) {
+    const pMax = lv[k - 1].p / 2;
+    if (lv[k].p > pMax) {
+      notes.push(`Pressione del livello ${k + 1} ridotta a ${pMax.toFixed(1)} bar: deve essere inferiore alla metà di quella del livello superiore.`);
+      lv[k].p = pMax;
+    }
+  }
+  for (const l of lv) {
+    l.p = Math.max(l.p, 1.5);
+    l.Tsh = Math.min(l.Tsh, LIMITS.TshMax);
+  }
+  cfg.steam.Trh = Math.min(cfg.steam.Trh, LIMITS.TshMax);
+  return notes;
+}
+
+/** Calcola i riferimenti di progetto (punto ISO a pieno carico). */
+function designPlant(cfg) {
+  const notes = sanitizeConfig(cfg);
+  const fuel = fuelProperties(cfg.fuelComp);
+  const gtD = { ...cfg.gt, fuel };
+  const gtRef = gtDesign(gtD);
+  const op = { ...defaultOperation(), ...ISO, load: 1, nGTon: cfg.nGT, Tcw: cfg.steam.condenser.TcwDesign, ductT: 0 };
+  const gtp = gtRef.point;
+  const gas = { m: gtp.mExh, x: gtp.xExh, T: gtp.T4 };
+  const bt = solveBottoming(cfg.steam, gas, { Tcw: op.Tcw, Tamb: op.Tamb }, { nHRSG: cfg.nGT, ref: null });
+  const stRef = {
+    pAdm: bt.pAdm,
+    pCond: bt.pCond,
+    Qcond: bt.Qcond,
+    mLevels: bt.mLevels,
+    sections: bt.sections.map((s) => ({ m: s.m, Tin: s.Tin })),
+    lpArea: bt.lpArea,
+  };
+  const mcw = (bt.Qcond * 1000) / (4.18 * cfg.steam.condenser.dTcw); // kg/s acqua di raffreddamento
+  return { fuel, gtD, gtRef, stRef, mcw, QcondD: bt.Qcond, notes, point: bt };
+}
+
+/** Calcola un punto di funzionamento dell'impianto. */
+function plantPoint(cfg, des, op) {
+  const amb = { T: op.Tamb, p: op.pamb, rh: op.rh };
+  const nOn = Math.max(0, Math.min(op.nGTon ?? cfg.nGT, cfg.nGT));
+  const fuel = des.fuel;
+  const warnings = [];
+
+  if (nOn === 0 || op.load <= 0) return offlinePoint(cfg, op);
+
+  const gt = gtAtLoad(des.gtD, des.gtRef, amb, op.load);
+
+  // Post-combustione nel condotto (per GVR)
+  let gas = { m: gt.mExh, x: gt.xExh, T: gt.T4 };
+  let mFuelDB = 0;
+  if (op.ductT && op.ductT > gt.T4 + 1) {
+    const db = fuelForTemperature({ m: gas.m, x: gas.x, T: gas.T }, fuel, op.ductT, { eta: 0.995, Tfuel: 25 });
+    if (db.prod.o2Deficit) warnings.push('Ossigeno insufficiente per la post-combustione richiesta.');
+    mFuelDB = db.mf;
+    gas = { m: db.prod.m, x: db.prod.x, T: op.ductT };
+  }
+
+  const bt = solveBottoming(cfg.steam, gas, { Tcw: op.Tcw, Tamb: op.Tamb }, {
+    nHRSG: nOn, ref: des.stRef, slidingHP: op.slidingHP,
+  });
+
+  // Ausiliari
+  const Pgt = gt.P * nOn;
+  const Pst = bt.Pst;
+  const gross = Pgt + Pst;
+  const cond = cfg.steam.condenser;
+  let Pcool;
+  if (cond.type === 'air') Pcool = cfg.aux.fanFrac * des.QcondD * Math.min(1.1, Math.max(0.4, bt.Qcond / des.QcondD));
+  else Pcool = (des.mcw * cfg.aux.cwHeadBar * 100) / 1000 / 0.85 / 1000; // MW, portata acqua costante
+  const Pmisc = cfg.aux.miscFrac * gross + cfg.aux.gtAuxMW * nOn;
+  const Paux = bt.Ppump + Pcool + Pmisc;
+  const Ptrafo = cfg.aux.trafoFrac * gross;
+  const net = gross - Paux - Ptrafo;
+
+  const QfuelGT = gt.Qfuel * nOn;
+  const QfuelDB = (mFuelDB * fuel.lhv) / 1000 * nOn;
+  const Qfuel = QfuelGT + QfuelDB;
+  const mFuelTot = (gt.mFuel + mFuelDB) * nOn;
+  const eta = net / Qfuel;
+  const co2 = mFuelTot * fuel.co2PerKg * 3.6; // t/h
+
+  // Bilancio energetico
+  const mStack = gas.m * nOn;
+  const stackLoss = (mStack * gasH(gas.x, bt.Tstack) - gt.mAir * nOn * gasH(gt.air, op.Tamb)) / 1000;
+  const otherLoss = Qfuel - gross - stackLoss - bt.Qcond;
+
+  // Economia: il prezzo del gas è riferito al PCS (convenzione dei mercati TTF/PSV)
+  const fuelCost = (op.gasPrice * fuel.hhvToLhv) / eta; // €/MWh el
+  const co2Spec = co2 / net; // t/MWh
+  const co2Cost = co2Spec * op.co2Price;
+  const margCost = fuelCost + co2Cost + op.omVar;
+  const spread = op.powerPrice - margCost; // €/MWh
+  const marginHour = spread * net; // €/h
+
+  // Controlli e avvisi
+  const lp = bt.sections[bt.sections.length - 1];
+  if (lp.xOut < 0.86) warnings.push(`Umidità allo scarico TV elevata (x = ${lp.xOut.toFixed(3)}).`);
+  if (bt.Tstack < cfg.steam.TstackMin + 0.5 && bt.TsubLP < bt.Tsat[bt.Tsat.length - 1] - cfg.steam.approach[cfg.steam.approach.length - 1] - 1)
+    warnings.push('Temperatura fumi al camino al minimo: preriscaldo del condensato limitato.');
+  if (gt.load < 0.4) warnings.push('Carico TG sotto il minimo tecnico ambientale tipico (~40%): emissioni di CO elevate.');
+  if (gt.mode === 'Limite generatore') warnings.push('Potenza TG limitata dalla capacità del generatore.');
+  if (bt.pCond >= 0.249) warnings.push('Pressione al condensatore oltre il limite di allarme (0,25 bar).');
+
+  const xO2dry = gas.x.O2 / (1 - gas.x.H2O);
+
+  return {
+    online: true,
+    op,
+    nOn,
+    gt,
+    gas,
+    mFuelDB: mFuelDB * nOn,
+    bt,
+    Pgt, Pst, gross, Paux, Ptrafo, net,
+    aux: { pumps: bt.Ppump, cooling: Pcool, misc: Pmisc },
+    Qfuel, QfuelGT, QfuelDB, mFuelTot,
+    eta, etaGross: gross / Qfuel, heatRate: 3600 / eta,
+    co2, co2Spec: co2Spec * 1000, // kg/MWh
+    stackO2dry: xO2dry * 100,
+    stackLoss, otherLoss,
+    econ: { fuelCost, co2Cost, om: op.omVar, margCost, spread, marginHour, cleanSpark: op.powerPrice - fuelCost - co2Cost },
+    warnings,
+    stackMolarMass: molarMass(gas.x),
+  };
+}
+
+function offlinePoint(cfg, op) {
+  return {
+    online: false, op, nOn: 0, Pgt: 0, Pst: 0, gross: 0, Paux: cfg.aux.gtAuxMW * 0.5, Ptrafo: 0,
+    net: -cfg.aux.gtAuxMW * 0.5, Qfuel: 0, eta: 0, warnings: [],
+  };
+}
+
+
+return { LEVEL_NAMES, GT_PRESETS, FUEL_PRESETS, ISO, LIMITS, defaultConfig, defaultOperation, sanitizeConfig, designPlant, plantPoint };
+})();
+
+__m['js/engine/dynamics.js'] = (() => {
+// Simulazione dinamica semplificata dell'impianto: sequenze di avviamento e
+// arresto, rampe di carico della TG, inerzia termica del GVR e della TV
+// (ritardi del primo ordine sulle grandezze del ciclo a vapore), blocco TG.
+//
+// Le grandezze di regime vengono fornite da una funzione esterna
+// steady(load) -> risultato di plantPoint, valutata al carico TG attuale.
+
+const STATES = {
+  FERMO: 'Fermo',
+  AVVIAMENTO: 'Avviamento',
+  IN_SERVIZIO: 'In servizio',
+  ARRESTO: 'Arresto',
+  BLOCCO: 'Blocco TG',
+};
+
+const SPEED_NOM = 3000; // giri/min
+const T_ACCEL = 600; // s: lavaggio, accensione e accelerazione fino al minimo a vuoto
+const T_IGNITION = 240; // s: accensione dopo il lavaggio
+const LOAD_HOLD = 0.25; // carico di riscaldamento del GVR
+const T_HOLD = 1200; // s: mantenimento al carico di riscaldamento prima del rullaggio TV
+const T_COAST = 900; // s: decelerazione fino al viraggio
+const TAU_HRSG = 240; // s: costante di tempo del ciclo a vapore
+const TAU_TRIP = 8; // s: chiusura valvole di arresto TV
+const FSNL_FUEL = 0.1; // frazione del combustibile di carico base a vuoto
+
+class PlantSim {
+  constructor() {
+    this.t = 0;
+    this.state = 'IN_SERVIZIO';
+    this.phase = 'Regolazione di carico';
+    this.phaseT = 0;
+    this.gtLoad = 1;
+    this.setpoint = 1;
+    this.rampPerMin = 8; // %/min del carico base
+    this.speed = SPEED_NOM;
+    this.stOnline = true;
+    this.lag = null;
+    this.events = [];
+  }
+
+  log(msg, level = 'info') {
+    this.events.unshift({ t: this.t, msg, level });
+    if (this.events.length > 200) this.events.pop();
+  }
+
+  start() {
+    if (this.state !== 'FERMO') return;
+    this.state = 'AVVIAMENTO';
+    this.phase = 'Lavaggio caldaia';
+    this.phaseT = 0;
+    this.stOnline = false;
+    this.log('Comando di avviamento TG');
+  }
+
+  stop() {
+    if (this.state !== 'IN_SERVIZIO' && this.state !== 'AVVIAMENTO') return;
+    if (this.gtLoad <= 0 && this.speed < SPEED_NOM) {
+      // arresto durante l'accelerazione: spegnimento diretto
+      this.state = 'ARRESTO';
+      this.phase = 'Decelerazione';
+      this.phaseT = 0;
+      this.log('Avviamento interrotto, spegnimento TG');
+      return;
+    }
+    this.state = 'ARRESTO';
+    this.phase = 'Riduzione di carico';
+    this.phaseT = 0;
+    this.log('Comando di arresto normale');
+  }
+
+  trip() {
+    if (this.state === 'FERMO' || this.state === 'BLOCCO') return;
+    this.state = 'BLOCCO';
+    this.phase = 'Decelerazione';
+    this.phaseT = 0;
+    this.gtLoad = 0;
+    this.stOnline = false;
+    this.log('BLOCCO TG: chiusura valvole combustibile, apertura interruttore di macchina', 'alarm');
+    this.log('Chiusura valvole di arresto TV, bypass vapore al condensatore', 'alarm');
+  }
+
+  reset() {
+    if (this.state === 'BLOCCO' && this.speed <= 0) {
+      this.state = 'FERMO';
+      this.phase = '';
+      this.log('Blocco riconosciuto, impianto pronto all\'avviamento');
+    }
+  }
+
+  // Avanza il carico TG verso un obiettivo con la rampa impostata.
+  rampTo(target, dt) {
+    const step = (this.rampPerMin / 100 / 60) * dt;
+    if (Math.abs(target - this.gtLoad) <= step) this.gtLoad = target;
+    else this.gtLoad += Math.sign(target - this.gtLoad) * step;
+  }
+
+  /**
+   * Avanza la simulazione di dt secondi.
+   * @param {number} dt passo [s]
+   * @param {(load:number)=>object} steady funzione di regime
+   */
+  step(dt, steady) {
+    this.t += dt;
+    this.phaseT += dt;
+    let gtOn = this.gtLoad > 0;
+    let fuelFrac = 0; // combustibile a vuoto (frazione del carico base)
+
+    switch (this.state) {
+      case 'FERMO':
+        this.gtLoad = 0;
+        this.speed = Math.max(0, this.speed - (SPEED_NOM / T_COAST) * dt);
+        break;
+      case 'AVVIAMENTO': {
+        if (this.speed < SPEED_NOM) {
+          this.speed = Math.min(SPEED_NOM, (this.phaseT / T_ACCEL) * SPEED_NOM);
+          if (this.phaseT >= T_IGNITION && this.phase === 'Lavaggio caldaia') {
+            this.phase = 'Accensione e accelerazione';
+            this.log('Accensione TG riuscita');
+          }
+          if (this.phaseT >= T_IGNITION) fuelFrac = FSNL_FUEL * (0.4 + 0.6 * (this.speed / SPEED_NOM));
+          if (this.speed >= SPEED_NOM) {
+            this.phase = 'Presa di carico';
+            this.phaseT = 0;
+            this.gtLoad = 0.03;
+            this.log('TG in parallelo con la rete');
+          }
+        } else if (this.phase === 'Presa di carico') {
+          this.rampTo(LOAD_HOLD, dt);
+          if (this.gtLoad >= LOAD_HOLD) {
+            this.phase = 'Riscaldamento GVR e linee vapore';
+            this.phaseT = 0;
+            this.log('Carico di riscaldamento raggiunto, vapore in bypass');
+          }
+        } else if (this.phase === 'Riscaldamento GVR e linee vapore') {
+          if (this.phaseT >= T_HOLD) {
+            this.stOnline = true;
+            this.phase = 'Rampa al carico richiesto';
+            this.log('TV rullata e in parallelo');
+          }
+        } else {
+          this.rampTo(this.setpoint, dt);
+          if (Math.abs(this.gtLoad - this.setpoint) < 1e-6) {
+            this.state = 'IN_SERVIZIO';
+            this.phase = 'Regolazione di carico';
+            this.log('Avviamento completato');
+          }
+        }
+        break;
+      }
+      case 'IN_SERVIZIO':
+        this.rampTo(this.setpoint, dt);
+        this.phase = Math.abs(this.gtLoad - this.setpoint) < 1e-6 ? 'Regolazione di carico' : 'Variazione di carico in rampa';
+        break;
+      case 'ARRESTO':
+        if (this.phase === 'Riduzione di carico') {
+          this.rampTo(LOAD_HOLD, dt);
+          if (this.gtLoad <= LOAD_HOLD + 1e-9) {
+            if (this.stOnline) this.log('TV fuori parallelo, vapore in bypass');
+            this.stOnline = false;
+            this.phase = 'Scarico TG';
+          }
+        } else if (this.phase === 'Scarico TG') {
+          this.rampTo(0, dt);
+          if (this.gtLoad <= 0) {
+            this.log('TG fuori parallelo, spegnimento fiamma');
+            this.phase = 'Decelerazione';
+            this.phaseT = 0;
+          }
+        } else {
+          this.gtLoad = 0;
+          this.speed = Math.max(0, this.speed - (SPEED_NOM / T_COAST) * dt);
+          if (this.speed <= 0) {
+            this.state = 'FERMO';
+            this.phase = '';
+            this.log('TG ferma, in viraggio');
+          }
+        }
+        break;
+      case 'BLOCCO':
+        this.gtLoad = 0;
+        this.speed = Math.max(0, this.speed - (SPEED_NOM / T_COAST) * dt);
+        if (this.speed <= 0) this.phase = 'In attesa di riconoscimento';
+        break;
+      default:
+        break;
+    }
+
+    gtOn = this.gtLoad > 0;
+    const ss = gtOn ? steady(this.gtLoad) : null;
+
+    // Valori obiettivo del ciclo a vapore
+    const target = ss && ss.online
+      ? {
+        Pst: this.stOnline ? ss.Pst : 0,
+        mSteam: ss.bt.mSteamTot,
+        Tstack: ss.bt.Tstack,
+        pHP: ss.bt.pAdm[0],
+        Qcond: ss.bt.Qcond,
+        frac: 1,
+      }
+      : { Pst: 0, mSteam: 0, Tstack: this.lag ? Math.max(30, this.lag.Tstack * 0.98) : 30, pHP: 0, Qcond: 0, frac: 0 };
+
+    if (!this.lag) this.lag = { ...target };
+    // fuori parallelo la potenza TV si annulla rapidamente (valvole di arresto)
+    const tauSt = this.stOnline ? TAU_HRSG : TAU_TRIP;
+    const a = 1 - Math.exp(-dt / tauSt);
+    const b = 1 - Math.exp(-dt / TAU_HRSG);
+    this.lag.Pst += (target.Pst - this.lag.Pst) * a;
+    for (const k of ['mSteam', 'Tstack', 'pHP', 'Qcond', 'frac']) this.lag[k] += (target[k] - this.lag[k]) * b;
+
+    return { ss, lag: { ...this.lag }, fuelFrac, gtOn };
+  }
+
+  snapshot() {
+    return {
+      t: this.t, state: this.state, stateLabel: STATES[this.state], phase: this.phase,
+      gtLoad: this.gtLoad, setpoint: this.setpoint, speed: this.speed, stOnline: this.stOnline,
+    };
+  }
+}
+
+/** Formatta un tempo di simulazione in g hh:mm:ss. */
+function formatSimTime(t) {
+  const s = Math.floor(t);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  const pad = (v) => String(v).padStart(2, '0');
+  return `${d > 0 ? `g${d} ` : ''}${pad(h)}:${pad(m)}:${pad(ss)}`;
+}
+
+return { STATES, PlantSim, formatSimTime };
+})();
+
+__m['js/ui/format.js'] = (() => {
+// Formattazione numerica con convenzioni italiane (virgola decimale, punto per le migliaia).
+
+const cache = new Map();
+
+function formatter(d) {
+  let f = cache.get(d);
+  if (!f) {
+    f = new Intl.NumberFormat('it-IT', { minimumFractionDigits: d, maximumFractionDigits: d });
+    cache.set(d, f);
+  }
+  return f;
+}
+
+function fmt(v, d = 1) {
+  if (v === null || v === undefined || !Number.isFinite(v)) return '—';
+  const out = formatter(d).format(v);
+  return out === '-0' || /^-0[,]0*$/.test(out) ? out.slice(1) : out;
+}
+
+function fmtSigned(v, d = 1) {
+  if (!Number.isFinite(v)) return '—';
+  return (v > 0 ? '+' : '') + fmt(v, d);
+}
+
+return { fmt, fmtSigned };
+})();
+
+__m['js/ui/charts.js'] = (() => {
+// Grafici su canvas senza dipendenze: assi con tacche "rotonde", griglia,
+// serie multiple, marcatori, legenda e lettura dei valori al passaggio del mouse.
+// I colori sono token CSS (es. '--hp'), risolti a ogni disegno per seguire il tema.
+
+const { fmt } = __m['js/ui/format.js'];
+
+const specs = new WeakMap();
+const hovers = new WeakMap();
+let observer = null;
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#888';
+}
+
+function color(c) {
+  return c && c.startsWith('--') ? cssVar(c) : c;
+}
+
+function niceStep(range, count) {
+  const raw = range / Math.max(count, 1);
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const f = raw / p;
+  const n = f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10;
+  return n * p;
+}
+
+function niceRange(min, max, count = 5) {
+  if (!(max > min)) { max = min + 1; min -= 1; }
+  const step = niceStep(max - min, count);
+  return { min: Math.floor(min / step + 1e-9) * step, max: Math.ceil(max / step - 1e-9) * step, step };
+}
+
+function decimalsFor(step) {
+  return Math.max(0, -Math.floor(Math.log10(step) + 1e-9));
+}
+
+/** Registra e disegna un grafico; viene ridisegnato a ogni ridimensionamento. */
+function drawChart(canvas, spec) {
+  specs.set(canvas, spec);
+  if (!observer && 'ResizeObserver' in window) {
+    observer = new ResizeObserver((entries) => {
+      for (const e of entries) {
+        const s = specs.get(e.target);
+        if (s) render(e.target, s);
+      }
+    });
+  }
+  if (observer && !canvas._observed) {
+    observer.observe(canvas);
+    canvas._observed = true;
+    canvas.addEventListener('pointermove', (ev) => {
+      const r = canvas.getBoundingClientRect();
+      hovers.set(canvas, { x: ev.clientX - r.left, y: ev.clientY - r.top });
+      render(canvas, specs.get(canvas));
+    });
+    canvas.addEventListener('pointerleave', () => {
+      hovers.delete(canvas);
+      render(canvas, specs.get(canvas));
+    });
+  }
+  render(canvas, spec);
+}
+
+/** Ridisegna tutti i grafici registrati (es. al cambio di tema). */
+function redrawAll(canvases) {
+  for (const c of canvases) {
+    const s = specs.get(c);
+    if (s) render(c, s);
+  }
+}
+
+function render(canvas, spec) {
+  if (!spec) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  if (w === 0 || h === 0) return;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const fg = cssVar('--fg');
+  const muted = cssVar('--muted');
+  const grid = cssVar('--line-soft');
+  const axis = cssVar('--line');
+  const fontData = cssVar('--font-data');
+  const fontDisp = cssVar('--font-display');
+
+  const series = spec.series.filter((s) => s.points && s.points.length);
+  let xs = [], ys = [];
+  for (const s of series) for (const [x, y] of s.points) { if (Number.isFinite(x) && Number.isFinite(y)) { xs.push(x); ys.push(y); } }
+  for (const m of spec.marks || []) { xs.push(m.x); ys.push(m.y); }
+  if (!xs.length) { xs = [0, 1]; ys = [0, 1]; }
+  const xr = niceRange(spec.xMin ?? Math.min(...xs), spec.xMax ?? Math.max(...xs), spec.xTicks || 6);
+  const yr = niceRange(spec.yMin ?? Math.min(...ys), spec.yMax ?? Math.max(...ys), spec.yTicks || 5);
+  if (spec.xMin !== undefined) xr.min = spec.xMin;
+  if (spec.xMax !== undefined) xr.max = spec.xMax;
+
+  const compact = w < 420;
+  const m = { l: compact ? 44 : 54, r: 14, t: 30, b: 38 };
+  const pw = w - m.l - m.r;
+  const ph = h - m.t - m.b;
+  const X = (x) => m.l + ((x - xr.min) / (xr.max - xr.min)) * pw;
+  const Y = (y) => m.t + ph - ((y - yr.min) / (yr.max - yr.min)) * ph;
+
+  // titolo
+  ctx.fillStyle = fg;
+  ctx.font = `600 13px ${fontDisp}`;
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+  if (spec.title) ctx.fillText(spec.title.toUpperCase(), m.l, 16);
+
+  // griglia e tacche
+  ctx.font = `10.5px ${fontData}`;
+  ctx.lineWidth = 1;
+  const yd = decimalsFor(yr.step);
+  for (let v = yr.min; v <= yr.max + yr.step * 1e-6; v += yr.step) {
+    const py = Math.round(Y(v)) + 0.5;
+    ctx.strokeStyle = grid;
+    ctx.beginPath(); ctx.moveTo(m.l, py); ctx.lineTo(m.l + pw, py); ctx.stroke();
+    ctx.fillStyle = muted;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(fmt(v, yd), m.l - 6, py);
+  }
+  const xStep = niceStep(xr.max - xr.min, compact ? 4 : spec.xTicks || 6);
+  const xd = decimalsFor(xStep);
+  for (let v = Math.ceil(xr.min / xStep - 1e-9) * xStep; v <= xr.max + xStep * 1e-6; v += xStep) {
+    const px = Math.round(X(v)) + 0.5;
+    ctx.strokeStyle = grid;
+    ctx.beginPath(); ctx.moveTo(px, m.t); ctx.lineTo(px, m.t + ph); ctx.stroke();
+    ctx.fillStyle = muted;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(fmt(v, xd), px, m.t + ph + 5);
+  }
+  ctx.strokeStyle = axis;
+  ctx.beginPath(); ctx.moveTo(m.l + 0.5, m.t); ctx.lineTo(m.l + 0.5, m.t + ph); ctx.lineTo(m.l + pw, m.t + ph + 0.5); ctx.stroke();
+
+  // etichette assi
+  ctx.fillStyle = muted;
+  ctx.font = `500 11px ${cssVar('--font-body')}`;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'alphabetic';
+  if (spec.xLabel) ctx.fillText(spec.xLabel, m.l + pw, h - 4);
+  if (spec.yLabel) {
+    ctx.save();
+    ctx.translate(11, m.t + ph / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillText(spec.yLabel, 0, 0);
+    ctx.restore();
+  }
+
+  // serie
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(m.l, m.t - 2, pw + 2, ph + 4);
+  ctx.clip();
+  for (const s of series) {
+    const c = color(s.color);
+    if (s.fill) {
+      ctx.globalAlpha = 0.12;
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      const base = Y(Math.min(Math.max(0, yr.min), yr.max));
+      ctx.moveTo(X(s.points[0][0]), base);
+      for (const [x, y] of s.points) ctx.lineTo(X(x), Y(y));
+      ctx.lineTo(X(s.points[s.points.length - 1][0]), base);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    ctx.strokeStyle = c;
+    ctx.lineWidth = s.width || 2;
+    ctx.setLineDash(s.dash || []);
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    let pen = false;
+    for (const [x, y] of s.points) {
+      if (!Number.isFinite(y)) { pen = false; continue; }
+      if (!pen) { ctx.moveTo(X(x), Y(y)); pen = true; } else ctx.lineTo(X(x), Y(y));
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (s.markers) {
+      ctx.fillStyle = c;
+      for (const [x, y] of s.points) { ctx.beginPath(); ctx.arc(X(x), Y(y), 2.6, 0, Math.PI * 2); ctx.fill(); }
+    }
+  }
+  // etichette in linea
+  ctx.font = `600 10.5px ${fontDisp}`;
+  for (const lb of spec.labels || []) {
+    ctx.fillStyle = color(lb.color || '--muted');
+    ctx.textAlign = lb.align || 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(lb.text, X(lb.x), Y(lb.y) - 4);
+  }
+  ctx.restore();
+
+  // marcatori evidenziati
+  for (const mk of spec.marks || []) {
+    const c = color(mk.color || '--accent');
+    ctx.fillStyle = cssVar('--surface');
+    ctx.strokeStyle = c;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(X(mk.x), Y(mk.y), 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (mk.label) {
+      ctx.fillStyle = fg;
+      ctx.font = `500 11px ${fontData}`;
+      ctx.textAlign = X(mk.x) > m.l + pw * 0.75 ? 'right' : 'left';
+      // sotto il punto se vicino al bordo superiore (dove sta la legenda)
+      const below = Y(mk.y) < m.t + 28;
+      ctx.textBaseline = below ? 'top' : 'bottom';
+      ctx.fillText(mk.label, X(mk.x) + (ctx.textAlign === 'right' ? -8 : 8), Y(mk.y) + (below ? 8 : -6));
+    }
+  }
+
+  // legenda
+  const leg = series.filter((s) => s.label);
+  if (leg.length && spec.legend !== false) {
+    ctx.font = `500 11px ${cssVar('--font-body')}`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    let lx = m.l + pw;
+    const ly = 15;
+    for (let i = leg.length - 1; i >= 0; i--) {
+      const s = leg[i];
+      const tw = ctx.measureText(s.label).width;
+      lx -= tw + 22;
+      if (lx < m.l + (spec.title ? ctx.measureText(spec.title).width + 60 : 0) && compact) break;
+      ctx.strokeStyle = color(s.color);
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash(s.dash || []);
+      ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + 14, ly); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = muted;
+      ctx.fillText(s.label, lx + 18, ly);
+      lx -= 8;
+    }
+  }
+
+  // lettura al passaggio del mouse
+  const hv = hovers.get(canvas);
+  if (hv && hv.x >= m.l && hv.x <= m.l + pw && hv.y >= m.t && hv.y <= m.t + ph) {
+    const xv = xr.min + ((hv.x - m.l) / pw) * (xr.max - xr.min);
+    ctx.strokeStyle = muted;
+    ctx.setLineDash([3, 3]);
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(Math.round(hv.x) + 0.5, m.t); ctx.lineTo(Math.round(hv.x) + 0.5, m.t + ph); ctx.stroke();
+    ctx.setLineDash([]);
+    const rows = [];
+    for (const s of series) {
+      if (s.noHover) continue;
+      const yv = interpAt(s.points, xv);
+      if (yv === null) continue;
+      rows.push({ c: color(s.color), t: `${s.label || ''} ${fmt(yv, spec.hoverDecimals ?? 1)}` });
+      ctx.fillStyle = color(s.color);
+      ctx.beginPath(); ctx.arc(X(xv), Y(yv), 3, 0, Math.PI * 2); ctx.fill();
+    }
+    if (rows.length) {
+      ctx.font = `11px ${fontData}`;
+      const head = `${spec.xHover || ''}${fmt(xv, spec.xHoverDecimals ?? xd)}${spec.xUnit ? ' ' + spec.xUnit : ''}`;
+      const bw = Math.max(ctx.measureText(head).width, ...rows.map((r) => ctx.measureText(r.t).width)) + 26;
+      const bh = 18 + rows.length * 15;
+      let bx = hv.x + 12;
+      if (bx + bw > w - 4) bx = hv.x - 12 - bw;
+      const by = Math.max(m.t, Math.min(hv.y - bh / 2, m.t + ph - bh));
+      ctx.fillStyle = cssVar('--surface-2');
+      ctx.strokeStyle = axis;
+      ctx.beginPath(); ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.stroke();
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = muted;
+      ctx.fillText(head, bx + 8, by + 10);
+      rows.forEach((r, i) => {
+        ctx.fillStyle = r.c;
+        ctx.fillRect(bx + 8, by + 21 + i * 15, 8, 8);
+        ctx.fillStyle = fg;
+        ctx.fillText(r.t, bx + 20, by + 25 + i * 15);
+      });
+    }
+  }
+}
+
+// Interpolazione lineare su una serie ordinata o meno in x (prende il primo tratto che contiene x).
+function interpAt(pts, x) {
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1];
+    const [x1, y1] = pts[i];
+    if ((x >= x0 && x <= x1) || (x >= x1 && x <= x0)) {
+      if (x1 === x0) return y1;
+      return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
+    }
+  }
+  return null;
+}
+
+/** Piccolo grafico di tendenza per le tessere KPI. */
+function sparkline(canvas, values, colorVar = '--accent') {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return;
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  if (values.length < 2) return;
+  let min = Math.min(...values), max = Math.max(...values);
+  if (max - min < 1) { max += 0.5; min -= 0.5; }
+  const X = (i) => (i / (values.length - 1)) * (w - 4) + 1;
+  const Y = (v) => h - 3 - ((v - min) / (max - min)) * (h - 6);
+  const c = cssVar(colorVar);
+  ctx.beginPath();
+  values.forEach((v, i) => (i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v))));
+  ctx.strokeStyle = c;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.lineTo(X(values.length - 1), h);
+  ctx.lineTo(X(0), h);
+  ctx.closePath();
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = c;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.beginPath();
+  ctx.arc(X(values.length - 1), Y(values[values.length - 1]), 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = c;
+  ctx.fill();
+}
+
+return { cssVar, niceRange, drawChart, redrawAll, sparkline };
+})();
+
+__m['js/ui/mimic.js'] = (() => {
+// Sinottico SVG dell'impianto: turbina a gas, GVR con banchi e corpi cilindrici,
+// turbina a vapore, condensatore e tubazioni principali con flusso animato.
+// Lo schema si ricostruisce quando cambia la struttura (tipo di GVR, banchi);
+// i valori si aggiornano a ogni passo.
+
+const { fmt } = __m['js/ui/format.js'];
+
+const NS = 'http://www.w3.org/2000/svg';
+
+function el(tag, attrs = {}, parent = null, text = null) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v !== undefined && v !== null) e.setAttribute(k, v);
+  if (text !== null) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+const LEVEL_CLASS = { HP: 'hp', IP: 'ip', LP: 'lp' };
+
+// Colonne del GVR dal lato fumi: banchi in parallelo con la stessa sezione fumi sono raggruppati.
+function bankColumns(banks) {
+  const cols = [];
+  for (const b of banks) {
+    const last = cols[cols.length - 1];
+    if (b.parallel && last && last.parallel && Math.abs(last.TgIn - b.TgIn) < 1e-6) last.banks.push(b);
+    else cols.push({ parallel: !!b.parallel, TgIn: b.TgIn, TgOut: b.TgOut, banks: [b] });
+  }
+  return cols;
+}
+
+function bankKind(name) {
+  if (name.startsWith('SH')) return 'sh';
+  if (name.startsWith('RH')) return 'rh';
+  if (name.startsWith('EVA')) return 'eva';
+  if (name.startsWith('ECO')) return 'eco';
+  return 'pre';
+}
+function bankLevel(name) {
+  const m = name.match(/\b(HP|IP|LP)\b/);
+  return m ? m[1] : null;
+}
+
+function mimicSignature(cfg, r) {
+  const cols = r && r.bt ? bankColumns(r.bt.banks).map((c) => c.banks.map((b) => b.name).join('+')).join('|') : 'none';
+  return `${cfg.steam.type}/${cfg.nGT}/${cfg.steam.condenser.type}/${cols}`;
+}
+
+/**
+ * Costruisce lo schema. `r` è un risultato di regime usato per la struttura dei banchi.
+ * Restituisce i riferimenti agli elementi da aggiornare.
+ */
+function buildMimic(svg, cfg, r) {
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  const ref = { flows: [], text: {}, cols: [], tempLabels: [] };
+  const g = el('g', {}, svg);
+  const type = cfg.steam.type;
+  const names = { '3PRH': ['HP', 'IP', 'LP'], '2P': ['HP', 'LP'], '1P': ['HP'] }[type];
+
+  const T = (key, x, y, cls = 'val', anchor = 'start', initial = '—') => {
+    const t = el('text', { x, y, class: cls, 'text-anchor': anchor }, g, initial);
+    ref.text[key] = t;
+    return t;
+  };
+  const pipe = (d, cls, key) => {
+    el('path', { d, class: 'pipe-bg' }, g);
+    el('path', { d, class: `pipe ${cls}` }, g);
+    const f = el('path', { d, class: 'flow' }, g);
+    ref.flows.push({ key, el: f });
+  };
+
+  // ------------------------------------------------------------ Turbina a gas
+  el('text', { x: 30, y: 24, class: 'lbl' }, g, cfg.nGT > 1 ? `Turbogas ×${cfg.nGT}` : 'Turbogas');
+  el('rect', { x: 112, y: 34, width: 76, height: 34, rx: 3, class: 'casing' }, g);
+  for (let i = 0; i < 6; i++) el('line', { x1: 120 + i * 12, y1: 40, x2: 120 + i * 12, y2: 62, class: 'tube s-air' }, g);
+  el('text', { x: 106, y: 55, class: 'lbl-sm', 'text-anchor': 'end' }, g, 'FILTRI ARIA');
+  pipe('M150 68 V100', 's-air', 'air');
+  el('rect', { x: 128, y: 100, width: 42, height: 100, rx: 3, class: 'casing' }, g);
+  el('line', { x1: 92, y1: 150, x2: 452, y2: 150, class: 'shaft' }, g);
+  ref.g1 = el('circle', { cx: 62, cy: 150, r: 30, class: 'gen' }, g);
+  el('text', { x: 62, y: 155, class: 'lbl', 'text-anchor': 'middle' }, g, 'G');
+  el('polygon', { points: '170,100 280,125 280,175 170,200', class: 'equip' }, g);
+  el('text', { x: 222, y: 155, class: 'lbl', 'text-anchor': 'middle' }, g, 'C');
+  el('rect', { x: 288, y: 64, width: 44, height: 46, rx: 4, class: 'equip-hot' }, g);
+  ref.flame = el('path', { d: 'M310 104 C298 94 304 84 306 76 C309 84 314 82 313 72 C322 84 324 96 310 104 Z', class: 'flame' }, g);
+  pipe('M280 128 L296 110', 's-air', 'air');
+  pipe('M324 110 L340 128', 's-gas', 'gas');
+  pipe('M310 20 V64', 's-fuel', 'fuel');
+  el('text', { x: 318, y: 26, class: 'lbl-sm' }, g, 'GAS NATURALE');
+  T('fuel', 318, 40);
+  el('polygon', { points: '340,125 450,100 450,200 340,175', class: 'equip-hot' }, g);
+  el('text', { x: 398, y: 155, class: 'lbl', 'text-anchor': 'middle' }, g, 'T');
+  el('polygon', { points: '450,100 505,84 540,84 540,216 505,216 450,200', class: 'duct' }, g);
+  ref.dbFlame = el('path', { d: 'M522 170 C512 160 516 150 518 142 C521 150 526 148 525 138 C534 150 536 162 522 170 Z', class: 'flame off' }, g);
+  ref.dbText = T('db', 500, 244, 'val-muted', 'middle', '');
+
+  T('air', 30, 258, 'val');
+  T('comp', 225, 222, 'val', 'middle');
+  T('comp2', 225, 236, 'val-muted', 'middle');
+  T('turb', 395, 222, 'val', 'middle');
+  T('turb2', 395, 236, 'val-muted', 'middle');
+  T('gtP', 62, 204, 'val-lg', 'middle');
+  T('gtRpm', 62, 219, 'val-muted', 'middle');
+  T('gtMode', 30, 273, 'val-muted');
+
+  // ------------------------------------------------------------- GVR
+  const hx0 = 540, hx1 = 1000, hy0 = 84, hy1 = 216;
+  el('rect', { x: hx0, y: hy0, width: hx1 - hx0, height: hy1 - hy0, class: 'duct' }, g);
+  el('text', { x: hx0, y: 24, class: 'lbl' }, g, cfg.nGT > 1 ? `GVR ×${cfg.nGT}` : 'GVR');
+  const cols = r && r.bt ? bankColumns(r.bt.banks) : [];
+  const nCols = Math.max(cols.length, 1);
+  const cx0 = hx0 + 14, cx1 = hx1 - 8;
+  const cw = (cx1 - cx0) / nCols;
+  const colX = [];
+  cols.forEach((col, i) => {
+    const x = cx0 + i * cw + 3;
+    const w = cw - 6;
+    colX.push(x + w / 2);
+    const nb = col.banks.length;
+    col.banks.forEach((b, j) => {
+      const bx = x + (j * w) / nb;
+      const bw = w / nb;
+      const kind = bankKind(b.name);
+      const lvl = bankLevel(b.name);
+      const sc = kind === 'eco' || kind === 'pre' ? 'water' : kind === 'rh' ? 'ip' : LEVEL_CLASS[lvl] || 'water';
+      el('rect', { x: bx + 1, y: hy0 + 8, width: bw - 2, height: hy1 - hy0 - 24, class: 'bank' }, g);
+      const nt = Math.max(2, Math.floor((bw - 4) / 5));
+      for (let k = 0; k < nt; k++) {
+        const tx = bx + 3 + ((bw - 6) * (k + 0.5)) / nt;
+        el('line', { x1: tx, y1: hy0 + 12, x2: tx, y2: hy1 - 20, class: `tube s-${sc}` }, g);
+      }
+      const [k1, k2] = b.name.replace(' (condensato)', '').split(' ');
+      const lx = bx + bw / 2;
+      const fs = nb > 1 || cw < 46 ? 9.5 : 10.5;
+      el('text', { x: lx, y: hy0 - 2 - (k2 ? 10 : 0), class: 'lbl-sm', 'text-anchor': 'middle', 'font-size': fs }, g, k1);
+      if (k2) el('text', { x: lx, y: hy0 - 2, class: 'lbl-sm', 'text-anchor': 'middle', 'font-size': fs }, g, k2);
+      // per i banchi in parallelo si mostra la potenza complessiva della colonna
+      if (j === 0) ref.cols.push({ name: b.name, idx: i, t: el('text', { x: x + w / 2, y: hy1 - 4, class: 'val-muted', 'text-anchor': 'middle', 'font-size': 9.5 }, g, '') });
+      b._cx = lx;
+    });
+  });
+  // temperature fumi ai confini tra colonne
+  for (let i = 0; i <= cols.length; i++) {
+    const x = i === 0 ? hx0 + 8 : i === cols.length ? hx1 - 2 : cx0 + i * cw;
+    ref.tempLabels.push(el('text', { x, y: hy1 + 14, class: 'val-muted', 'text-anchor': 'middle', 'font-size': 10 }, g, ''));
+  }
+  el('text', { x: hx1 + 52, y: hy1 + 14, class: 'lbl-sm' }, g, '← FUMI [°C]');
+  el('text', { x: hx1 + 52, y: hy1 - 4, class: 'lbl-sm' }, g, '← BANCHI [MW]');
+
+  // posizione dei banchi per nome (prima occorrenza)
+  const posOf = (name) => {
+    for (const col of cols) for (const b of col.banks) if (b.name === name) return b._cx;
+    return null;
+  };
+
+  // corpi cilindrici sopra gli evaporatori
+  ref.drums = [];
+  names.forEach((lv) => {
+    const x = posOf(`EVA ${lv}`);
+    if (x === null) return;
+    el('line', { x1: x - 30, y1: 46, x2: x - 30, y2: hy0 - 22, class: `tube s-${LEVEL_CLASS[lv]}` }, g);
+    el('line', { x1: x + 30, y1: 46, x2: x + 30, y2: hy0 - 22, class: `tube s-${LEVEL_CLASS[lv]}` }, g);
+    el('rect', { x: x - 26, y: 36, width: 52, height: 18, rx: 9, class: 'casing' }, g);
+    el('rect', { x: x - 22, y: 46, width: 44, height: 5, rx: 2.5, class: `f-${LEVEL_CLASS[lv]}`, opacity: 0.55 }, g);
+    el('text', { x, y: 49, class: 'lbl-sm', 'text-anchor': 'middle', 'font-size': 10 }, g, lv);
+    ref.drums.push({ lv, t: el('text', { x, y: 29, class: 'val', 'text-anchor': 'middle' }, g, '—') });
+  });
+
+  // camino
+  el('rect', { x: hx1, y: 14, width: 42, height: hy1 - 14, class: 'casing' }, g);
+  ref.smoke = [0, 1, 2].map((i) => el('circle', { cx: hx1 + 21 + (i - 1) * 6, cy: 6 - i * 3, r: 5 + i * 2, class: 'smoke' }, g));
+  el('text', { x: hx1 + 52, y: 34, class: 'lbl-sm' }, g, 'CAMINO');
+  T('stackT', hx1 + 52, 50, 'val-lg');
+  T('stackO2', hx1 + 52, 65, 'val-muted');
+  T('stackCO2', hx1 + 52, 79, 'val-muted');
+
+  // ------------------------------------------------------------- Turbina a vapore
+  const n = names.length;
+  const secs = [];
+  if (n === 3) secs.push({ kind: 'HP', x0: 560, x1: 632 }, { kind: 'IP', x0: 650, x1: 722 }, { kind: 'LP', x0: 742, x1: 862 });
+  if (n === 2) secs.push({ kind: 'HP', x0: 600, x1: 684 }, { kind: 'LP', x0: 742, x1: 862 });
+  if (n === 1) secs.push({ kind: 'LP', x0: 742, x1: 862, label: 'TV' });
+  const shY = 440;
+  el('line', { x1: secs[0].x0 - 12, y1: shY, x2: 877, y2: shY, class: 'shaft' }, g);
+  ref.g2 = el('circle', { cx: 905, cy: shY, r: 28, class: 'gen' }, g);
+  el('text', { x: 905, y: shY + 5, class: 'lbl', 'text-anchor': 'middle' }, g, 'G');
+  T('stP', 905, shY - 40, 'val-lg', 'middle');
+  T('stState', 905, shY - 54, 'val-muted', 'middle');
+  el('text', { x: 548, y: 530, class: 'lbl' }, g, 'Turbina a vapore');
+  ref.secText = [];
+  secs.forEach((s, i) => {
+    let pts;
+    if (s.kind === 'LP') {
+      const xm = (s.x0 + s.x1) / 2;
+      pts = `${s.x0},386 ${xm - 12},420 ${xm + 12},420 ${s.x1},386 ${s.x1},494 ${xm + 12},460 ${xm - 12},460 ${s.x0},494`;
+      s.inX = xm;
+      s.inY = 420;
+    } else {
+      pts = `${s.x0},420 ${s.x1},404 ${s.x1},476 ${s.x0},460`;
+      s.inX = s.x0 + 10;
+      s.inY = 418;
+      s.outX = s.x1 - 10;
+      s.outY = 406;
+    }
+    el('polygon', { points: pts, class: 'equip' }, g);
+    el('text', { x: (s.x0 + s.x1) / 2, y: shY + 4, class: 'lbl-sm', 'text-anchor': 'middle', fill: 'var(--fg)' }, g, s.label || s.kind);
+    const ty = s.kind === 'LP' ? 508 : 494;
+    const tx = s.kind === 'LP' ? (s.x0 + s.x1) / 2 + 18 : (s.x0 + s.x1) / 2;
+    ref.secText.push(el('text', { x: tx, y: ty, class: 'val', 'text-anchor': s.kind === 'LP' ? 'start' : 'middle' }, g, '—'));
+  });
+
+  // condensatore
+  const lp = secs[secs.length - 1];
+  const lpm = (lp.x0 + lp.x1) / 2;
+  el('rect', { x: lpm - 14, y: 494, width: 28, height: 26, class: 'casing' }, g);
+  el('rect', { x: lp.x0, y: 520, width: lp.x1 - lp.x0, height: 52, rx: 4, class: 'casing' }, g);
+  for (let i = 0; i < 5; i++) el('line', { x1: lp.x0 + 10, y1: 530 + i * 8, x2: lp.x1 - 10, y2: 530 + i * 8, class: 'tube s-water', opacity: 0.6 }, g);
+  el('text', { x: lpm, y: 589, class: 'lbl-sm', 'text-anchor': 'middle' }, g, cfg.steam.condenser.type === 'air' ? 'AEROCONDENSATORE' : 'CONDENSATORE');
+  T('cond', lp.x0 - 6, 548, 'val', 'end');
+  T('cond2', lp.x0 - 6, 562, 'val-muted', 'end');
+  if (cfg.steam.condenser.type === 'water') {
+    pipe(`M${lp.x1} 532 H${lp.x1 + 40}`, 's-water', 'cw');
+    pipe(`M${lp.x1 + 40} 560 H${lp.x1}`, 's-water', 'cw');
+    T('cw', lp.x1 + 44, 550, 'val-muted', 'start', '');
+  } else {
+    el('polygon', { points: `${lp.x1 + 20},572 ${lp.x1 + 45},528 ${lp.x1 + 70},572`, class: 'casing' }, g);
+    el('circle', { cx: lp.x1 + 45, cy: 522, r: 7, class: 'casing' }, g);
+    T('cw', lp.x1 + 45, 508, 'val-muted', 'middle', '');
+  }
+
+  // ------------------------------------------------------------- Tubazioni vapore
+  const yHP = 262, yHRH = 282, yCRH = 302, yLP = 330, yX = 364;
+  const by = hy1;
+  const shHP = posOf('SH HP') ?? posOf('EVA HP');
+  const hpSec = secs[0];
+  if (n === 1) {
+    pipe(`M${shHP} ${by} V${yHP} H${lp.inX} V${lp.inY}`, 's-hp', 'hp');
+  } else {
+    pipe(`M${shHP} ${by} V${yHP} H${hpSec.inX} V${hpSec.inY}`, 's-hp', 'hp');
+  }
+  if (type === '3PRH') {
+    const rh = posOf('RH');
+    const shIP = posOf('SH IP');
+    const ipSec = secs[1];
+    pipe(`M${hpSec.outX} ${hpSec.outY} V${yCRH} H${rh} V${by}`, 's-ip', 'crh');
+    pipe(`M${rh + 6} ${by} V${yHRH} H${ipSec.inX} V${ipSec.inY}`, 's-hp', 'hrh');
+    if (shIP !== null) {
+      pipe(`M${shIP} ${by} V${yCRH}`, 's-ip', 'ip');
+      el('circle', { cx: shIP, cy: yCRH, r: 3.5, class: 'f-ip' }, g);
+    }
+    pipe(`M${ipSec.outX} ${ipSec.outY} V${yX} H${lp.inX} V${lp.inY}`, 's-ip', 'xo');
+  } else if (n === 2) {
+    pipe(`M${hpSec.outX} ${hpSec.outY} V${yX} H${lp.inX} V${lp.inY}`, 's-ip', 'xo');
+  }
+  if (n >= 2) {
+    const shLP = posOf('SH LP') ?? posOf('EVA LP');
+    pipe(`M${shLP} ${by} V${yLP} H${lp.inX + 14} V${yX}`, 's-lp', 'lp');
+    el('circle', { cx: lp.inX + 14, cy: yX, r: 3.5, class: 'f-lp' }, g);
+  }
+  // condensato: pompa e ritorno al preriscaldatore
+  const pre = posOf('PRE (condensato)') ?? (hx1 - 20);
+  const pumpX = Math.max(pre, 975);
+  pipe(`M${lp.x1 - 20} 572 V580 H${pumpX} V${by}`, 's-water', 'cond');
+  el('circle', { cx: pumpX, cy: 470, r: 9, class: 'casing' }, g);
+  el('path', { d: `M${pumpX - 4} 474 L${pumpX} 465 L${pumpX + 4} 474 Z`, class: 'f-water' }, g);
+  if (pumpX !== pre) el('path', { d: `M${pumpX} ${by + 0.5} H${pre}`, class: 'pipe s-water' }, g);
+
+  // ------------------------------------------------------------- tabella correnti nel sinottico
+  const tx = 30, ty = 318;
+  el('text', { x: tx, y: ty - 12, class: 'lbl' }, g, 'Correnti vapore');
+  const heads = [['p bar', 300], ['T °C', 370], ['m kg/s', 450]];
+  for (const [h, x] of heads) el('text', { x, y: ty - 12, class: 'lbl-sm', 'text-anchor': 'end' }, g, h);
+  ref.rows = [];
+  const rowsDef = streamRowsDef(type);
+  rowsDef.forEach((rw, i) => {
+    const y = ty + 8 + i * 19;
+    el('line', { x1: tx, y1: y - 4, x2: tx + 16, y2: y - 4, class: `pipe s-${rw.cls}`, 'stroke-width': 3 }, g);
+    el('text', { x: tx + 24, y, class: 'val', 'font-family': 'var(--font-body)', 'font-size': 12 }, g, rw.label);
+    ref.rows.push({
+      key: rw.key,
+      p: el('text', { x: 300, y, class: 'val', 'text-anchor': 'end' }, g, '—'),
+      T: el('text', { x: 370, y, class: 'val', 'text-anchor': 'end' }, g, '—'),
+      m: el('text', { x: 450, y, class: 'val', 'text-anchor': 'end' }, g, '—'),
+    });
+  });
+
+  ref.type = type;
+  return ref;
+}
+
+function streamRowsDef(type) {
+  const rows = [{ key: 'hp', label: 'Vapore HP', cls: 'hp' }];
+  if (type === '3PRH') {
+    rows.push({ key: 'crh', label: 'Risurriscaldato freddo', cls: 'ip' });
+    rows.push({ key: 'ip', label: 'Vapore IP', cls: 'ip' });
+    rows.push({ key: 'hrh', label: 'Risurriscaldato caldo', cls: 'hp' });
+  }
+  if (type !== '1P') rows.push({ key: 'lp', label: 'Vapore LP', cls: 'lp' });
+  rows.push({ key: 'exh', label: 'Scarico TV', cls: 'lp' });
+  rows.push({ key: 'cond', label: 'Condensato', cls: 'water' });
+  return rows;
+}
+
+/** Valori delle correnti vapore principali (totali d'impianto). */
+function steamStreams(r) {
+  const b = r.bt;
+  const out = {};
+  const s0 = b.sections[0];
+  out.hp = { p: s0.pIn, T: s0.Tin, m: s0.m };
+  if (b.type === '3PRH') {
+    out.crh = { p: b.pAdm[1], T: s0.Tout, m: s0.m };
+    out.ip = { p: b.pAdm[1], T: b.Tsh[1], m: b.mLevelsTot[1] };
+    out.hrh = { p: b.pRHout, T: b.Trh, m: b.sections[1].m };
+  }
+  if (b.type !== '1P') {
+    const k = b.Tsh.length - 1;
+    out.lp = { p: b.pAdm[k], T: b.Tsh[k], m: b.mLevelsTot[k] };
+  }
+  const last = b.sections[b.sections.length - 1];
+  out.exh = { p: b.pCond, T: last.Tout, m: last.m, x: last.xOut };
+  out.cond = { p: b.pCond, T: b.Tcond, m: last.m };
+  return out;
+}
+
+/** Aggiorna i valori dello schema. `v` è la vista composta dall'app. */
+function updateMimic(ref, v) {
+  const t = ref.text;
+  const set = (k, s) => { if (t[k] && t[k].textContent !== s) t[k].textContent = s; };
+  const r = v.ss;
+  const on = !!(r && r.online);
+  const gt = on ? r.gt : null;
+
+  set('gtP', `${fmt(v.Pgt, 1)} MW`);
+  set('gtRpm', `${fmt(v.speed, 0)} giri/min`);
+  set('gtMode', on ? `Regolazione TG: ${gt.mode} · IGV ${fmt(gt.igv * 100, 0)} %` : v.stateLabel);
+  ref.g1.classList.toggle('gen-on', v.Pgt > 0.1);
+  ref.flame.classList.toggle('off', !(on || v.fuelFrac > 0));
+  if (on) {
+    set('air', `${fmt(gt.mAir * v.nOn, 0)} kg/s · ${fmt(gt.T1, 1)} °C`);
+    set('fuel', `${fmt(gt.mFuel * v.nOn, 2)} kg/s`);
+    set('comp', `β ${fmt(gt.PR, 1)} · ${fmt(gt.T2, 0)} °C`);
+    set('comp2', `${fmt(gt.Wc, 0)} MW assorbiti`);
+    set('turb', `${fmt(gt.TIT, 0)} → ${fmt(gt.T4, 1)} °C`);
+    set('turb2', `${fmt(gt.mExh * v.nOn, 0)} kg/s fumi`);
+  } else {
+    for (const k of ['air', 'fuel', 'comp', 'comp2', 'turb', 'turb2']) set(k, '—');
+  }
+  const db = on && r.mFuelDB > 0;
+  ref.dbFlame.classList.toggle('off', !db);
+  set('db', db ? `post-comb. ${fmt(r.gas.T, 0)} °C` : '');
+
+  // GVR
+  if (on) {
+    const cols = bankColumns(r.bt.banks);
+    for (const c of ref.cols) {
+      const col = cols[c.idx];
+      c.t.textContent = col ? fmt(col.banks.reduce((a, b) => a + b.Q, 0), 1) : '';
+    }
+    ref.tempLabels.forEach((lab, i) => {
+      const T = i < cols.length ? cols[i].TgIn : cols.length ? cols[cols.length - 1].TgOut : null;
+      lab.textContent = T !== null && i <= cols.length ? fmt(T, 0) : '';
+    });
+    for (const d of ref.drums) {
+      const k = r.bt.names.indexOf(d.lv);
+      d.t.textContent = `${fmt(r.bt.pDrum[k], 1)} bar`;
+    }
+  } else {
+    for (const c of ref.cols) c.t.textContent = '';
+    for (const lab of ref.tempLabels) lab.textContent = '';
+    for (const d of ref.drums) d.t.textContent = '—';
+  }
+  set('stackT', on || v.Tstack > 35 ? `${fmt(v.Tstack, 1)} °C` : '—');
+  set('stackO2', on ? `O₂ ${fmt(r.stackO2dry, 1)} % secco` : '');
+  set('stackCO2', on ? `CO₂ ${fmt(r.co2, 1)} t/h` : '');
+  ref.smoke.forEach((s) => s.setAttribute('opacity', on ? '1' : '0'));
+
+  // TV
+  set('stP', `${fmt(v.Pst, 1)} MW`);
+  set('stState', v.stOnline ? 'TV in parallelo' : on ? 'Vapore in bypass' : 'TV ferma');
+  ref.g2.classList.toggle('gen-on', v.Pst > 0.1);
+  if (on) {
+    // potenza elettrica per sezione, ripartita sulla potenza TV attuale
+    const sumW = r.bt.sections.reduce((a, q) => a + q.W, 0);
+    r.bt.sections.forEach((s, i) => {
+      if (ref.secText[i]) ref.secText[i].textContent = `${fmt(sumW > 0 ? (s.W / sumW) * v.Pst : 0, 1)} MW`;
+    });
+    set('cond', `${fmt(r.bt.pCond * 1000, 0)} mbar · ${fmt(r.bt.Tcond, 1)} °C`);
+    set('cond2', `${fmt(r.bt.Qcond, 0)} MW scaricati`);
+    const c = r.op;
+    set('cw', v.condType === 'air' ? `aria ${fmt(c.Tamb, 1)} °C` : `${fmt(c.Tcw, 1)} °C`);
+    const st = steamStreams(r);
+    for (const row of ref.rows) {
+      const s = st[row.key];
+      if (!s) continue;
+      row.p.textContent = s.p < 1 ? fmt(s.p, 3) : fmt(s.p, 1);
+      row.T.textContent = fmt(s.T, 1);
+      row.m.textContent = fmt(s.m, 1);
+    }
+  } else {
+    for (const s of ref.secText) s.textContent = '—';
+    set('cond', '—');
+    set('cond2', '');
+    set('cw', '');
+    for (const row of ref.rows) { row.p.textContent = '—'; row.T.textContent = '—'; row.m.textContent = '—'; }
+  }
+
+  // flussi animati: velocità proporzionale alla portata
+  const flowOf = {
+    air: on ? 1 : v.speed / 3000 * 0.3,
+    gas: on ? 1 : v.fuelFrac > 0 ? 0.3 : 0,
+    fuel: on || v.fuelFrac > 0 ? 1 : 0,
+    hp: on ? r.bt.mLevelsTot[0] / Math.max(v.ref.hp, 1) : 0,
+    crh: on && v.stOnline ? 1 : 0,
+    hrh: on && v.stOnline ? 1 : 0,
+    ip: on && r.bt.mLevelsTot[1] > 0.5 ? 0.8 : 0,
+    lp: on && r.bt.mLevelsTot[r.bt.mLevelsTot.length - 1] > 0.5 ? 0.8 : 0,
+    xo: on && v.stOnline ? 1 : 0,
+    cond: on ? 0.8 : 0,
+    cw: 1,
+  };
+  for (const f of ref.flows) {
+    const q = flowOf[f.key] ?? 0;
+    const off = !(q > 0.02);
+    f.el.classList.toggle('off', off);
+    if (!off) {
+      const dur = Math.max(0.35, Math.min(4, 1 / q)).toFixed(2) + 's';
+      if (f.el.style.animationDuration !== dur) f.el.style.animationDuration = dur;
+    }
+  }
+}
+
+return { bankColumns, mimicSignature, buildMimic, steamStreams, updateMimic };
+})();
+
+__m['js/ui/views.js'] = (() => {
+// Viste di analisi: diagramma T-Q del GVR, diagramma T-s del ciclo a vapore,
+// curve di prestazione, trend, tabelle delle correnti e bilancio energetico.
+
+const { drawChart } = __m['js/ui/charts.js'];
+const { fmt } = __m['js/ui/format.js'];
+const { bankColumns, steamStreams } = __m['js/ui/mimic.js'];
+const { satP, psat, propsPT, propsPH, hPS, P_MAX_BAR } = __m['js/engine/steam.js'];
+const { plantPoint } = __m['js/engine/plant.js'];
+
+const LEVEL_COLOR = { HP: '--hp', IP: '--ip', LP: '--lp' };
+const LEGEND_NAME = { '--hp': 'HP', '--ip': 'IP / RH', '--lp': 'LP', '--water': 'Condensato' };
+
+function bankColor(name) {
+  if (name.startsWith('RH')) return '--ip';
+  if (name.startsWith('PRE')) return '--water';
+  const m = name.match(/\b(HP|IP|LP)\b/);
+  return m ? LEVEL_COLOR[m[1]] : '--water';
+}
+
+// ------------------------------------------------------------------ T-Q
+function renderTQ(canvas, table, r) {
+  if (!r || !r.online) {
+    drawChart(canvas, { title: 'GVR fuori servizio', series: [], xLabel: 'Calore scambiato [MW]', yLabel: 'Temperatura [°C]' });
+    table.innerHTML = '';
+    return;
+  }
+  const cols = bankColumns(r.bt.banks);
+  const Qtot = cols.reduce((a, c) => a + c.banks.reduce((s, b) => s + b.Q, 0), 0);
+  let x = Qtot;
+  const gas = [[x, cols[0].TgIn]];
+  const series = [];
+  const labels = [];
+  const pinchMarks = [];
+  const legendSeen = new Set();
+  for (const c of cols) {
+    const q = c.banks.reduce((s, b) => s + b.Q, 0);
+    const xHot = x;
+    const xCold = x - q;
+    gas.push([xCold, c.TgOut]);
+    c.banks.forEach((b, j) => {
+      const col = bankColor(b.name);
+      let pts;
+      if (b.name.startsWith('EVA') && b.subFrac > 0.002) {
+        const xs = xCold + (xHot - xCold) * b.subFrac;
+        pts = [[xCold, b.TwIn], [xs, b.TwOut], [xHot, b.TwOut]];
+      } else pts = [[xCold, b.TwIn], [xHot, b.TwOut]];
+      const legendLabel = !legendSeen.has(col) ? LEGEND_NAME[col] : undefined;
+      legendSeen.add(col);
+      series.push({ points: pts, color: col, width: 2.4, dash: b.name.startsWith('ECO') || b.name.startsWith('PRE') ? [6, 3] : [], noHover: true, label: legendLabel });
+      // le etichette dei banchi in parallelo vengono sfalsate sotto la curva
+      if (q > Qtot * 0.025) labels.push({ x: (xCold + xHot) / 2, y: Math.min(b.TwOut, b.TwIn) - 22 - j * 14, text: b.name.replace(' (condensato)', ''), color: col });
+      if (b.name.startsWith('EVA')) pinchMarks.push({ x: xCold, y: c.TgOut, dt: c.TgOut - b.TwOut });
+    });
+    x = xCold;
+  }
+  gas.reverse();
+  series.unshift({ points: gas, color: '--gas', width: 3, label: 'Fumi', fill: false });
+  for (const p of pinchMarks) labels.push({ x: p.x, y: p.y + 10, text: `pinch ${fmt(p.dt, 1)} K`, color: '--muted' });
+  drawChart(canvas, {
+    title: 'Profilo di temperatura nel GVR',
+    xLabel: 'Calore scambiato dal camino [MW]',
+    yLabel: 'Temperatura [°C]',
+    xMin: 0, yMin: 0,
+    series,
+    labels,
+    xUnit: 'MW',
+    xHover: 'Q ',
+    hoverDecimals: 1,
+  });
+
+  // tabella dei banchi
+  let html = '<thead><tr><th>Banco</th><th>Potenza [MW]</th><th>Fumi ingresso [°C]</th><th>Fumi uscita [°C]</th><th>Acqua/vapore ingresso [°C]</th><th>Acqua/vapore uscita [°C]</th></tr></thead><tbody>';
+  for (const b of r.bt.banks) {
+    html += `<tr><td><span class="swatch" style="background:var(${bankColor(b.name)})"></span>${b.name}${b.parallel ? ' <span class="muted">(parallelo)</span>' : ''}</td><td>${fmt(b.Q, 2)}</td><td>${fmt(b.TgIn, 1)}</td><td>${fmt(b.TgOut, 1)}</td><td>${fmt(b.TwIn, 1)}</td><td>${fmt(b.TwOut, 1)}</td></tr>`;
+  }
+  html += `<tr class="grp"><td>Totale per GVR</td><td>${fmt(Qtot, 1)}</td><td>${fmt(cols[0].TgIn, 1)}</td><td>${fmt(r.bt.Tstack, 1)}</td><td></td><td></td></tr></tbody>`;
+  table.innerHTML = html;
+}
+
+// ------------------------------------------------------------------ T-s
+let domeCache = null;
+function dome() {
+  if (domeCache) return domeCache;
+  const liq = [], vap = [];
+  const pMaxT = satP(P_MAX_BAR).T;
+  for (let T = 5; T <= pMaxT; T += 5) {
+    const s = satP(psat(T));
+    liq.push([s.sL, T]);
+    vap.push([s.sV, T]);
+  }
+  domeCache = [...liq, ...vap.reverse()];
+  return domeCache;
+}
+
+function isobar(p, T0, T1, steps = 16) {
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const T = T0 + ((T1 - T0) * i) / steps;
+    const st = propsPT(p, T);
+    pts.push([st.s, T]);
+  }
+  return pts;
+}
+
+function heatingLine(p, Tin, Tsh) {
+  const s = satP(p);
+  const pts = Tin < s.T - 0.5 ? isobar(p, Tin, s.T - 0.01, 10) : [];
+  pts.push([s.sL, s.T], [s.sV, s.T]);
+  if (Tsh > s.T + 0.5) pts.push(...isobar(p, s.T + 0.01, Tsh, 12).slice(1));
+  return pts;
+}
+
+function expansionLine(sec, steps = 14) {
+  const pts = [];
+  const sIn = sec.sIn;
+  for (let i = 0; i <= steps; i++) {
+    const p = sec.pIn * Math.pow(sec.pOut / sec.pIn, i / steps);
+    const h = sec.hIn - sec.eta * (sec.hIn - hPS(p, sIn));
+    const st = propsPH(p, h);
+    pts.push([st.s, st.T]);
+  }
+  return pts;
+}
+
+function renderTS(canvas, r) {
+  if (!r || !r.online) {
+    drawChart(canvas, { title: 'Ciclo a vapore fermo', series: [{ points: dome(), color: '--muted', width: 1.5, label: 'Saturazione' }], xLabel: 'Entropia [kJ/(kg·K)]', yLabel: 'Temperatura [°C]' });
+    return;
+  }
+  const b = r.bt;
+  const series = [{ points: dome(), color: '--muted', width: 1.5, label: 'Saturazione', noHover: true }];
+  const labels = [];
+  const n = b.names.length;
+  const Tfeed = b.TsubLP;
+  for (let k = 0; k < n; k++) {
+    const lv = b.names[k];
+    const Tin = k === n - 1 ? b.TCondOut : Tfeed;
+    const pts = heatingLine(b.pDrum[k], Math.min(Tin, satP(b.pDrum[k]).T - 1), b.Tsh[k]);
+    series.push({ points: pts, color: LEVEL_COLOR[lv], width: 2.4, label: lv, noHover: true });
+    labels.push({ x: pts[pts.length - 1][0], y: b.Tsh[k], text: `${lv} ${fmt(b.pAdm[k], 1)} bar`, color: LEVEL_COLOR[lv], align: 'left' });
+  }
+  if (b.type === '3PRH') {
+    const s0 = b.sections[0];
+    series.push({ points: isobar(b.pAdm[1], s0.Tout, b.Trh, 14), color: '--ip', width: 2.4, dash: [5, 3], label: 'RH', noHover: true });
+  }
+  for (const sec of b.sections) {
+    series.push({ points: expansionLine(sec), color: '--fg', width: 2, noHover: true });
+  }
+  const last = b.sections[b.sections.length - 1];
+  const cs = satP(b.pCond);
+  series.push({ points: [[last.sOut, b.Tcond], [cs.sL, b.Tcond]], color: '--water', width: 2.4, label: 'Condensazione', noHover: true });
+  labels.push({ x: last.sOut, y: b.Tcond + 8, text: `x = ${fmt(last.xOut, 3)}`, color: '--fg', align: 'right' });
+  series.push({ points: [], color: '--fg', label: 'Espansione TV' });
+  drawChart(canvas, {
+    title: 'Diagramma T-s',
+    xLabel: 'Entropia [kJ/(kg·K)]',
+    yLabel: 'Temperatura [°C]',
+    xMin: 0, xMax: 9, yMin: 0,
+    series,
+    labels,
+    legend: true,
+  });
+}
+
+// ------------------------------------------------------------------ curve
+async function computeCurves(cfg, des, op, onProgress) {
+  const loads = [];
+  for (let L = 0.3; L <= 1.0001; L += 0.05) loads.push(L);
+  const temps = [];
+  for (let T = -10; T <= 45.0001; T += 5) temps.push(T);
+  const total = loads.length + temps.length;
+  const out = { load: [], temp: [] };
+  let done = 0;
+  const tick = () => new Promise((res) => setTimeout(res, 0));
+  for (const L of loads) {
+    const r = plantPoint(cfg, des, { ...op, load: L, ductT: 0 });
+    out.load.push({ x: L * 100, eta: r.eta * 100, net: r.net });
+    onProgress(++done / total);
+    await tick();
+  }
+  for (const T of temps) {
+    const r = plantPoint(cfg, des, { ...op, Tamb: T, load: 1, ductT: 0 });
+    out.temp.push({ x: T, eta: r.eta * 100, net: r.net });
+    onProgress(++done / total);
+    await tick();
+  }
+  return out;
+}
+
+function renderCurves(canvases, data, cur) {
+  const [cEL, cPL, cET, cPT] = canvases;
+  const pick = (arr, k) => arr.map((d) => [d.x, d[k]]);
+  const markLoad = cur && cur.online ? cur : null;
+  drawChart(cEL, {
+    title: 'Rendimento netto vs carico TG', xLabel: 'Carico TG [%]', yLabel: 'Rendimento [%]', xMin: 30, xMax: 100,
+    series: data ? [{ points: pick(data.load, 'eta'), color: '--accent', width: 2.4, markers: true, fill: true, label: 'η netto' }] : [],
+    marks: markLoad ? [{ x: markLoad.gt.load * 100, y: markLoad.eta * 100, label: `${fmt(markLoad.eta * 100, 2)} %` }] : [],
+    xUnit: '%', hoverDecimals: 2,
+  });
+  drawChart(cPL, {
+    title: 'Potenza netta vs carico TG', xLabel: 'Carico TG [%]', yLabel: 'Potenza [MW]', xMin: 30, xMax: 100,
+    series: data ? [{ points: pick(data.load, 'net'), color: '--accent', width: 2.4, markers: true, fill: true, label: 'Netta' }] : [],
+    marks: markLoad ? [{ x: markLoad.gt.load * 100, y: markLoad.net, label: `${fmt(markLoad.net, 1)} MW` }] : [],
+    xUnit: '%', hoverDecimals: 1,
+  });
+  drawChart(cET, {
+    title: 'Rendimento netto vs temperatura aria', xLabel: 'Temperatura aria [°C]', yLabel: 'Rendimento [%]',
+    series: data ? [{ points: pick(data.temp, 'eta'), color: '--gas', width: 2.4, markers: true, fill: true, label: 'η netto (carico base)' }] : [],
+    xUnit: '°C', hoverDecimals: 2,
+  });
+  drawChart(cPT, {
+    title: 'Potenza netta vs temperatura aria', xLabel: 'Temperatura aria [°C]', yLabel: 'Potenza [MW]',
+    series: data ? [{ points: pick(data.temp, 'net'), color: '--gas', width: 2.4, markers: true, fill: true, label: 'Netta (carico base)' }] : [],
+    xUnit: '°C', hoverDecimals: 1,
+  });
+}
+
+// ------------------------------------------------------------------ trend
+function renderTrend(cP, cT, hist) {
+  const span = hist.length ? hist[hist.length - 1].t - hist[0].t : 0;
+  const hours = span > 3 * 3600;
+  const k = hours ? 3600 : 60;
+  const unit = hours ? 'h' : 'min';
+  const t0 = hist.length ? hist[0].t : 0;
+  const pts = (key) => hist.map((h) => [(h.t - t0) / k, h[key]]);
+  drawChart(cP, {
+    title: 'Potenze', xLabel: `Tempo [${unit}]`, yLabel: 'Potenza [MW]', yMin: Math.min(0, ...hist.map((h) => h.net)),
+    series: [
+      { points: pts('net'), color: '--accent', width: 2.4, label: 'Netta', fill: true },
+      { points: pts('gt'), color: '--gas', width: 1.8, label: 'TG' },
+      { points: pts('st'), color: '--hp', width: 1.8, label: 'TV' },
+    ],
+    xUnit: unit, xHoverDecimals: 1,
+  });
+  drawChart(cT, {
+    title: 'Temperature', xLabel: `Tempo [${unit}]`, yLabel: 'Temperatura [°C]',
+    series: [
+      { points: pts('T4'), color: '--gas', width: 2, label: 'Scarico TG' },
+      { points: pts('Tstack'), color: '--muted', width: 2, label: 'Camino' },
+      { points: pts('Tamb'), color: '--water', width: 2, label: 'Aria' },
+    ],
+    xUnit: unit, xHoverDecimals: 1,
+  });
+}
+
+// ------------------------------------------------------------------ correnti
+function renderStreams(table, r, cfg) {
+  if (!r || !r.online) {
+    table.innerHTML = '<tbody><tr><td>Impianto fermo: nessuna corrente in regime.</td></tr></tbody>';
+    return;
+  }
+  const n = r.nOn;
+  const gt = r.gt;
+  const row = (name, m, p, T, extra = '') => `<tr><td>${name}</td><td>${fmt(m, 2)}</td><td>${p === null ? '—' : p < 1 ? fmt(p, 4) : fmt(p, 2)}</td><td>${fmt(T, 1)}</td><td>${extra}</td></tr>`;
+  let html = '<thead><tr><th>Corrente</th><th>Portata [kg/s]</th><th>Pressione [bar]</th><th>Temperatura [°C]</th><th>Note</th></tr></thead><tbody>';
+  html += `<tr class="grp"><td colspan="5">Turbogas${n > 1 ? ` (${n} unità in servizio, portate totali)` : ''}</td></tr>`;
+  html += row('Aria aspirata', gt.mAir * n, gt.p1, gt.T1, `UR ${fmt(r.op.rh * 100, 0)} %`);
+  html += row('Mandata compressore', gt.mAir * n, gt.p2, gt.T2, `β = ${fmt(gt.PR, 2)}`);
+  html += row('Combustibile', gt.mFuel * n, null, cfg.gt.Tfuel, `PCI ${fmt(r.fuelLHV / 1000, 2)} MJ/kg`);
+  html += row('Uscita combustore', (gt.mExh - gt.mAir * cfg.gt.coolFrac) * n, gt.p3, gt.TIT, 'temperatura di fiamma media');
+  html += row('Ingresso rotore', gt.mRit * n, gt.p3, gt.Trit, 'dopo raffreddamento statorico');
+  html += row('Scarico turbina', gt.mExh * n, gt.p4, gt.T4, `O₂ ${fmt((gt.xExh.O2 / (1 - gt.xExh.H2O)) * 100, 1)} % secco`);
+  if (r.mFuelDB > 0) html += row('Uscita post-combustione', r.gas.m * n, gt.p4, r.gas.T, `combustibile ${fmt(r.mFuelDB, 2)} kg/s`);
+  html += row('Camino', r.gas.m * n, r.op.pamb, r.bt.Tstack, `CO₂ ${fmt(r.co2, 1)} t/h`);
+  html += '<tr class="grp"><td colspan="5">Ciclo a vapore</td></tr>';
+  const st = steamStreams(r);
+  const nm = { hp: 'Vapore HP (ammissione TV)', crh: 'Risurriscaldato freddo', ip: 'Vapore IP (surriscaldato)', hrh: 'Risurriscaldato caldo', lp: 'Vapore LP (surriscaldato)', exh: 'Scarico TV', cond: 'Condensato' };
+  for (const [k, s] of Object.entries(st)) html += row(nm[k], s.m, s.p, s.T, k === 'exh' ? `titolo x = ${fmt(s.x, 3)}` : '');
+  html += row('Ingresso preriscaldatore', r.bt.mSteamTot, null, r.bt.TCondOut, `ricircolo a ≥ ${fmt(cfg.steam.TwPreMin, 0)} °C`);
+  r.bt.names.forEach((lv, k) => {
+    html += row(`Corpo cilindrico ${lv}`, r.bt.mLevelsTot[k], r.bt.pDrum[k], r.bt.Tsat[k], 'saturazione');
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+// ------------------------------------------------------------------ bilancio
+function renderBalance(box, r) {
+  if (!r || !r.online) {
+    box.innerHTML = '<p class="muted">Impianto fermo.</p>';
+    return;
+  }
+  const Q = r.Qfuel;
+  const rows = [
+    ['Potenza elettrica TG', r.Pgt, '--gas'],
+    ['Potenza elettrica TV', r.Pst, '--hp'],
+    ['Perdita al camino', r.stackLoss, '--muted'],
+    ['Calore al condensatore', r.bt.Qcond, '--water'],
+    ['Altre perdite (meccaniche, elettriche, irraggiamento)', r.otherLoss, '--ip'],
+  ];
+  let html = '';
+  for (const [name, v, c] of rows) {
+    const pct = (v / Q) * 100;
+    html += `<div class="bal-row"><span>${name}</span><div class="bal-bar"><span style="width:${Math.max(0, pct).toFixed(2)}%;background:var(${c})"></span></div><span class="bal-val">${fmt(v, 1)} MW · ${fmt(pct, 1)} %</span></div>`;
+  }
+  html += `<div class="bal-row total"><span>Combustibile (PCI)</span><span></span><span class="bal-val">${fmt(Q, 1)} MW · 100 %</span></div>`;
+  html += `<div class="bal-row"><span>Ausiliari e trasformatore</span><div class="bal-bar"><span style="width:${((r.Paux + r.Ptrafo) / Q * 100).toFixed(2)}%;background:var(--warn)"></span></div><span class="bal-val">− ${fmt(r.Paux + r.Ptrafo, 1)} MW</span></div>`;
+  html += `<div class="bal-row total"><span>Potenza netta</span><div class="bal-bar"><span style="width:${(r.eta * 100).toFixed(2)}%;background:var(--accent)"></span></div><span class="bal-val">${fmt(r.net, 1)} MW · ${fmt(r.eta * 100, 2)} %</span></div>`;
+  box.innerHTML = html;
+}
+
+return { renderTQ, renderTS, computeCurves, renderCurves, renderTrend, renderStreams, renderBalance };
+})();
+
+__m['js/ui/app.js'] = (() => {
+// Controller dell'interfaccia: stato, input, ciclo di simulazione e aggiornamento delle viste.
+
+const { defaultConfig, defaultOperation, designPlant, plantPoint, GT_PRESETS, FUEL_PRESETS, LIMITS } = __m['js/engine/plant.js'];
+const { HRSG_TYPES, LEVEL_NAMES } = __m['js/engine/bottoming.js'];
+const { PlantSim, formatSimTime } = __m['js/engine/dynamics.js'];
+const { fmt } = __m['js/ui/format.js'];
+const { sparkline, redrawAll } = __m['js/ui/charts.js'];
+const { buildMimic, updateMimic, mimicSignature } = __m['js/ui/mimic.js'];
+const { renderTQ, renderTS, computeCurves, renderCurves, renderTrend, renderStreams, renderBalance } = __m['js/ui/views.js'];
+
+const $ = (id) => document.getElementById(id);
+const TICK_MS = 250;
+const DAY_START = 8 * 3600; // la simulazione parte alle 08:00
+
+const S = {
+  cfg: defaultConfig(),
+  des: null,
+  op: defaultOperation(),
+  mode: 'dyn',
+  running: true,
+  speed: 10,
+  sim: new PlantSim(),
+  cache: new Map(),
+  view: null,
+  lastSS: null,
+  mimicRef: null,
+  mimicSig: '',
+  history: [],
+  histAcc: 0,
+  curves: null,
+  curvesBusy: false,
+  activeView: 'v-tq',
+  lastAnalysis: 0,
+  daily: false,
+  TambBase: 15,
+};
+S.sim.t = DAY_START;
+
+// ----------------------------------------------------------------- calcolo
+function redesign() {
+  S.des = designPlant(S.cfg);
+  S.cache.clear();
+  S.curves = null;
+  const notes = $('design-notes');
+  notes.hidden = !S.des.notes.length;
+  notes.textContent = S.des.notes.join(' ');
+  if (S.op.nGTon > S.cfg.nGT) S.op.nGTon = S.cfg.nGT;
+  fillNGTon();
+  updateBrand();
+  syncDesignInputs();
+}
+
+function opKey(op, load) {
+  return [load.toFixed(3), op.Tamb.toFixed(2), op.pamb.toFixed(4), op.rh.toFixed(2), op.Tcw.toFixed(2), op.ductT, op.nGTon, op.slidingHP].join('|');
+}
+
+function steady(load) {
+  const op = { ...S.op, load };
+  const key = opKey(op, load);
+  let r = S.cache.get(key);
+  if (!r) {
+    r = plantPoint(S.cfg, S.des, op);
+    if (S.cache.size > 300) S.cache.delete(S.cache.keys().next().value);
+    S.cache.set(key, r);
+  }
+  return r;
+}
+
+function econ(v) {
+  const fuel = S.des.fuel;
+  if (!(v.net > 0) || !(v.Qfuel > 0)) return null;
+  const eta = v.net / v.Qfuel;
+  const fuelCost = (S.op.gasPrice * fuel.hhvToLhv) / eta;
+  const co2Spec = v.co2 / v.net;
+  const co2Cost = co2Spec * S.op.co2Price;
+  const marg = fuelCost + co2Cost + S.op.omVar;
+  return {
+    fuelCost, co2Cost, om: S.op.omVar, marg,
+    spread: S.op.powerPrice - marg,
+    cleanSpark: S.op.powerPrice - fuelCost - co2Cost,
+    marginHour: (S.op.powerPrice - marg) * v.net,
+    fuelHour: S.op.gasPrice * fuel.hhvToLhv * v.Qfuel,
+  };
+}
+
+// Vista composta: grandezze TG di regime + ciclo a vapore con inerzia termica.
+function compose(ss, lag, fuelFrac) {
+  const snap = S.sim.snapshot();
+  const nOn = Math.min(S.op.nGTon, S.cfg.nGT);
+  const base = {
+    ss, snap, stateLabel: snap.stateLabel, speed: snap.speed, stOnline: snap.stOnline,
+    fuelFrac, nOn, condType: S.cfg.steam.condenser.type,
+    ref: { hp: S.des.stRef.mLevels[0] * S.cfg.nGT },
+  };
+  if (ss && ss.online) {
+    const Pst = lag.Pst;
+    const gross = ss.Pgt + Pst;
+    const Ptrafo = S.cfg.aux.trafoFrac * gross;
+    const net = gross - ss.Paux - Ptrafo;
+    const v = {
+      ...base, online: true, Pgt: ss.Pgt, Pst, gross, Paux: ss.Paux, Ptrafo, net,
+      Qfuel: ss.Qfuel, mFuel: ss.mFuelTot, co2: ss.co2, Tstack: lag.Tstack, T4: ss.gt.T4,
+      eta: net / ss.Qfuel,
+    };
+    v.econ = econ(v);
+    return v;
+  }
+  const Qfuel = fuelFrac * S.des.gtRef.point.Qfuel * nOn;
+  const mFuel = fuelFrac * S.des.gtRef.point.mFuel * nOn;
+  const Paux = S.cfg.aux.gtAuxMW * S.cfg.nGT * (snap.speed > 0 ? 2.5 : 0.6);
+  const net = lag.Pst - Paux;
+  return {
+    ...base, online: false, Pgt: 0, Pst: lag.Pst, gross: lag.Pst, Paux, Ptrafo: 0, net,
+    Qfuel, mFuel, co2: (mFuel * S.des.fuel.co2PerKg * 3.6), Tstack: lag.Tstack, T4: null, eta: NaN, econ: null,
+  };
+}
+
+function tick() {
+  if (!S.des) return;
+  let v;
+  if (S.mode === 'ss') {
+    const ss = steady(S.op.load);
+    S.lastSS = ss;
+    const lag = { Pst: ss.online ? ss.Pst : 0, Tstack: ss.online ? ss.bt.Tstack : 25 };
+    v = compose(ss, lag, 0);
+    v.stateLabel = 'Stazionario';
+    v.stOnline = ss.online;
+    v.speed = ss.online ? 3000 : 0;
+  } else {
+    if (S.running) {
+      const dt = (TICK_MS / 1000) * S.speed;
+      if (S.daily) {
+        S.op.Tamb = S.TambBase + 8 * Math.sin(2 * Math.PI * (S.sim.t / 86400 - 0.375));
+        $('out-tamb').textContent = `${fmt(S.op.Tamb, 1)} °C`;
+      }
+      const out = S.sim.step(dt, steady);
+      if (out.ss) S.lastSS = out.ss;
+      v = compose(out.ss, out.lag, out.fuelFrac);
+      pushHistory(v, dt);
+    } else {
+      const out = S.sim.step(0, steady);
+      v = compose(out.ss, out.lag, out.fuelFrac);
+    }
+  }
+  S.view = v;
+  render(v);
+}
+
+function pushHistory(v, dt) {
+  S.histAcc += dt;
+  if (S.histAcc < 2 && S.history.length) return;
+  S.histAcc = 0;
+  S.history.push({ t: S.sim.t, net: v.net, gt: v.Pgt, st: v.Pst, T4: v.T4 ?? NaN, Tstack: v.Tstack, Tamb: S.op.Tamb });
+  if (S.history.length > 2000) S.history = S.history.filter((_, i) => i % 2 === 0);
+}
+
+// ----------------------------------------------------------------- render
+function setText(id, s) {
+  const e = $(id);
+  if (e && e.textContent !== s) e.textContent = s;
+}
+
+function render(v) {
+  // stato
+  const pill = $('state-pill');
+  const stKey = S.mode === 'ss' ? 'STAZ' : v.snap.state;
+  pill.dataset.state = stKey;
+  setText('state-pill', S.mode === 'ss' ? 'Stazionario' : v.snap.stateLabel);
+  setText('phase-text', S.mode === 'ss' ? 'Punto di funzionamento a regime' : v.snap.phase || '—');
+  setText('sim-clock', S.mode === 'ss' ? '' : formatSimTime(S.sim.t));
+  updateButtons(v);
+
+  // KPI
+  setText('k-net', fmt(v.net, 1));
+  setText('k-eta', v.online && v.net > 0 ? fmt(v.eta * 100, 2) : '—');
+  setText('k-hr', v.online && v.net > 0 ? fmt(3600 / v.eta, 0) : '—');
+  setText('k-gt', fmt(v.Pgt, 1));
+  setText('k-st', fmt(v.Pst, 1));
+  setText('k-fuel', fmt(v.Qfuel, 0));
+  setText('k-fuel-mass', `${fmt(v.mFuel * 3.6, 1)} t/h gas`);
+  setText('k-co2', v.online && v.net > 0 ? fmt((v.co2 / v.net) * 1000, 0) : '—');
+  setText('k-co2-h', `${fmt(v.co2, 1)} t/h`);
+  if (v.econ) {
+    setText('k-cost', fmt(v.econ.marg, 1));
+    const m = $('k-margin');
+    m.textContent = `margine ${v.econ.spread >= 0 ? '+' : ''}${fmt(v.econ.spread, 1)} €/MWh`;
+    m.className = `kpi-foot ${v.econ.spread >= 0 ? 'pos' : 'neg'}`;
+  } else {
+    setText('k-cost', '—');
+    setText('k-margin', '—');
+  }
+  if (S.mode === 'dyn') sparkline($('k-spark'), S.history.slice(-240).map((h) => h.net));
+  else sparkline($('k-spark'), []);
+
+  // sinottico
+  const sigSource = v.ss && v.ss.online ? v.ss : S.lastSS || { bt: S.des.point };
+  const sig = mimicSignature(S.cfg, sigSource);
+  if (sig !== S.mimicSig) {
+    S.mimicRef = buildMimic($('mimic'), S.cfg, sigSource);
+    S.mimicSig = sig;
+  }
+  updateMimic(S.mimicRef, v);
+
+  renderAlarms(v);
+  renderEvents();
+  renderEcon(v);
+
+  const now = performance.now();
+  if (now - S.lastAnalysis > 1000) {
+    S.lastAnalysis = now;
+    renderAnalysis();
+  }
+}
+
+function renderAlarms(v) {
+  const box = $('alarms');
+  const items = [];
+  if (v.ss && v.ss.online) for (const w of v.ss.warnings) items.push(w);
+  if (S.mode === 'dyn' && v.snap.state === 'BLOCCO') items.unshift('Blocco TG attivo: riconoscere a macchina ferma.');
+  if (S.mode === 'dyn' && v.online && !v.stOnline) items.push('TV fuori parallelo: vapore in bypass al condensatore.');
+  const html = items.length
+    ? items.map((w) => `<div class="alarm">${w}</div>`).join('')
+    : '<div class="alarm ok">Nessun allarme attivo</div>';
+  if (box.innerHTML !== html) box.innerHTML = html;
+}
+
+let lastEvCount = -1;
+let lastEvT = -1;
+function renderEvents() {
+  const ev = S.sim.events;
+  if (ev.length === lastEvCount && (ev[0]?.t ?? 0) === lastEvT) return;
+  lastEvCount = ev.length;
+  lastEvT = ev[0]?.t ?? 0;
+  $('events').innerHTML = ev.length
+    ? ev.slice(0, 60).map((e) => `<li class="${e.level === 'alarm' ? 'alarm-ev' : ''}"><time>${formatSimTime(e.t)}</time><span>${e.msg}</span></li>`).join('')
+    : '<li><time>—</time><span class="muted">Registro eventi vuoto. Usa Arresta, Avvia o Blocco TG per generare sequenze.</span></li>';
+}
+
+function renderEcon(v) {
+  const dl = $('econ');
+  if (!v.econ) {
+    dl.innerHTML = '<dt>Impianto non in produzione</dt><dd>—</dd>';
+    return;
+  }
+  const e = v.econ;
+  const cls = (x) => (x >= 0 ? 'pos' : 'neg');
+  dl.innerHTML = `
+    <dt>Combustibile</dt><dd>${fmt(e.fuelCost, 1)} €/MWh</dd>
+    <dt>CO₂</dt><dd>${fmt(e.co2Cost, 1)} €/MWh</dd>
+    <dt>O&amp;M variabile</dt><dd>${fmt(e.om, 1)} €/MWh</dd>
+    <dt class="strong">Costo marginale</dt><dd class="strong">${fmt(e.marg, 1)} €/MWh</dd>
+    <div class="sep"></div>
+    <dt>Clean spark spread</dt><dd class="${cls(e.cleanSpark)}">${fmt(e.cleanSpark, 1)} €/MWh</dd>
+    <dt>Margine di contribuzione</dt><dd class="${cls(e.spread)}">${fmt(e.spread, 1)} €/MWh</dd>
+    <dt class="strong">Margine orario</dt><dd class="strong ${cls(e.marginHour)}">${fmt(e.marginHour / 1000, 1)} k€/h</dd>
+    <dt>Spesa combustibile</dt><dd>${fmt(e.fuelHour / 1000, 1)} k€/h</dd>
+    <dt>PCS/PCI del gas</dt><dd>${fmt(S.des.fuel.hhvToLhv, 3)}</dd>`;
+}
+
+function renderAnalysis() {
+  const ss = S.view && S.view.ss && S.view.ss.online ? S.view.ss : null;
+  if (ss) ss.fuelLHV = S.des.fuel.lhv;
+  switch (S.activeView) {
+    case 'v-tq': renderTQ($('c-tq'), $('tbl-banks'), ss); break;
+    case 'v-ts': renderTS($('c-ts'), ss); break;
+    case 'v-curves':
+      if (!S.curves && !S.curvesBusy) runCurves();
+      renderCurves(curveCanvases(), S.curves, ss);
+      break;
+    case 'v-trend': renderTrend($('c-trend-p'), $('c-trend-t'), S.history); break;
+    case 'v-streams': renderStreams($('tbl-streams'), ss, S.cfg); break;
+    case 'v-balance': renderBalance($('balance'), ss); break;
+    default: break;
+  }
+}
+
+const curveCanvases = () => ['c-eta-load', 'c-p-load', 'c-eta-t', 'c-p-t'].map($);
+
+async function runCurves() {
+  S.curvesBusy = true;
+  const status = $('curves-status');
+  const btn = $('btn-curves');
+  btn.disabled = true;
+  try {
+    const op = { ...S.op, nGTon: Math.min(S.op.nGTon, S.cfg.nGT) };
+    if (S.daily) op.Tamb = S.TambBase;
+    S.curves = await computeCurves(S.cfg, S.des, op, (f) => { status.textContent = `Calcolo… ${Math.round(f * 100)} %`; });
+    status.textContent = `Aria ${fmt(op.Tamb, 1)} °C, ${op.nGTon} TG in servizio`;
+  } finally {
+    S.curvesBusy = false;
+    btn.disabled = false;
+  }
+  if (S.activeView === 'v-curves') renderCurves(curveCanvases(), S.curves, S.view && S.view.ss);
+}
+
+function updateButtons(v) {
+  const st = S.sim.state;
+  const dyn = S.mode === 'dyn';
+  $('btn-start').disabled = !(dyn && st === 'FERMO');
+  $('btn-stop').disabled = !(dyn && (st === 'IN_SERVIZIO' || st === 'AVVIAMENTO'));
+  $('btn-trip').disabled = !(dyn && st !== 'FERMO' && st !== 'BLOCCO');
+  $('btn-ack').hidden = !(dyn && st === 'BLOCCO');
+  $('btn-ack').disabled = !(v.snap.speed <= 0);
+}
+
+function updateBrand() {
+  const c = S.cfg;
+  const gtShort = c.gtName.replace(/\s*\(.*\)/, '');
+  setText('brand-sub', `${gtShort} · ${c.nGT}+1 · GVR ${HRSG_TYPES[c.steam.type]}`);
+}
+
+// ----------------------------------------------------------------- input esercizio
+function bindRange(id, outId, apply, format) {
+  const inp = $(id);
+  const handler = () => {
+    const val = parseFloat(inp.value);
+    apply(val);
+    $(outId).textContent = format(val);
+  };
+  inp.addEventListener('input', handler);
+  handler();
+}
+
+function fillNGTon() {
+  const sel = $('in-ngton');
+  sel.innerHTML = '';
+  for (let i = 1; i <= S.cfg.nGT; i++) {
+    const o = document.createElement('option');
+    o.value = i;
+    o.textContent = `${i} di ${S.cfg.nGT}`;
+    sel.appendChild(o);
+  }
+  S.op.nGTon = Math.min(S.op.nGTon || S.cfg.nGT, S.cfg.nGT);
+  sel.value = S.op.nGTon;
+  $('f-ngton').hidden = S.cfg.nGT < 2;
+}
+
+function bindOperation() {
+  bindRange('in-load', 'out-load', (v) => {
+    S.op.load = v / 100;
+    S.sim.setpoint = v / 100;
+  }, (v) => `${fmt(v, 0)} %`);
+  bindRange('in-ramp', 'out-ramp', (v) => { S.sim.rampPerMin = v; }, (v) => `${fmt(v, 0)} %/min`);
+  bindRange('in-tamb', 'out-tamb', (v) => { S.TambBase = v; if (!S.daily) S.op.Tamb = v; S.curves = null; }, (v) => `${fmt(v, 1)} °C`);
+  bindRange('in-pamb', 'out-pamb', (v) => { S.op.pamb = v / 1000; S.curves = null; }, (v) => `${fmt(v, 0)} mbar`);
+  bindRange('in-rh', 'out-rh', (v) => { S.op.rh = v / 100; S.curves = null; }, (v) => `${fmt(v, 0)} %`);
+  bindRange('in-tcw', 'out-tcw', (v) => { S.op.Tcw = v; S.curves = null; }, (v) => `${fmt(v, 1)} °C`);
+  bindRange('in-dbt', 'out-dbt', (v) => { if ($('in-db').checked) S.op.ductT = v; }, (v) => `${fmt(v, 0)} °C`);
+  $('in-db').addEventListener('change', (e) => {
+    $('f-dbt').hidden = !e.target.checked;
+    S.op.ductT = e.target.checked ? parseFloat($('in-dbt').value) : 0;
+  });
+  $('in-sliding').addEventListener('change', (e) => { S.op.slidingHP = e.target.checked; S.curves = null; });
+  $('in-daily').addEventListener('change', (e) => {
+    S.daily = e.target.checked;
+    if (!S.daily) { S.op.Tamb = S.TambBase; $('out-tamb').textContent = `${fmt(S.TambBase, 1)} °C`; }
+  });
+  $('in-ngton').addEventListener('change', (e) => { S.op.nGTon = parseInt(e.target.value, 10); S.curves = null; });
+
+  bindRange('m-gas', 'out-gas', (v) => { S.op.gasPrice = v; }, (v) => `${fmt(v, 0)} €/MWh`);
+  bindRange('m-co2', 'out-co2', (v) => { S.op.co2Price = v; }, (v) => `${fmt(v, 0)} €/t`);
+  bindRange('m-om', 'out-om', (v) => { S.op.omVar = v; }, (v) => `${fmt(v, 1)} €/MWh`);
+  bindRange('m-pun', 'out-pun', (v) => { S.op.powerPrice = v; }, (v) => `${fmt(v, 0)} €/MWh`);
+}
+
+// ----------------------------------------------------------------- input progetto
+const GT_FIELDS = [
+  ['d-mair', 'mAirISO', 1], ['d-pr', 'PR', 1], ['d-tit', 'TIT', 1], ['d-cool', 'coolFrac', 100],
+  ['d-etac', 'etaC', 1], ['d-etat', 'etaT', 1], ['d-tet', 'TETiso', 1], ['d-igv', 'igvMin', 100],
+];
+const ST_FIELDS = [['d-etahp', 'etaHP'], ['d-etaip', 'etaIP'], ['d-etalp', 'etaLP'], ['d-tstack', 'TstackMin'], ['d-trh', 'Trh']];
+
+function syncDesignInputs() {
+  const c = S.cfg;
+  $('d-gt').value = c.gtName;
+  $('d-ngt').value = String(c.nGT);
+  $('d-hrsg').value = c.steam.type;
+  $('d-fuel').value = c.fuelName;
+  for (const [id, key, k] of GT_FIELDS) $(id).value = +(c.gt[key] * k).toFixed(4);
+  for (const [id, key] of ST_FIELDS) $(id).value = c.steam[key];
+  $('d-pinch').value = c.steam.pinch[0];
+  $('f-trh').hidden = c.steam.type !== '3PRH';
+  $('d-etaip').closest('.field').hidden = c.steam.type !== '3PRH';
+  const cd = c.steam.condenser;
+  $('d-cond').value = cd.type;
+  $('d-tcwd').value = cd.TcwDesign;
+  $('d-dtcw').value = cd.dTcw;
+  $('d-ttd').value = cd.TTD;
+  $('d-itd').value = cd.ITD;
+  for (const e of document.querySelectorAll('.cond-water')) e.hidden = cd.type !== 'water';
+  for (const e of document.querySelectorAll('.cond-air')) e.hidden = cd.type !== 'air';
+  $('f-tcw').hidden = cd.type !== 'water';
+  buildLevelInputs();
+}
+
+function buildLevelInputs() {
+  const box = $('d-levels');
+  const c = S.cfg.steam;
+  const names = LEVEL_NAMES[c.type];
+  box.innerHTML = '';
+  c.levels.forEach((l, k) => {
+    const row = document.createElement('div');
+    row.className = 'level-row';
+    const pLabel = c.type === '3PRH' && k === 1 ? 'p RH freddo' : 'p ammissione';
+    row.innerHTML = `
+      <span class="lvl" style="color:var(--${names[k].toLowerCase()})">${names[k]}</span>
+      <div class="field"><label for="d-lp-${k}">${pLabel} <span class="u">bar</span></label><input type="number" id="d-lp-${k}" step="${k === 0 ? 5 : 0.5}" min="1.5" max="${k === 0 ? LIMITS.pHPmax : 80}" value="${l.p}"></div>
+      <div class="field"><label for="d-lt-${k}">T surrisc. <span class="u">°C</span></label><input type="number" id="d-lt-${k}" step="5" max="${LIMITS.TshMax}" value="${l.Tsh}"></div>`;
+    box.appendChild(row);
+    row.querySelector(`#d-lp-${k}`).addEventListener('change', (e) => { c.levels[k].p = parseFloat(e.target.value); scheduleRedesign(); });
+    row.querySelector(`#d-lt-${k}`).addEventListener('change', (e) => { c.levels[k].Tsh = parseFloat(e.target.value); scheduleRedesign(); });
+  });
+}
+
+let redesignTimer = null;
+function scheduleRedesign() {
+  clearTimeout(redesignTimer);
+  redesignTimer = setTimeout(() => {
+    redesign();
+    S.mimicSig = '';
+    tick();
+  }, 150);
+}
+
+function newConfig(gtName, type, keep) {
+  const c = defaultConfig(gtName, type);
+  if (keep) {
+    c.nGT = keep.nGT;
+    c.fuelName = keep.fuelName;
+    c.fuelComp = { ...keep.fuelComp };
+    c.steam.condenser = { ...keep.steam.condenser };
+  }
+  return c;
+}
+
+function bindDesign() {
+  const gtSel = $('d-gt');
+  for (const name of Object.keys(GT_PRESETS)) gtSel.add(new Option(name, name));
+  const fSel = $('d-fuel');
+  for (const name of Object.keys(FUEL_PRESETS)) fSel.add(new Option(name, name));
+
+  gtSel.addEventListener('change', () => { S.cfg = newConfig(gtSel.value, S.cfg.steam.type, S.cfg); scheduleRedesign(); });
+  $('d-hrsg').addEventListener('change', (e) => { S.cfg = newConfig(S.cfg.gtName, e.target.value, S.cfg); scheduleRedesign(); });
+  $('d-ngt').addEventListener('change', (e) => { S.cfg.nGT = parseInt(e.target.value, 10); S.op.nGTon = S.cfg.nGT; scheduleRedesign(); });
+  fSel.addEventListener('change', () => { S.cfg.fuelName = fSel.value; S.cfg.fuelComp = { ...FUEL_PRESETS[fSel.value] }; scheduleRedesign(); });
+  for (const [id, key, k] of GT_FIELDS) {
+    $(id).addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) { S.cfg.gt[key] = v / k; scheduleRedesign(); } });
+  }
+  for (const [id, key] of ST_FIELDS) {
+    $(id).addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) { S.cfg.steam[key] = v; scheduleRedesign(); } });
+  }
+  $('d-pinch').addEventListener('change', (e) => {
+    const v = Math.max(3, parseFloat(e.target.value));
+    S.cfg.steam.pinch = S.cfg.steam.pinch.map(() => v);
+    scheduleRedesign();
+  });
+  $('d-cond').addEventListener('change', (e) => { S.cfg.steam.condenser.type = e.target.value; scheduleRedesign(); });
+  for (const [id, key] of [['d-tcwd', 'TcwDesign'], ['d-dtcw', 'dTcw'], ['d-ttd', 'TTD'], ['d-itd', 'ITD']]) {
+    $(id).addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) { S.cfg.steam.condenser[key] = v; scheduleRedesign(); } });
+  }
+  $('btn-reset-design').addEventListener('click', () => {
+    S.cfg = newConfig(S.cfg.gtName, S.cfg.steam.type, null);
+    scheduleRedesign();
+  });
+}
+
+// ----------------------------------------------------------------- comandi e schede
+function bindControls() {
+  const setMode = (m) => {
+    S.mode = m;
+    $('mode-dyn').classList.toggle('is-on', m === 'dyn');
+    $('mode-ss').classList.toggle('is-on', m === 'ss');
+    $('mode-dyn').setAttribute('aria-checked', String(m === 'dyn'));
+    $('mode-ss').setAttribute('aria-checked', String(m === 'ss'));
+    for (const e of document.querySelectorAll('.dyn-only')) e.hidden = m !== 'dyn';
+    $('lbl-load').textContent = m === 'dyn' ? 'Set-point carico TG' : 'Carico TG';
+    if (m === 'ss' && S.daily) { S.op.Tamb = S.TambBase; }
+    tick();
+  };
+  $('mode-dyn').addEventListener('click', () => setMode('dyn'));
+  $('mode-ss').addEventListener('click', () => setMode('ss'));
+  $('btn-play').addEventListener('click', () => {
+    S.running = !S.running;
+    $('play-icon').setAttribute('d', S.running ? 'M4 3h3v10H4zM9 3h3v10H9z' : 'M4 2l10 6-10 6z');
+    $('btn-play').setAttribute('aria-label', S.running ? 'Pausa' : 'Riprendi');
+  });
+  $('sim-speed').addEventListener('change', (e) => { S.speed = parseFloat(e.target.value); });
+  $('btn-start').addEventListener('click', () => { S.sim.start(); tick(); });
+  $('btn-stop').addEventListener('click', () => { S.sim.stop(); tick(); });
+  $('btn-trip').addEventListener('click', () => { S.sim.trip(); tick(); });
+  $('btn-ack').addEventListener('click', () => { S.sim.reset(); tick(); });
+  $('btn-curves').addEventListener('click', () => { S.curves = null; runCurves(); });
+
+  // schede del pannello
+  for (const t of document.querySelectorAll('.panel .tab')) {
+    t.addEventListener('click', () => {
+      for (const o of document.querySelectorAll('.panel .tab')) {
+        const on = o === t;
+        o.classList.toggle('is-on', on);
+        o.setAttribute('aria-selected', String(on));
+        $(o.dataset.tab).hidden = !on;
+      }
+    });
+  }
+  // schede di analisi
+  for (const t of document.querySelectorAll('.analysis .tab')) {
+    t.addEventListener('click', () => {
+      for (const o of document.querySelectorAll('.analysis .tab')) {
+        const on = o === t;
+        o.classList.toggle('is-on', on);
+        o.setAttribute('aria-selected', String(on));
+        $(o.dataset.view).hidden = !on;
+      }
+      S.activeView = t.dataset.view;
+      S.lastAnalysis = 0;
+      renderAnalysis();
+    });
+  }
+
+  // tema
+  const applyTheme = (th) => {
+    if (th) document.documentElement.setAttribute('data-theme', th);
+    else document.documentElement.removeAttribute('data-theme');
+    S.mimicSig = '';
+    setTimeout(() => {
+      redrawAll([$('c-tq'), $('c-ts'), $('c-trend-p'), $('c-trend-t'), ...curveCanvases()]);
+      tick();
+    }, 0);
+  };
+  try {
+    const saved = localStorage.getItem('ccgt-theme');
+    if (saved) applyTheme(saved);
+  } catch (e) { /* archiviazione non disponibile */ }
+  $('btn-theme').addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = cur ? cur === 'dark' : sysDark;
+    const next = isDark ? 'light' : 'dark';
+    applyTheme(next);
+    try { localStorage.setItem('ccgt-theme', next); } catch (e) { /* ignora */ }
+  });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(document.documentElement.getAttribute('data-theme')));
+}
+
+// ----------------------------------------------------------------- avvio
+function init() {
+  bindDesign();
+  bindOperation();
+  bindControls();
+  redesign();
+  S.sim.log('Simulatore avviato: unità in servizio a carico base');
+  tick();
+  setInterval(tick, TICK_MS);
+}
+
+init();
+
+return {  };
+})();
+
+})();
+</script>
+</body>
+</html>

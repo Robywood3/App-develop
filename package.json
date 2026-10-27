@@ -1,0 +1,13 @@
+{
+  "name": "simulatore-ccgt",
+  "version": "1.0.0",
+  "description": "Simulatore di impianto a ciclo combinato (CCGT) in JavaScript puro",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "build": "node scripts/build-single.mjs",
+    "start": "python3 -m http.server 8080"
+  },
+  "license": "MIT"
+}
