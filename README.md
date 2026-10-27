@@ -10,6 +10,10 @@ App per **TV LG webOS** che mostra le telecamere del tuo account EZVIZ, comandat
 - Telecamere extra con un indirizzo HLS locale (go2rtc/Frigate), opzionale
 - Funziona anche con il puntatore del Magic Remote
 
+> **Novità — HA Monitor:** in questo repository c'è anche una seconda app che trasforma la TV in un
+> **monitor di Home Assistant** (dashboard a tutto schermo, riconnessione automatica, comandi dalle
+> automazioni). Guida completa: [HOME-ASSISTANT.md](HOME-ASSISTANT.md).
+
 L'app usa le API ufficiali di **EZVIZ Open Platform**: il video arriva dal cloud EZVIZ come HLS, lo stesso
 percorso dell'app EZVIZ sul telefono. Non serve un server in casa.
 
@@ -137,7 +141,8 @@ app/
   js/player.js     lettore HLS (nativo della TV, oppure hls.js)
   js/app.js        interfaccia e gestione del telecomando
   lib/hls.min.js   hls.js 1.6.15 (licenza Apache 2.0, vedi lib/hls.LICENSE)
-tools/make-icons.py  rigenera icon.png e largeIcon.png
+ha-app/            app HA Monitor (vedi HOME-ASSISTANT.md)
+tools/make-icons.py  rigenera icon.png e largeIcon.png di entrambe le app
 ```
 
 - Il codice è in ES5 senza dipendenze di build, per funzionare anche su webOS 3.x (TV dal 2016).

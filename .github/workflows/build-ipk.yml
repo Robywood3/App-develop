@@ -17,10 +17,15 @@ jobs:
 
       - run: npm ci
 
-      - name: Crea il pacchetto
-        run: npm run package
+      - name: Crea i pacchetti
+        run: npm run package && npm run package:ha
 
       - uses: actions/upload-artifact@v4
         with:
           name: ezviz-tv-ipk
-          path: dist/*.ipk
+          path: dist/com.robywood.ezviztv_*.ipk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ha-monitor-ipk
+          path: dist/com.robywood.hamonitor_*.ipk

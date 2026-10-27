@@ -1,10 +1,10 @@
-"""Genera le icone dell'app (icon.png 80x80, largeIcon.png 130x130). Richiede Pillow."""
+"""Genera le icone delle app (icon.png 80x80, largeIcon.png 130x130). Richiede Pillow."""
 import os
 import sys
 
 from PIL import Image, ImageDraw
 
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'app')
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
 
 def draw_icon(size):
@@ -37,11 +37,44 @@ def draw_icon(size):
     return img.resize((size, size), Image.LANCZOS)
 
 
+def draw_ha_icon(size):
+    s = size * 4
+    img = Image.new('RGBA', (s, s), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    r = s // 5
+    d.rounded_rectangle([0, 0, s - 1, s - 1], radius=r, fill=(17, 24, 38, 255))
+    blue = (3, 169, 244, 255)
+    white = (240, 244, 250, 255)
+    # Casa: tetto e corpo
+    cx = s // 2
+    top, eave, bottom = int(s * 0.16), int(s * 0.46), int(s * 0.84)
+    half_roof, half_body = int(s * 0.36), int(s * 0.27)
+    d.polygon([(cx, top), (cx + half_roof, eave), (cx - half_roof, eave)], fill=blue)
+    d.rectangle([cx - half_body, eave - 2, cx + half_body, bottom], fill=blue)
+    # Circuito stilizzato (come nel logo di Home Assistant)
+    w = max(2, int(s * 0.035))
+    node = int(s * 0.045)
+    base_y, mid_y, low_y = bottom, int(s * 0.47), int(s * 0.60)
+    left = (cx - int(s * 0.12), int(s * 0.53))
+    right = (cx + int(s * 0.12), int(s * 0.43))
+    center = (cx, mid_y - int(s * 0.04))
+    d.line([(cx, base_y), (cx, center[1])], fill=white, width=w)
+    d.line([(cx, low_y + int(s * 0.06)), left], fill=white, width=w)
+    d.line([(cx, low_y), right], fill=white, width=w)
+    for x, y in (left, right, center):
+        d.ellipse([x - node, y - node, x + node, y + node], outline=white, width=w, fill=blue)
+    return img.resize((size, size), Image.LANCZOS)
+
+
+APPS = (('app', draw_icon), ('ha-app', draw_ha_icon))
+
+
 def main():
-    for name, size in (('icon.png', 80), ('largeIcon.png', 130)):
-        path = os.path.join(OUT, name)
-        draw_icon(size).save(path)
-        print('scritto', os.path.normpath(path))
+    for folder, draw in APPS:
+        for name, size in (('icon.png', 80), ('largeIcon.png', 130)):
+            path = os.path.join(ROOT, folder, name)
+            draw(size).save(path)
+            print('scritto', os.path.normpath(path))
 
 
 if __name__ == '__main__':

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HA Monitor</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="stage">
+      <iframe id="dash" title="Home Assistant" allow="autoplay; fullscreen; microphone" allowfullscreen></iframe>
+    </div>
+    <div id="dim" class="hidden"></div>
+
+    <section id="message-screen" class="screen hidden">
+      <div class="brand big"><span class="brand-dot"></span>HA Monitor</div>
+      <div id="message-spinner" class="spinner"></div>
+      <div id="message" class="center-message"></div>
+    </section>
+
+    <div id="dash-spinner" class="spinner hidden"></div>
+
+    <header id="bar" class="faded">
+      <div class="brand"><span class="brand-dot"></span>HA Monitor</div>
+      <div id="bar-title"></div>
+      <div id="bar-badges"></div>
+      <div id="clock"></div>
+    </header>
+
+    <section id="settings-screen" class="screen hidden">
+      <div class="settings-panel">
+        <h1>Impostazioni</h1>
+        <p id="settings-intro" class="settings-intro"></p>
+
+        <div class="field" data-focus="input">
+          <label for="set-url">Indirizzo di Home Assistant (es. http://192.168.1.10:8123)</label>
+          <input id="set-url" type="text" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field" data-focus="input">
+          <label for="set-dashboards">Dashboard da mostrare (percorsi separati da virgola, es. /lovelace/0, /dashboard-tv/camere)</label>
+          <input id="set-dashboards" type="text" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field" data-focus="option" data-key="mode">
+          <label>Modalità</label>
+          <div class="chips">
+            <span class="chip" data-value="frame">Integrata (consigliata)</span>
+            <span class="chip" data-value="direct">Diretta</span>
+          </div>
+        </div>
+        <div class="field" data-focus="option" data-key="kiosk">
+          <label>Nascondi barra e menu di Home Assistant (plugin kiosk-mode)</label>
+          <div class="chips">
+            <span class="chip" data-value="false">No</span>
+            <span class="chip" data-value="true">Sì</span>
+          </div>
+        </div>
+        <div class="field" data-focus="option" data-key="zoom">
+          <label>Ingrandimento</label>
+          <div class="chips">
+            <span class="chip" data-value="1">100%</span>
+            <span class="chip" data-value="1.25">125%</span>
+            <span class="chip" data-value="1.5">150%</span>
+          </div>
+        </div>
+        <div class="field" data-focus="option" data-key="rotateInterval">
+          <label>Rotazione automatica delle dashboard</label>
+          <div class="chips">
+            <span class="chip" data-value="0">No</span>
+            <span class="chip" data-value="30">30 s</span>
+            <span class="chip" data-value="60">1 min</span>
+            <span class="chip" data-value="120">2 min</span>
+            <span class="chip" data-value="300">5 min</span>
+          </div>
+        </div>
+        <div class="field" data-focus="option" data-key="reloadHours">
+          <label>Ricarica la pagina</label>
+          <div class="chips">
+            <span class="chip" data-value="0">Mai</span>
+            <span class="chip" data-value="1">Ogni ora</span>
+            <span class="chip" data-value="6">Ogni 6 ore</span>
+            <span class="chip" data-value="24">Ogni giorno</span>
+          </div>
+        </div>
+        <div class="field" data-focus="option" data-key="nightDim">
+          <label>Oscura lo schermo di notte</label>
+          <div class="chips">
+            <span class="chip" data-value="off">No</span>
+            <span class="chip" data-value="22-7">22–7</span>
+            <span class="chip" data-value="23-7">23–7</span>
+            <span class="chip" data-value="0-7">0–7</span>
+          </div>
+        </div>
+        <div class="field" data-focus="option" data-key="oledShift">
+          <label>Protezione OLED (sposta leggermente l'immagine)</label>
+          <div class="chips">
+            <span class="chip" data-value="false">No</span>
+            <span class="chip" data-value="true">Sì</span>
+          </div>
+        </div>
+        <div class="buttons">
+          <button class="btn primary" data-focus="button" data-action="save">Salva e apri</button>
+          <button class="btn" data-focus="button" data-action="cancel">Annulla</button>
+          <button class="btn danger" data-focus="button" data-action="reset">Cancella dati salvati</button>
+        </div>
+      </div>
+    </section>
+
+    <footer id="hints"></footer>
+    <div id="toast" class="hidden"></div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/tv.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
