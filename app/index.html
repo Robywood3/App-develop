@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EZVIZ TV</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <div class="brand"><span class="brand-dot"></span>EZVIZ TV</div>
+      <div id="status"></div>
+      <div id="clock"></div>
+    </header>
+
+    <main id="grid-screen" class="screen">
+      <div id="grid"></div>
+      <div id="grid-message" class="center-message hidden"></div>
+    </main>
+
+    <section id="live-screen" class="screen hidden">
+      <video id="live-video"></video>
+      <div id="live-spinner" class="spinner hidden"></div>
+      <div id="live-message" class="center-message hidden"></div>
+      <div id="live-overlay">
+        <div class="live-title">
+          <span id="live-dot" class="dot"></span>
+          <span id="live-name"></span>
+          <span id="live-index"></span>
+        </div>
+        <div id="live-badges"></div>
+      </div>
+    </section>
+
+    <section id="settings-screen" class="screen hidden">
+      <div class="settings-panel">
+        <h1>Impostazioni</h1>
+        <p id="settings-intro" class="settings-intro"></p>
+
+        <div class="field" data-focus="option" data-key="region">
+          <label>Regione account EZVIZ</label>
+          <div class="chips">
+            <span class="chip" data-value="eu">Europa / Internazionale</span>
+            <span class="chip" data-value="cn">Cina</span>
+          </div>
+        </div>
+        <div class="field" data-focus="input">
+          <label for="set-appkey">AppKey</label>
+          <input id="set-appkey" type="text" data-key="appKey" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field" data-focus="input">
+          <label for="set-appsecret">AppSecret</label>
+          <input id="set-appsecret" type="text" data-key="appSecret" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field" data-focus="input">
+          <label for="set-token">Access token (facoltativo, al posto di AppKey/AppSecret)</label>
+          <input id="set-token" type="text" data-key="accessToken" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field" data-focus="input">
+          <label for="set-codes">Codici di verifica (SERIALE:CODICE, separati da virgola)</label>
+          <input id="set-codes" type="text" data-key="verificationCodes" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field" data-focus="option" data-key="quality">
+          <label>Qualità video</label>
+          <div class="chips">
+            <span class="chip" data-value="1">HD</span>
+            <span class="chip" data-value="2">Fluido</span>
+          </div>
+        </div>
+        <div class="field" data-focus="option" data-key="snapshotInterval">
+          <label>Aggiorna anteprime</label>
+          <div class="chips">
+            <span class="chip" data-value="0">Mai</span>
+            <span class="chip" data-value="30">30 s</span>
+            <span class="chip" data-value="60">1 min</span>
+            <span class="chip" data-value="120">2 min</span>
+            <span class="chip" data-value="300">5 min</span>
+          </div>
+        </div>
+        <div class="field" data-focus="option" data-key="tourInterval">
+          <label>Durata per telecamera in Sequenza</label>
+          <div class="chips">
+            <span class="chip" data-value="10">10 s</span>
+            <span class="chip" data-value="20">20 s</span>
+            <span class="chip" data-value="30">30 s</span>
+            <span class="chip" data-value="60">1 min</span>
+          </div>
+        </div>
+        <div class="field" data-focus="option" data-key="liveGrid">
+          <label>Griglia con video dal vivo</label>
+          <div class="chips">
+            <span class="chip" data-value="false">No (anteprime)</span>
+            <span class="chip" data-value="true">Sì</span>
+          </div>
+        </div>
+        <div class="buttons">
+          <button class="btn primary" data-focus="button" data-action="save">Salva e connetti</button>
+          <button class="btn" data-focus="button" data-action="cancel">Annulla</button>
+          <button class="btn danger" data-focus="button" data-action="reset">Cancella dati salvati</button>
+        </div>
+      </div>
+    </section>
+
+    <footer id="hints"></footer>
+    <div id="toast" class="hidden"></div>
+  </div>
+
+  <script src="lib/hls.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/ezviz.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

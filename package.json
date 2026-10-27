@@ -1,0 +1,17 @@
+{
+  "name": "ezviz-tv",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App per TV LG webOS per vedere le telecamere EZVIZ",
+  "scripts": {
+    "package": "ares-package app -o dist",
+    "install-tv": "ares-install -d tv dist/com.robywood.ezviztv_1.0.0_all.ipk",
+    "launch": "ares-launch -d tv com.robywood.ezviztv",
+    "deploy": "npm run package && npm run install-tv && npm run launch",
+    "inspect": "ares-inspect -d tv --app com.robywood.ezviztv",
+    "icons": "python3 tools/make-icons.py"
+  },
+  "devDependencies": {
+    "@webos-tools/cli": "^3.2.6"
+  }
+}
