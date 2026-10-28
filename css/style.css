@@ -471,6 +471,15 @@ table.data tr.grp td { font-family: var(--font-display); font-weight: 600; text-
 .bal-val { font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; font-size: 12.5px; }
 .bal-row.total { font-weight: 600; border-top: 1px solid var(--line); padding-top: 8px; }
 
+/* utilities e ausiliari */
+.ut-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.ut-card { border: 1px solid var(--line-soft); border-radius: 6px; padding: 10px 12px; background: var(--surface-2); }
+.ut-card h3, .ut-h { font-family: var(--font-display); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0 0 8px; }
+.ut-h { margin: 6px 0 10px; }
+.ut-card dl { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; margin: 0; font-size: 12.5px; }
+.ut-card dt { color: var(--fg); }
+.ut-card dd { margin: 0; text-align: right; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
 /* documentazione di ingegneria */
 .docs {
   background: var(--surface);
@@ -504,7 +513,7 @@ table.data tr.grp td { font-family: var(--font-display); font-weight: 600; text-
   width: 100%; border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--r); padding: 5px 8px; font-size: 13px;
 }
 .docs-body { display: grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); gap: 14px; align-items: start; }
-.docs-list { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.docs-list { display: flex; flex-direction: column; gap: 2px; min-width: 0; max-height: min(900px, 85vh); overflow-y: auto; padding-right: 4px; position: sticky; top: 64px; align-self: start; }
 .docs-list .grp {
   font-family: var(--font-display); font-weight: 600; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--muted); padding: 8px 8px 2px;
@@ -534,7 +543,7 @@ table.data tr.grp td { font-family: var(--font-display); font-weight: 600; text-
 .docs-paper svg { display: block; height: auto; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); background: #ffffff; margin: 0 auto; }
 @media (max-width: 860px) {
   .docs-body { grid-template-columns: 1fr; }
-  .docs-list { flex-direction: row; flex-wrap: wrap; }
+  .docs-list { flex-direction: row; flex-wrap: wrap; max-height: 260px; position: static; }
   .docs-list .grp { width: 100%; }
 }
 

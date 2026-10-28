@@ -2,6 +2,7 @@
 // curve di prestazione, trend, tabelle delle correnti e bilancio energetico.
 
 import { drawChart } from './charts.js';
+import { utilitiesBalance } from '../engine/utilities.js';
 import { fmt } from './format.js';
 import { bankColumns, steamStreams } from './mimic.js';
 import { satP, psat, propsPT, propsPH, hPS, P_MAX_BAR } from '../engine/steam.js';
@@ -298,3 +299,46 @@ export function renderBalance(box, r) {
   html += `<div class="bal-row total"><span>Potenza netta</span><div class="bal-bar"><span style="width:${(r.eta * 100).toFixed(2)}%;background:var(--accent)"></span></div><span class="bal-val">${fmt(r.net, 1)} MW · ${fmt(r.eta * 100, 2)} %</span></div>`;
   box.innerHTML = html;
 }
+
+// ------------------------------------------------------------------ utilities e ausiliari
+export function renderUtilities(box, r, cfg, des) {
+  if (!r || !r.online) {
+    box.innerHTML = '<p class="muted">Impianto fermo: consumi di utilities non calcolati.</p>';
+    return;
+  }
+  const U = utilitiesBalance(cfg, des, r);
+  const card = (title, rows) => `<div class="ut-card"><h3>${title}</h3><dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></div>`;
+  const c = U.cooling;
+  const cards = [];
+  cards.push(card(c.type === 'torre' ? 'Torre di raffreddamento' : 'Aerocondensatore', c.type === 'torre' ? [
+    ['Calore scaricato', `${fmt(c.Qcond, 1)} MW`], ['Acqua di circolazione', `${fmt(c.cwM3h, 0)} m³/h`], ['Temperature', `${fmt(c.Tin, 1)} → ${fmt(c.Tout, 1)} °C`],
+    ['Evaporazione', `${fmt(c.evapM3h, 0)} m³/h`], ['Spurgo', `${fmt(c.blowdownM3h, 0)} m³/h (COC ${c.coc})`], ['Reintegro', `${fmt(c.makeupM3h, 0)} m³/h`],
+    ['Ipoclorito / antincrostante', `${fmt(c.hypo, 1)} / ${fmt(c.antiscalant, 1)} kg/h`],
+  ] : [['Calore scaricato', `${fmt(c.Qcond, 1)} MW`], ['Aria ambiente', `${fmt(c.Tair, 1)} °C`], ['Consumo di acqua', 'nessuno']]));
+  cards.push(card('Ciclo chiuso', [
+    ['Carico termico', `${fmt(U.ccw.kW, 0)} kW`], ['Portata', `${fmt(U.ccw.m3h, 0)} m³/h`], ['Mandata / ritorno', `${fmt(U.ccw.Tsupply, 0)} / ${fmt(U.ccw.Treturn, 0)} °C`],
+    ...U.ccw.users.filter((u) => u.kW > 0).sort((a, b) => b.kW - a.kW).slice(0, 4).map((u) => [u.name, `${fmt(u.kW, 0)} kW`]),
+  ]));
+  const d = U.demi;
+  cards.push(card('Acqua', [
+    ['Acqua grezza', `${fmt(U.rawWaterM3h, 0)} m³/h`], ['Acqua demi (media)', `${fmt(d.demiM3h, 1)} m³/h`], ['Reintegro ciclo', `${fmt((d.cycleMakeup * 3600) / 998, 2)} m³/h`],
+    ['Spurgo continuo GVR', `${fmt((d.hrsgBD * 3600) / 998, 2)} m³/h`], ['Concentrati RO/EDI', `${fmt(((d.roReject + d.ediReject) * 3600) / 998, 2)} m³/h`], ['Acque reflue', `${fmt(U.ww.totalM3h, 1)} m³/h`],
+  ]));
+  cards.push(card('Gas naturale', [
+    ['Portata', `${fmt(U.gas.Sm3h, 0)} Sm³/h`], ['PCI / PCS', `${fmt(U.gas.lhvMJSm3, 2)} / ${fmt(U.gas.hhvMJSm3, 2)} MJ/Sm³`], ['Riduzione', `${fmt(U.gas.pIn, 0)} → ${fmt(U.gas.pOut, 1)} bar`],
+    ['Preriscaldo stazione', `${fmt(U.gas.heaterKW, 0)} kW (a ${fmt(U.gas.preheatT, 0)} °C)`], ['Riscaldatori di prestazione', `${fmt(U.gas.perfHeaterKW, 0)} kW`],
+  ]));
+  cards.push(card('Aria compressa e gas tecnici', [
+    ['Aria strumenti / servizi', `${fmt(U.air.instrument, 0)} / ${fmt(U.air.service, 0)} Nm³/h`], ['Compressori', `2 × ${fmt(U.air.compressorNm3h, 0)} Nm³/h`],
+    ['Azoto in esercizio', `${fmt(U.gases.n2Nm3d, 0)} Nm³/giorno`], ['Idrogeno generatori', `${fmt(U.gases.h2Nm3d, 0)} Nm³/giorno`],
+  ]));
+  cards.push(card('Vapore ausiliario e chimici', [
+    ['Alimentazione collettore', U.auxSteam.source], ['Vapore tenute TV', `${fmt(U.auxSteam.gland * 3.6, 1)} t/h`], ['Caldaia ausiliaria', `${fmt(U.auxSteam.boilerCapacity * 3.6, 0)} t/h`],
+    ['Ammoniaca', `${fmt(U.chem.ammonia, 2)} kg/h`], ['Deossigenante', `${fmt(U.chem.scavenger * 1000, 0)} g/h`],
+  ]));
+  const tot = U.breakdown.reduce((a, b) => a + b.MW, 0) || 1;
+  const cols = ['--hp', '--water', '--gas', '--ip', '--muted'];
+  const bars = U.breakdown.map((b, i) => `<div class="bal-row"><span>${b.name}</span><div class="bal-bar"><span style="width:${((b.MW / tot) * 100).toFixed(2)}%;background:var(${cols[i % cols.length]})"></span></div><span class="bal-val">${fmt(b.MW, 2)} MW · ${fmt((b.MW / tot) * 100, 1)} %</span></div>`).join('');
+  box.innerHTML = `<div class="ut-grid">${cards.join('')}</div><h3 class="ut-h">Potenza ausiliaria per sistema · totale ${fmt(tot, 2)} MW</h3><div class="balance">${bars}</div>`;
+}
+

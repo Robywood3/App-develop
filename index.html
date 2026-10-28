@@ -286,6 +286,7 @@
       <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-trend" id="tv-trend">Trend</button>
       <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-streams" id="tv-streams">Correnti</button>
       <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-balance" id="tv-balance">Bilancio energetico</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-view="v-util" id="tv-util">Utilities e ausiliari</button>
     </div>
 
     <div class="view" id="v-tq" role="tabpanel" aria-labelledby="tv-tq">
@@ -332,13 +333,18 @@
       <div class="view-head"><p>Destinazione dell'energia del combustibile (PCI). Le perdite al camino sono riferite all'aria ambiente.</p></div>
       <div class="balance" id="balance"></div>
     </div>
+
+    <div class="view" id="v-util" role="tabpanel" aria-labelledby="tv-util" hidden>
+      <div class="view-head"><p>Consumi di utilities e sistemi ausiliari al punto di funzionamento corrente: raffreddamento, ciclo chiuso, acqua, gas, aria compressa, vapore ausiliario e ripartizione della potenza ausiliaria.</p></div>
+      <div id="utilities"></div>
+    </div>
   </section>
 
   <section class="docs" id="docs" aria-label="Documentazione di ingegneria">
     <div class="docs-head">
       <div class="docs-intro">
         <h2>Documentazione di ingegneria</h2>
-        <p>Elaborati generati dal punto di progetto ISO della configurazione impostata nella scheda Progetto: PFD con bilancio di massa ed energia, P&amp;ID, line list, equipment list, load list, schemi unifilari, plot plan, vista isometrica e isometrico di linea. Si aggiornano a ogni modifica del progetto.</p>
+        <p>Elaborati generati dal punto di progetto ISO della configurazione impostata nella scheda Progetto: PFD con bilancio di massa ed energia e casi di funzionamento, P&amp;ID di processo e delle utilities, line list, valve list, instrument list, equipment list, load list, consumi utilities, schemi unifilari, plot plan, vista isometrica e isometrico di linea. Si aggiornano a ogni modifica del progetto.</p>
       </div>
       <div class="docs-actions">
         <button type="button" class="btn btn-primary" id="btn-pkg">Scarica pacchetto PDF</button>

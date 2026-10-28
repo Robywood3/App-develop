@@ -6,6 +6,8 @@
 
 import { plantPoint, defaultOperation, ISO, GT_PRESETS } from '../engine/plant.js';
 import { propsPT, propsPH, satP, Tsat } from '../engine/steam.js';
+import { utilitiesBalance } from '../engine/utilities.js';
+import { utilityLines, utilityLoads, utilityEquipment, vGas } from './utilities-eng.js';
 
 const G = 9.81;
 
@@ -26,6 +28,8 @@ export const MATERIALS = {
   C: { name: 'ASTM A335 P91', short: 'A335 P91', S: [[0, 163], [400, 149], [450, 141], [500, 126], [540, 103], [565, 83], [595, 63], [610, 55]], c: 1.0, group: 'P91' },
   G: { name: 'API 5L X52 PSL2', short: 'API 5L X52', S: [[0, 172], [120, 172]], c: 1.5, group: 'CS' },
   W: { name: 'ASTM A672 / acciaio al carbonio elicoidale', short: 'A672 CS', S: [[0, 120], [60, 120]], c: 3.0, group: 'CS' },
+  S: { name: 'ASTM A312 TP316L', short: 'A312 316L', S: [[0, 115], [200, 108], [400, 92]], c: 0, group: 'SS' },
+  P: { name: 'HDPE PE100', short: 'PE100', S: [[0, 8], [40, 6.3]], c: 0, group: 'PE' },
 };
 
 // Pressione ammissibile [bar] della classe 300 (ASME B16.34) per gruppo di materiale
@@ -33,6 +37,7 @@ const RATING300 = {
   CS: [[38, 51.1], [100, 46.6], [200, 43.8], [300, 39.8], [350, 37.6], [400, 34.7], [425, 28.8]],
   P22: [[38, 51.7], [200, 49.6], [300, 46.3], [400, 40.3], [450, 33.7], [500, 26.0], [538, 17.9], [565, 12.4]],
   P91: [[38, 51.7], [200, 47.8], [300, 44.6], [400, 40.6], [450, 37.4], [500, 34.5], [538, 30.7], [565, 26.9], [593, 20.3], [610, 16.2]],
+  SS: [[38, 49.6], [100, 42.2], [200, 35.7], [300, 31.6], [400, 29.4]],
 };
 const CLASSES = [[150, 'A'], [300, 'B'], [600, 'C'], [900, 'D'], [1500, 'E'], [2500, 'F']];
 
@@ -48,17 +53,20 @@ function interp(tbl, x) {
 }
 
 function ratingClass(group, pBarG, T) {
+  if (group === 'PE') return { cls: 10, code: 'P', label: 'PN 10' };
   const r300 = interp(RATING300[group], T);
   for (const [cls, code] of CLASSES) {
     const r = cls === 150 ? r300 / 2.6 : (r300 * cls) / 300;
-    if (r >= pBarG) return { cls, code };
+    if (r >= pBarG) return { cls, code, label: `${cls}#` };
   }
-  return { cls: 4500, code: 'G' };
+  return { cls: 4500, code: 'G', label: '4500#' };
 }
 
 function materialFor(service, T) {
   if (service === 'gas') return 'G';
   if (service === 'cw') return 'W';
+  if (service === 'demin' || service === 'chem' || service === 'tgas' || service === 'sample') return 'S';
+  if (service === 'ww') return 'P';
   if (T > 545) return 'C';
   if (T > 425) return 'B';
   return 'A';
@@ -90,7 +98,9 @@ export function sizeLine({ m, v, velMax, pOp, Top, service = 'steam', pDes = nul
   const Q = m * v; // m3/s
   const pick = (DN, OD) => {
     const tmin = (P * OD) / (2 * (S + P * y)) + M.c;
-    const tnom = Math.round(Math.max(roundUp(tmin / 0.875, 0.1), service === 'cw' ? 10 : DN >= 600 ? 9.5 : 3) * 10) / 10;
+    const tmin0 = mat === 'P' ? (P * OD) / (2 * S + P) : tmin;
+    const tnomMin = service === 'cw' ? 10 : mat === 'P' ? 3 : mat === 'S' ? 2 : DN >= 600 ? 9.5 : 3;
+    const tnom = Math.round(Math.max(roundUp(tmin0 / 0.875, 0.1), tnomMin) * 10) / 10;
     const ID = OD - 2 * tnom;
     const vel = Q / ((Math.PI / 4) * (ID / 1000) ** 2);
     return { DN, OD, tmin, tnom, ID, vel };
@@ -111,7 +121,7 @@ export function sizeLine({ m, v, velMax, pOp, Top, service = 'steam', pDes = nul
   const ins = insulationFor(Top);
   return {
     ...sel, pDes: pD, TDes: TD, mat, material: M.name, matShort: M.short, S, cls: rc.cls,
-    spec: `${mat}${rc.code}`, ins, test: roundUp((pD - 1.013) * 1.5, 0.5),
+    spec: `${mat}${rc.code}`, clsLabel: rc.label, ins, test: roundUp((pD - 1.013) * 1.5, 0.5),
   };
 }
 
@@ -166,6 +176,8 @@ export function engineeringModel(cfg, des, meta) {
   const cond = cfg.steam.condenser;
   const gtClass = cfg.gtName.replace(/\s*\(.*\)/, '');
   const units = Array.from({ length: N }, (_, i) => i + 1);
+  const water = cond.type === 'water';
+  const U = utilitiesBalance(cfg, des, r);
 
   // ---------------------------------------------------------------- correnti (PFD / H&MB)
   const streams = [];
@@ -235,7 +247,26 @@ export function engineeringModel(cfg, des, meta) {
     L(`FW-${u}`, u, 'FW', 'water', `${kks(u, 'LAC', 10)} pompe alimento`, `${kks(u, 'HAC', 10)} ingresso ECO HP`, bt.mLevels[0], pFWhp, bt.TsubLP + 2, 3.0, null, 'LAB');
     L(`FWS-${u}`, u, 'FW', 'water', `${kks(u, 'HAD', 10 * n)} corpo LP`, `${kks(u, 'LAC', 10)} aspirazione pompe`, bt.mLevels.slice(0, lowest).reduce((a, b) => a + b, 0) || bt.mLevels[0], bt.pDrum[lowest] + 0.5, bt.Tsat[lowest], 1.2, null, 'LAB');
     if (reheat) L(`FWIP-${u}`, u, 'FW', 'water', `${kks(u, 'LAC', 10)} spillamento IP`, `${kks(u, 'HAC', 20)} ingresso ECO IP`, bt.mLevels[1], bt.pDrum[1] * 1.15, bt.TsubLP + 1, 3.0, null, 'LAB');
-    L(`SPR-${u}`, u, 'SW', 'water', `${kks(u, 'LAC', 10)} spillamento`, 'Desurriscaldatori HP/RH', bt.mLevels[0] * 0.05, pFWhp, bt.TsubLP + 2, 3.0, null, 'LAE');
+    L(`SPH-${u}`, u, 'SP', 'water', `${kks(u, 'LAC', 10)} spillamento`, `${kks(u, 'LAE', 10)} desurriscaldatore HP`, bt.mLevels[0] * 0.05, pFWhp, bt.TsubLP + 2, 3.0, null, 'LAE');
+    if (reheat) L(`SPRH-${u}`, u, 'SP', 'water', `${kks(u, 'LAC', 10)} spillamento IP`, `${kks(u, 'LAF', 10)} desurriscaldatore RH`, bt.sections[1].m / N * 0.04, bt.pDrum[1] * 1.15, bt.TsubLP + 1, 3.0, null, 'LAF');
+    L(`SPB-${u}`, u, 'SP', 'water', `${kks(u, 'LAC', 10)} spillamento`, `${kks(u, 'MAN', 10)} desurriscaldatore bypass HP`, bt.mLevels[0] * 0.15, pFWhp, bt.TsubLP + 2, 3.0, null, 'LAE');
+    L(`VEH-${u}`, u, 'VE', 'steam', `${kks(u, 'HAD', 10)} sfiato corpo HP`, 'Atmosfera', bt.mLevels[0] * 0.02, bt.pDrum[0], bt.Tsat[0] + 1, 40, propsPT(bt.pDrum[0], bt.Tsat[0] + 1).v, 'HAD');
+    L(`SUV-${u}`, u, 'VE', 'steam', 'Linea vapore HP', `${kks(u, 'LBA', 90)} silenziatore sfiato avviamento`, bt.mLevels[0] * 0.3, bt.pAdm[0], bt.Tsh[0], 60, null, 'LBA');
+    L(`DRH-${u}`, u, 'DR', 'water', `${kks(u, 'HAH', 10)} drenaggi SH HP`, `${kks(u, 'HAN', 20)} collettore drenaggi`, bt.mLevels[0] * 0.02, bt.pAdm[0], bt.Tsat[0], 2.0, satP(bt.pAdm[0]).vL, 'HAH');
+    L(`IBD-${u}`, u, 'BD', 'water', `${kks(u, 'HAD', 10)} spurgo intermittente HP`, `${kks(u, 'HAN', 10)} serbatoio spurghi`, bt.mLevels[0] * 0.03, bt.pDrum[0], bt.Tsat[0], 2.0, satP(bt.pDrum[0]).vL, 'HAN');
+    for (let k = 1; k < n; k++) L(`CBD-${names[k]}-${u}`, u, 'BD', 'water', `${kks(u, 'HAD', (k + 1) * 10)} corpo ${names[k]}`, `${kks(u, 'HAN', 10)} serbatoio spurghi`, Math.max(0.05, bt.mLevels[k] * 0.01), bt.pDrum[k], bt.Tsat[k], 2.0, satP(bt.pDrum[k]).vL, 'HAN');
+    L(`PREO-${u}`, u, 'CD', 'water', `${kks(u, 'HAC', 31)} uscita preriscaldatore`, `${kks(u, 'HAD', 10 * n)} corpo ${names[lowest]}`, bt.mLevels.reduce((a, b) => a + b, 0), bt.pDrum[lowest] * 1.2, bt.TsubLP, 2.5, null, 'LCA');
+    L(`PRER-${u}`, u, 'CD', 'water', `${kks(u, 'HAC', 30)} pompe ricircolo`, `${kks(u, 'HAC', 31)} ingresso preriscaldatore`, bt.mLevels.reduce((a, b) => a + b, 0) * 0.35, bt.pDrum[lowest] * 1.3, bt.TsubLP, 2.0, null, 'HAC');
+    if (reheat) L(`RHBP-${u}`, u, 'BP', 'steam', 'Linea RH caldo', `${kks(0, 'MAG', 10)} condensatore (bypass RH ${kks(u, 'MAN', 20)})`, bt.sections[1].m / N, bt.pRHout, bt.Trh, 55, null, 'MAN');
+    if (n > 1) L(`LPBP-${u}`, u, 'BP', 'steam', 'Linea vapore LP', `${kks(0, 'MAG', 10)} condensatore (bypass LP ${kks(u, 'MAN', 30)})`, bt.mLevels[lowest], bt.pAdm[lowest], bt.Tsh[lowest], 50, null, 'MAN');
+    L(`MIN-${u}`, u, 'FW', 'water', `${kks(u, 'LAC', 10)} ricircolo minima portata`, `${kks(u, 'HAD', 10 * n)} corpo ${names[lowest]}`, bt.mLevels[0] * 0.25, pFWhp, bt.TsubLP + 2, 3.0, null, 'LAC');
+    L(`FGH-${u}`, u, 'FW', 'water', `${reheat ? kks(u, 'HAC', 20) + ' uscita ECO IP' : kks(u, 'HAC', 10) + ' uscita ECO'}`, `${kks(u, 'EKG', 10)} riscaldatore gas`, Math.max(2, (gt.mFuel * 2.35 * (cfg.gt.Tfuel - 5)) / (4.4 * 50)), reheat ? bt.pDrum[1] * 1.1 : pFWhp * 0.95, Math.min(cfg.gt.Tfuel + 30, bt.Tsat[reheat ? 1 : 0] - 5), 2.5, null, 'EKG');
+    const mLO = 8 + 0.07 * des.gtRef.Piso;
+    L(`LOS-${u}`, u, 'LO', 'oil', `${kks(u, 'MBV', 10)} centralina olio`, 'Cuscinetti TG e generatore (mandata)', mLO, 2.8, 50, 1.8, 1 / 870, 'MBV', { pDes: 10, TDes: 80 });
+    L(`LOR-${u}`, u, 'LO', 'oil', 'Cuscinetti TG e generatore (ritorno)', `${kks(u, 'MBV', 10)} serbatoio olio`, mLO, 1.1, 70, 0.6, 1 / 870, 'MBV', { pDes: 4, TDes: 100 });
+    L(`JO-${u}`, u, 'LO', 'oil', `${kks(u, 'MBV', 20)} pompa olio sollevamento`, 'Cuscinetti TG e generatore (sollevamento)', 1.2, 150, 50, 3.0, 1 / 870, 'MBV', { pDes: 200, TDes: 80 });
+    L(`IBH-${u}`, u, 'IA', 'air', 'Mandata compressore TG', `${kks(u, 'MBL', 20)} riscaldamento aria aspirata`, gt.mAir * 0.02, gt.p2, gt.T2, 30, vGas(28.96, gt.p2, gt.T2), 'MBL');
+    L(`CWW-${u}`, u, 'DM', 'demin', '0GHC10 collettore acqua demi', `${kks(u, 'MBU', 10)} lavaggio compressore`, 1.5, 6, 20, 1.5, 1 / 998, 'MBU', { pDes: 10, TDes: 80 });
     L(`CD-${u}`, u, 'CD', 'water', hdr ? 'Collettore condensato' : '0LCB10 pompe condensato', `${kks(u, 'HAC', 30)} preriscaldatore`, bt.mLevels.reduce((a, b) => a + b, 0), bt.pDrum[lowest] * 1.25 + 1, bt.TCondOut, 2.0, null, 'LCA');
     L(`HPB-${u}`, u, 'BP', 'steam', 'Linea vapore HP', reheat ? `Linea RH freddo (bypass HP ${kks(u, 'MAN', 10)})` : `Condensatore (bypass ${kks(u, 'MAN', 10)})`, bt.mLevels[0], bt.pAdm[0], bt.Tsh[0], 50, null, 'MAN');
     L(`BD-${u}`, u, 'BD', 'water', `${kks(u, 'HAD', 10)} corpo HP`, `${kks(u, 'HAN', 10)} serbatoio spurghi`, bt.mLevels[0] * 0.01, bt.pDrum[0], bt.Tsat[0], 2.0, null, 'HAN');
@@ -250,6 +281,17 @@ export function engineeringModel(cfg, des, meta) {
     L('CD-H', 0, 'CD', 'water', '0LCB10 pompe condensato', 'Collettore condensato', bt.mSteamTot, bt.pDrum[lowest] * 1.25 + 1, bt.TCondOut, 2.0, null, 'LCA');
   }
   L('CDS', 0, 'CD', 'water', '0MAG10 pozzo caldo', '0LCB10 aspirazione pompe', bt.mSteamTot, bt.pCond + 0.3, bt.Tcond - 0.5, 1.0, null, 'LCA', { pDes: 4, TDes: 80 });
+  L('CDR', 0, 'CD', 'water', '0LCB10 ricircolo minima portata', '0MAG10 condensatore', bt.mSteamTot * 0.3, bt.pDrum[lowest] * 1.25 + 1, bt.TCondOut, 2.0, null, 'LCA');
+  L('MUC', 0, 'DM', 'demin', '0GHC10 collettore acqua demi', '0MAG10 reintegro condensatore', Math.max(2, U.demi.cycleMakeup * 3), 5, 20, 1.5, 1 / 998, 'GHC', { pDes: 10, TDes: 50 });
+  L('GS', 0, 'GS', 'steam', 'Collettore vapore ausiliario', 'Tenute TV (alimentazione)', U.auxSteam.gland, 4, 220, 30, propsPT(4, 220).v, 'MAW');
+  L('GSL', 0, 'GS', 'steam', 'Tenute TV (fughe)', '0MAW10 condensatore vapore tenute', U.auxSteam.gland * 1.2, 0.97, 110, 25, propsPT(0.97, 110).v, 'MAW', { pDes: 3.5, TDes: 150 });
+  L('VAC', 0, 'VE', 'cw', '0MAG10 estrazione incondensabili', '0MAJ10 pompe del vuoto', 0.3, bt.pCond, bt.Tcond - 3, 60, vGas(22, bt.pCond, bt.Tcond - 3), 'MAJ', { pDes: 3.5, TDes: 80 });
+  L('DRT', 0, 'DR', 'water', 'Drenaggi TV e linee vapore', '0MAG10 cassa di espansione drenaggi', 1.5, 2, 120, 1.5, propsPT(2, 110).v, 'MAL', { pDes: 10, TDes: 300 });
+  const mLOst = 6 + 0.06 * r.Pst;
+  L('LOS-ST', 0, 'LO', 'oil', '0MAV10 centralina olio TV', 'Cuscinetti TV e generatore (mandata)', mLOst, 2.8, 50, 1.8, 1 / 870, 'MAV', { pDes: 10, TDes: 80 });
+  L('LOR-ST', 0, 'LO', 'oil', 'Cuscinetti TV e generatore (ritorno)', '0MAV10 serbatoio olio', mLOst, 1.1, 70, 0.6, 1 / 870, 'MAV', { pDes: 4, TDes: 100 });
+  L('JO-ST', 0, 'LO', 'oil', '0MAV20 pompa olio sollevamento', 'Cuscinetti TV (sollevamento)', 1, 150, 50, 3.0, 1 / 870, 'MAV', { pDes: 200, TDes: 80 });
+  L('AS-CRH', 0, 'AS', 'steam', reheat ? 'Linea RH freddo' : 'Linea vapore HP', '0QHB10 collettore vapore ausiliario', U.auxSteam.boilerCapacity, reheat ? bt.pAdm[1] : bt.pAdm[0], reheat ? bt.sections[0].Tout : bt.Tsh[0], 40, null, 'QHB');
   const exhV = propsPH(bt.pCond, lastSec.ueep).v;
   if (cond.type === 'air') {
     L('ED', 0, 'ED', 'cw', '0MAC10 scarico LP', '0MAG10 aerocondensatore', lastSec.m, bt.pCond, bt.Tcond, 75, exhV, 'MAG', { pDes: 3.5, TDes: 120 });
@@ -257,6 +299,7 @@ export function engineeringModel(cfg, des, meta) {
     L('CWS', 0, 'CW', 'cw', '0PAC10 pompe circolazione', '0MAG10 ingresso condensatore', des.mcw, 2.5, op.Tcw, 2.5, 0.001, 'PAB', { pDes: 4.5, TDes: 50 });
     L('CWR', 0, 'CW', 'cw', '0MAG10 uscita condensatore', '0PAE10 torre di raffreddamento', des.mcw, 1.8, op.Tcw + dTcwOp, 2.5, 0.001, 'PAB', { pDes: 4.5, TDes: 50 });
   }
+  utilityLines({ L, U, cfg, des, N, units, pFG, fuel, bt, water });
   const lineById = Object.fromEntries(lines.map((l) => [l.id, l]));
 
   // ---------------------------------------------------------------- elettrico: generatori
@@ -338,14 +381,8 @@ export function engineeringModel(cfg, des, meta) {
   addLoad(kks(0, 'MAJ', 10, 'AP', 1), 'Pompa del vuoto condensatore (A/B)', 2, 1, 55 + des.QcondD * 0.12, 'C');
   addLoad(kks(0, 'MAW', 10, 'AN', 1), 'Estrattore vapore tenute (A/B)', 2, 1, 11, 'C');
   addLoad(kks(0, 'MAX', 10, 'AP', 1), 'Centralina olio regolazione TV (A/B)', 2, 1, 22, 'C');
-  // BoP
-  const qCCW = r.gross * 1000 * 0.006; // kW termici ausiliari
-  addLoad(kks(0, 'PGB', 10, 'AP', 1), 'Pompa acqua raffreddamento ciclo chiuso (A/B)', 2, 1, (qCCW / (4.18 * 8)) * 9.81 * 40 / 0.78 / 1000 * 1.2 + 20, 'C');
-  addLoad(kks(0, 'PGC', 10, 'AN', 1), 'Ventilatori aerotermi ciclo chiuso', 6, 5, (qCCW * 0.02) / 5 + 7, 'C');
-  addLoad(kks(0, 'SCA', 10, 'AN', 1), 'Compressore aria strumenti e servizi (A/B)', 2, 1, 110 + N * 30, 'C');
-  addLoad(kks(0, 'GCF', 10, 'AP', 1), 'Impianto produzione acqua demineralizzata', 1, 1, 90 + N * 20, 'C');
-  addLoad(kks(0, 'GHC', 10, 'AP', 1), 'Pompa trasferimento acqua demi (A/B)', 2, 1, 22, 'I');
-  addLoad(kks(0, 'QCA', 10, 'AP', 1), 'Dosaggio chimico ciclo (fosfati, ammine, O2)', 6, 3, 2.2, 'C');
+  // utilities e servizi
+  utilityLoads({ addLoad, kks, U, N, water, r });
   addLoad(kks(0, 'SGA', 10, 'AP', 1), 'Pompa antincendio elettrica', 1, 1, 160 + N * 40, 'S', { kV: MV });
   addLoad(kks(0, 'SGA', 10, 'AP', 3), 'Pompa antincendio di pressurizzazione (jockey)', 1, 1, 11, 'I');
   addLoad(kks(0, 'EKA', 10, 'AH', 1), 'Riscaldatore elettrico gas (avviamento)', 1, 1, 200 + N * 60, 'I', { pf: 1, eff: 0.99, kV: 0.4 });
@@ -474,16 +511,10 @@ export function engineeringModel(cfg, des, meta) {
   E('0MAJ10AP001/002', 'Pompe del vuoto ad anello liquido', '2 (2×100 %)', 'Con separatore e refrigerante', 'Mantenimento vuoto ed evacuazione all\'avviamento', '', '', '', loadKW(kks(0, 'MAJ', 10, 'AP', 1)));
   E('0MAW10', 'Condensatore vapore tenute', '1', 'Fascio tubiero, estrattori 2×100 %', 'Lato acqua: condensato principale', '', '', 'CS / inox');
 
-  eq.push({ group: 'Sistemi ausiliari (BoP)' });
-  E('0EKA10', 'Stazione di ricevimento e riduzione gas', '1', 'Filtrazione, misura fiscale, riduzione 2×100 %, preriscaldo', `Portata ${f0((gt.mFuel * N * 3600) / 0.74)} Sm³/h · uscita ${f1(pFG)} bar`, '75', '60', 'API 5L X52');
-  E('0PGB10', 'Circuito acqua di raffreddamento chiuso', '1', 'Pompe 2×100 %, aerotermi, vaso di espansione', `Calore ausiliari ~${f1(qCCW / 1000)} MW`, '10', '60', 'CS');
-  E('0SCA10AN001/002', 'Compressori aria strumenti e servizi', '2 (2×100 %)', 'A vite oil-free, essiccatori', '~1200 Nm³/h a 8 bar', '10', '60', '', loadKW(kks(0, 'SCA', 10, 'AN', 1)));
-  E('0GCF10', 'Impianto acqua demineralizzata', '1', 'Osmosi inversa + EDI', `~${f0(bt.mSteamTot * 0.02 * 3.6 + 10)} m³/h`, '', '', '', loadKW(kks(0, 'GCF', 10, 'AP', 1)));
-  E('0GHC10BB001', 'Serbatoio acqua demineralizzata', '1', 'Cilindrico verticale a tetto fisso', `${f0(roundUp(bt.mSteamTot * 3.6 * 4, 100))} m³`, 'Atm.', '50', 'Inox AISI 304L');
-  E('0SGA10', 'Stazione pompe antincendio', '1', 'Elettrica + diesel + jockey (UNI EN 12845 / NFPA 20)', 'Serbatoio riserva idrica dedicato', '', '', '', loadKW(kks(0, 'SGA', 10, 'AP', 1)));
-  E('0XJA10', 'Generatore diesel di emergenza', '1', 'Avviamento automatico, 400 V', `${f0(electrical.edgKVA)} kVA`);
+  utilityEquipment({ E, eq, U, N, water, f0, f1, loadKW, kks, des, pFG, ctCells, accCells, bt });
 
   eq.push({ group: 'Sistema elettrico' });
+  E('0XJA10', 'Generatore diesel di emergenza', '1', 'Avviamento automatico, 400 V', `${f0(electrical.edgKVA)} kVA`);
   for (const t of gsu) E(t.tag, `Trasformatore elevatore ${t.gen.startsWith('0') ? 'TV' : 'TG' + t.gen[0]}`, '1', 'ONAN/ONAF, YNd11', `${f0(t.MVA)} MVA · ${t.ratio} · ucc ${t.uk} %`, '', '', 'Olio minerale');
   for (const g of gens) E(g.tag.replace('MKA', 'BAC'), `Interruttore di generatore ${g.name.replace('Generatore ', '')}`, '1', 'SF6 / vuoto in condotto a fasi isolate', `${String(g.kV).replace('.', ',')} kV · In ≥ ${f0((g.MVA * 1000) / (Math.sqrt(3) * g.kV) * 1.1)} A`);
   for (const u of uats) E(u.tag, 'Trasformatore servizi di unità', '1', 'ONAN, Dyn1', `${String(u.MVA).replace('.', ',')} MVA · ${u.ratio}`, '', '', 'Olio minerale');
@@ -498,7 +529,7 @@ export function engineeringModel(cfg, des, meta) {
   return {
     meta, cfg, des, r, op, N, n, names, type, reheat, gtClass,
     streams, st, lines, lineById, eq, loads, electrical, pumps, layout,
-    pFG, ctCells, accCells, stackD,
+    pFG, ctCells, accCells, stackD, U, water,
   };
 }
 
@@ -581,6 +612,10 @@ function buildLayout(cfg, des, r, meta, { ctCells, accCells, stackD, MVAgt, N, n
   add({ tag: '0AEA10', name: `GIS ${''}AT`, kind: 'box', x: X0 - 62, y: Y0 + 10, w: 30, d: Math.max(30, N * pitch - 20), h: 14, grp: 'el' });
   add({ tag: '0UYA', name: 'Uffici e magazzino', kind: 'box', x: X0 - 62, y: yTop + 6, w: 40, d: 20, h: 9, grp: 'bld' });
   add({ tag: '0SCA10', name: 'Compressori aria', kind: 'box', x: st.x + 4, y: st.y - 18, w: 14, d: 10, h: 5, grp: 'bop' });
+  add({ tag: '0QHA10', name: 'Caldaia ausiliaria', kind: 'box', x: xE + 48, y: Y0 + 4, w: 16, d: 10, h: 8, grp: 'bop' });
+  add({ tag: '0QCA10', name: 'Dosaggi chimici e SWAS', kind: 'box', x: xE + 48, y: Y0 + 20, w: 14, d: 8, h: 4, grp: 'bld' });
+  add({ tag: '0QJA10', name: 'Gas tecnici (N₂, H₂, CO₂)', kind: 'box', x: xE + 48, y: Y0 + 34, w: 12, d: 8, h: 3, grp: 'bop' });
+  add({ tag: '0GMA10', name: 'Trattamento acque reflue', kind: 'box', x: xE, y: Y0 + 54, w: 24, d: 12, h: 3, grp: 'bop' });
 
   // confini
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;

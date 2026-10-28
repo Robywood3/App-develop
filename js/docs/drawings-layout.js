@@ -114,16 +114,17 @@ export function plotPlanSheets(M, doc) {
   sh.text(sbX + sbm * k + 3, sbY + 1.6, `m · scala 1:${scaleN}`, { size: 1.6 });
   // legenda
   const lx = FRAME.x1 - 92, ly0 = FRAME.y0 + 16;
-  sh.rect(lx, ly0, 88, Math.min(212, 8 + legend.length * 3.6 + 30), ST.norm);
+  const lstep = Math.min(3.6, 170 / legend.length);
+  sh.rect(lx, ly0, 88, Math.min(212, 8 + legend.length * lstep + 30), ST.norm);
   sh.text(lx + 2, ly0 + 4.5, 'LEGENDA', { size: 2.2, bold: true });
   legend.forEach((it, i) => {
-    const y = ly0 + 9 + i * 3.6;
+    const y = ly0 + 9 + i * lstep;
     sh.circle(lx + 4, y - 0.6, 1.5, { s: '#000000', w: 0.2, f: W });
     sh.textMid(lx + 4, y - 0.6, String(it.no), { size: 1.3, anchor: 'middle', bold: true });
     sh.text(lx + 7, y, it.tag, { size: 1.6, bold: true });
     sh.text(lx + 22, y, it.name, { size: 1.6 });
   });
-  const yG = ly0 + 9 + legend.length * 3.6 + 2;
+  const yG = ly0 + 9 + legend.length * lstep + 2;
   Object.values(GROUP).forEach((g, i) => {
     const x = lx + 2 + (i % 2) * 43, y = yG + Math.floor(i / 2) * 4;
     sh.rect(x, y, 4, 2.4, { s: '#000000', w: 0.2, f: g.fill });

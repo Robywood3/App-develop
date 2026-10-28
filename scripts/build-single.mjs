@@ -11,6 +11,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const entry = join(root, 'js/ui/app.js');
 
 const IMPORT_RE = /import\s*\{([\s\S]*?)\}\s*from\s*['"](.+?)['"];?/g;
+const NS_IMPORT_RE = /import\s*\*\s*as\s+([A-Za-z_$][\w$]*)\s+from\s*['"](.+?)['"];?/g;
 
 const order = [];
 const seen = new Set();
@@ -19,6 +20,7 @@ function visit(file) {
   seen.add(file);
   const src = readFileSync(file, 'utf8');
   for (const m of src.matchAll(IMPORT_RE)) visit(resolve(dirname(file), m[2]));
+  for (const m of src.matchAll(NS_IMPORT_RE)) visit(resolve(dirname(file), m[2]));
   order.push(file);
 }
 visit(entry);
@@ -26,6 +28,7 @@ visit(entry);
 function transform(file) {
   let src = readFileSync(file, 'utf8');
   const exported = [];
+  src = src.replace(NS_IMPORT_RE, (_, name, spec) => `const ${name} = __m['${relative(root, resolve(dirname(file), spec))}'];`);
   src = src.replace(IMPORT_RE, (_, names, spec) => {
     const dep = relative(root, resolve(dirname(file), spec));
     const binds = names.split(',').map((n) => n.trim()).filter(Boolean).map((n) => n.replace(/\s+as\s+/, ': ')).join(', ');

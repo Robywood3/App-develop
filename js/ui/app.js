@@ -6,7 +6,7 @@ import { PlantSim, formatSimTime } from '../engine/dynamics.js';
 import { fmt } from './format.js';
 import { sparkline, redrawAll } from './charts.js';
 import { buildMimic, updateMimic, mimicSignature } from './mimic.js';
-import { renderTQ, renderTS, computeCurves, renderCurves, renderTrend, renderStreams, renderBalance } from './views.js';
+import { renderTQ, renderTS, computeCurves, renderCurves, renderTrend, renderStreams, renderBalance, renderUtilities } from './views.js';
 import { initDocs } from './docs-ui.js';
 
 const $ = (id) => document.getElementById(id);
@@ -272,6 +272,7 @@ function renderAnalysis() {
     case 'v-trend': renderTrend($('c-trend-p'), $('c-trend-t'), S.history); break;
     case 'v-streams': renderStreams($('tbl-streams'), ss, S.cfg); break;
     case 'v-balance': renderBalance($('balance'), ss); break;
+    case 'v-util': renderUtilities($('utilities'), ss, S.cfg, S.des); break;
     default: break;
   }
 }

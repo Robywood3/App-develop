@@ -45,6 +45,10 @@ npm test
 - **Analisi**: diagramma T-Q del GVR con pinch, diagramma T-s del ciclo a vapore,
   curve di rendimento/potenza vs carico e temperatura ambiente, trend, tabella delle
   correnti, bilancio energetico.
+- **Utilities e ausiliari**: al punto di funzionamento corrente, bilancio della torre
+  (evaporazione, spurgo, reintegro, dosaggi) o dell'aerocondensatore, ciclo chiuso con
+  le utenze, acqua grezza/demi/reflui, stazione gas (preriscaldo Joule-Thomson), aria
+  compressa e gas tecnici, vapore ausiliario e chimici, potenza ausiliaria per sistema.
 
 ## Documentazione di ingegneria
 
@@ -54,17 +58,25 @@ revisioni e codifica KKS semplificata:
 
 | N. documento | Elaborato |
 |---|---|
-| `…-PR-PFD-001` | Schema di processo (PFD) con bilancio di massa ed energia e prestazioni nette |
-| `…-PR-PID-001` | P&ID turbogas, aspirazione, gas combustibile, scarico |
-| `…-PR-PID-002` | P&ID GVR circuito acqua/vapore (banchi, corpi cilindrici, strumentazione) |
-| `…-PR-PID-003` | P&ID turbina a vapore, bypass, condensazione, condensato e alimento |
-| `…-PI-LST-001` | Line list: DN per velocità limite, spessori ASME B31.1, classi ASME B16.34, condizioni di progetto e prova, coibentazione |
-| `…-ME-LST-001` | Equipment list: dati principali, superfici di scambio, corpi cilindrici (ASME VIII), pompe, trasformatori |
-| `…-EL-LST-001` | Load list: utenze MT/BT, potenze nominali e assorbite, carico contemporaneo |
+| `…-PR-PFD-001` | PFD generale con bilancio di massa ed energia e prestazioni nette |
+| `…-PR-PFD-002` | Casi di funzionamento: 100/75/50 % ISO, 35 °C e −5 °C (prestazioni, TG, GVR, emissioni, utilities) |
+| `…-PR-PFD-003…007` | PFD percorso aria/fumi (con composizione fumi), ciclo acqua-vapore (scambi per banco), sistemi di raffreddamento, bilancio idrico, gas combustibile e vapore ausiliario |
+| `…-PR-PID-101…112` | P&ID di processo: TG aria/lavaggio/scarico, gas combustibile, olio TG; GVR HP, IP+RH, LP+preriscaldatore; vapore principale e bypass; TV, tenute, condensatore e vuoto; condensato; acqua alimento; spurghi e drenaggi; olio TV |
+| `…-UT-PID-201…210` | P&ID utilities e ausiliari: stazione gas, acqua di circolazione e torre (o aerocondensatore), ciclo chiuso, aria compressa, acqua grezza/servizi/antincendio, acqua demi, dosaggi chimici e SWAS, acque reflue, gas tecnici, caldaia e vapore ausiliario |
+| `…-PI-LST-001` | Line list (con colonna P&ID): DN per velocità limite, spessori ASME B31.1, classi ASME B16.34 / PN, materiali (CS, legati, inox, PE), condizioni di progetto e prova, coibentazione |
+| `…-PI-LST-002` | Valve list generata dai P&ID: tipo, DN, classe, materiale, attuatore, posizione di sicurezza, taratura PSV |
+| `…-IC-LST-001` | Instrument list generata dai P&ID: tag KKS, funzione ISA, servizio, campo, I/O e funzioni SIS |
+| `…-ME-LST-001` | Equipment list (con colonna P&ID), processo e utilities |
+| `…-EL-LST-001` | Load list: utenze MT/BT di processo e ausiliarie, potenze nominali e assorbite, carico contemporaneo |
+| `…-PR-LST-001` | Elenco consumi utilities |
 | `…-EL-SLD-001/002` | Schemi unifilari AT/generazione e servizi ausiliari MT/BT |
 | `…-CV-PLT-001` | Plot plan in scala con coordinate, legenda e quote |
 | `…-GA-ISO-001` | Vista isometrica d'insieme dell'impianto |
 | `…-PI-ISO-001` | Isometrico della linea vapore HP con quote, coordinate e distinta materiali |
+
+I P&ID registrano ogni valvola, strumento, linea e apparecchiatura disegnati: valve list,
+instrument list e colonne P&ID di line list ed equipment list derivano da questo registro,
+così gli elaborati restano coerenti tra loro. I P&ID di treno sono tipici (tag del treno 1).
 
 Ogni elaborato si visualizza in anteprima e si esporta in **PDF** (vettoriale, generato
 senza librerie esterne) o **SVG**; le liste anche in **CSV** (separatore `;`, per Excel).
@@ -102,13 +114,19 @@ js/engine/            modello fisico, usabile anche da Node
   gt.js               turbina a gas
   bottoming.js        GVR, turbina a vapore, condensatore
   plant.js            integrazione impianto, ausiliari, emissioni, economia
+  utilities.js        bilancio utilities e sistemi ausiliari
   dynamics.js         simulazione dinamica e sequenze
 js/docs/              elaborati di ingegneria
   engineering.js      modello: correnti, linee, apparecchiature, utenze, layout
+  utilities-eng.js    linee, utenze e apparecchiature dei sistemi utilities
+  pidkit.js           kit P&ID: valvole, strumenti, gruppi tipici, registro
+  pids-process.js     P&ID di processo (101-112)
+  pids-util.js        P&ID utilities e ausiliari (201-210)
+  pfds.js             PFD complementari e casi di funzionamento
   sheet.js            foglio vettoriale, cartiglio, tabelle impaginate, SVG
   pdf.js              scrittore PDF (Helvetica, WinAnsi)
   symbols.js          simboli P&ID (ISA 5.1) ed elettrici (IEC 60617)
-  drawings-*.js       PFD, P&ID, plot plan, isometrici, unifilari
+  drawings-*.js       PFD generale, plot plan, isometrici, unifilari
   index.js            catalogo documenti, esportazioni
 js/ui/                interfaccia (sinottico SVG, grafici canvas, viste)
 scripts/build-single.mjs   genera la versione a file singolo in dist/

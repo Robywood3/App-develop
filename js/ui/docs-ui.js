@@ -64,7 +64,7 @@ export function initDocs(getDesign) {
     });
   }
 
-  const catalog = () => documentCatalog(meta);
+  const catalog = () => documentCatalog(meta, model());
 
   function model() {
     const { cfg, des } = getDesign();
