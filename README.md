@@ -13,6 +13,8 @@ App per **TV LG webOS** che mostra le telecamere del tuo account EZVIZ, comandat
 L'app usa le API ufficiali di **EZVIZ Open Platform**: il video arriva dal cloud EZVIZ come HLS, lo stesso
 percorso dell'app EZVIZ sul telefono. Non serve un server in casa.
 
+> Questo repository contiene anche il **[Simulatore FV + BESS industriale](fv-bess-simulator/README.md)** (cartella `fv-bess-simulator/`): simulazione oraria di fotovoltaico e accumulo per stabilimenti, con documenti di ingegneria, analisi economica, incentivi italiani ed europei e valutazione del CAPEX.
+
 ---
 
 ## 1. Ottieni AppKey e AppSecret da EZVIZ (5 minuti, gratis)

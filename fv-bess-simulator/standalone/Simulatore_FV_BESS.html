@@ -1,0 +1,1585 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--ARTIFACT-START-->
+<title>Simulatore FV + BESS industriale</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+/* Layout: colonna di input a sinistra, area risultati a schede a destra; cartiglio da tavola tecnica in testata. */
+:root {
+  --bg: #eef2f1; --panel: #ffffff; --panel-2: #f6f8f8; --ink: #13283a; --muted: #57666f; --line: #d3dcdc;
+  --accent: #b86a10; --accent-ink: #ffffff; --focus: #0f6a9c;
+  --pv: #e39a2d; --pv-soft: rgba(227, 154, 45, .22); --bess: #11867b; --bess-soft: rgba(17, 134, 123, .18);
+  --imp: #6274a0; --exp: #efcc85; --curt: #c4b4a2; --load: #13283a; --cum: #13283a;
+  --good: #2c7a4f; --warn: #a8700c; --bad: #b8392f; --good-bg: #e3f1e8; --warn-bg: #fbf0d9; --bad-bg: #f8e2df;
+  --f-display: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c151b; --panel: #13202a; --panel-2: #182832; --ink: #dce7ea; --muted: #93a5ae; --line: #2a3d48;
+    --accent: #f0a845; --accent-ink: #1a1206; --focus: #6cc2f0;
+    --pv: #f0b04d; --pv-soft: rgba(240, 176, 77, .22); --bess: #33b8aa; --bess-soft: rgba(51, 184, 170, .2);
+    --imp: #8d9dcb; --exp: #a8873f; --curt: #6d645b; --load: #dce7ea; --cum: #dce7ea;
+    --good: #5fc28a; --warn: #e5b04a; --bad: #ec7b70; --good-bg: #173326; --warn-bg: #352a12; --bad-bg: #3a1c19;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c151b; --panel: #13202a; --panel-2: #182832; --ink: #dce7ea; --muted: #93a5ae; --line: #2a3d48;
+  --accent: #f0a845; --accent-ink: #1a1206; --focus: #6cc2f0;
+  --pv: #f0b04d; --pv-soft: rgba(240, 176, 77, .22); --bess: #33b8aa; --bess-soft: rgba(51, 184, 170, .2);
+  --imp: #8d9dcb; --exp: #a8873f; --curt: #6d645b; --load: #dce7ea; --cum: #dce7ea;
+  --good: #5fc28a; --warn: #e5b04a; --bad: #ec7b70; --good-bg: #173326; --warn-bg: #352a12; --bad-bg: #3a1c19;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+h1 { font-size: 1.65rem; line-height: 1.15; }
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.05rem; }
+.num, td.n, .kpi .v { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--focus); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* testata con cartiglio */
+.top { background: var(--panel); border-bottom: 1px solid var(--line); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px; }
+.top-in { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: flex-end; justify-content: space-between; max-width: 1500px; margin: 0 auto; }
+.brand { min-width: 0; }
+.eyebrow { font: 600 .72rem/1 var(--f-display); text-transform: uppercase; letter-spacing: .12em; color: var(--accent); margin-bottom: 6px; }
+.brand p { margin: 4px 0 0; color: var(--muted); max-width: 70ch; }
+.cartiglio { display: grid; grid-template-columns: repeat(4, auto); border: 1px solid var(--ink); font-size: .78rem; }
+.cartiglio div { padding: 4px 10px; border-left: 1px solid var(--ink); }
+.cartiglio div:first-child { border-left: 0; }
+.cartiglio b { display: block; font: 600 .62rem/1.2 var(--f-display); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.cartiglio span { font-family: var(--f-mono); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+button, .btn { font: 600 .9rem var(--f-body); border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); border-radius: var(--r); padding: 7px 12px; cursor: pointer; }
+button:hover { border-color: var(--ink); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+/* layout */
+.layout { display: grid; grid-template-columns: minmax(320px, 380px) minmax(0, 1fr); gap: 20px; max-width: 1500px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 18px 40px; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } .cartiglio { grid-template-columns: repeat(2, auto); } .cartiglio div:nth-child(3) { border-left: 0; } .cartiglio div:nth-child(n+3) { border-top: 1px solid var(--ink); } }
+aside.inputs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+details.sec { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
+details.sec > summary { cursor: pointer; padding: 10px 14px; font: 600 1rem var(--f-display); list-style: none; display: flex; justify-content: space-between; align-items: center; }
+details.sec > summary::after { content: "+"; font-family: var(--f-mono); color: var(--muted); }
+details.sec[open] > summary::after { content: "–"; }
+details.sec > summary::-webkit-details-marker { display: none; }
+.fields { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 6px 10px; padding: 4px 14px 14px; align-items: center; }
+.fields label { font-size: .88rem; color: var(--ink); }
+.fields label small { color: var(--muted); }
+.fields input[type=number], .fields input[type=text], .fields select { width: 100%; font: .9rem var(--f-mono); padding: 5px 7px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel-2); color: var(--ink); }
+.fields input[type=checkbox] { justify-self: start; width: 18px; height: 18px; accent-color: var(--accent); }
+.fields .full { grid-column: 1 / -1; }
+.fields .sub { grid-column: 1 / -1; font: 600 .72rem var(--f-display); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 8px; }
+.hint { font-size: .8rem; color: var(--muted); }
+
+/* schede */
+main { min-width: 0; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--line); margin-bottom: 16px; scrollbar-width: thin; }
+.tabs button { border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; padding: 10px 12px; color: var(--muted); white-space: nowrap; font-family: var(--f-display); font-size: 1rem; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.panel { display: flex; flex-direction: column; gap: 18px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; min-width: 0; }
+.card > h2, .card > h3 { margin-bottom: 10px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; }
+.kpi .l { font: 600 .7rem var(--f-display); text-transform: uppercase; letter-spacing: .09em; color: var(--muted); }
+.kpi .v { font-size: 1.35rem; line-height: 1.3; }
+.kpi .s { font-size: .8rem; color: var(--muted); }
+.kpi.good .v { color: var(--good); } .kpi.bad .v { color: var(--bad); }
+.pill { display: inline-block; font: 600 .75rem var(--f-body); border-radius: 99px; padding: 2px 9px; }
+.pill.ok { background: var(--good-bg); color: var(--good); } .pill.ko { background: var(--bad-bg); color: var(--bad); } .pill.w { background: var(--warn-bg); color: var(--warn); }
+.note { border-left: 3px solid var(--warn); background: var(--warn-bg); padding: 8px 12px; border-radius: 0 var(--r) var(--r) 0; font-size: .9rem; }
+.verdict { font-size: 1rem; max-width: 80ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; color: var(--muted); margin-top: 6px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.row select, .row input { font: .9rem var(--f-mono); padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel-2); color: var(--ink); }
+
+/* tabelle */
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .86rem; }
+th, td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { font: 600 .72rem var(--f-display); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); background: var(--panel-2); position: sticky; top: 0; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+table.kv td.v { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+table.kv td:first-child { width: 48%; }
+tr.tot td { font-weight: 600; border-top: 2px solid var(--ink); }
+td input[type=number] { width: 96px; font: .86rem var(--f-mono); padding: 3px 5px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel-2); color: var(--ink); text-align: right; }
+textarea { width: 100%; min-height: 140px; font: .8rem var(--f-mono); border: 1px solid var(--line); border-radius: var(--r); background: var(--panel-2); color: var(--ink); padding: 8px; }
+
+/* grafici */
+.chart { width: 100%; height: auto; display: block; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .grid.zero { stroke: var(--muted); }
+.chart .tick { fill: var(--muted); font: 11px var(--f-mono); }
+.chart .unit { fill: var(--muted); font: 600 11px var(--f-body); }
+.chart .label { fill: var(--ink); font: 12px var(--f-body); }
+.chart .s-pvd { fill: var(--pv); } .chart .s-pvb { fill: var(--bess); } .chart .s-exp { fill: var(--exp); } .chart .s-curt { fill: var(--curt); } .chart .s-imp { fill: var(--imp); }
+.chart .s-dis { fill: var(--bess); } .chart .s-ch { fill: var(--bess-soft); stroke: var(--bess); stroke-width: .6; }
+.chart .l-load { stroke: var(--load); stroke-width: 2; } .chart .l-load-dot { fill: var(--load); }
+.chart .l-pv { stroke: var(--pv); stroke-width: 2; } .chart .l-pv-area { fill: var(--pv-soft); }
+.chart .l-imp { stroke: var(--imp); stroke-width: 2; stroke-dasharray: 5 3; }
+.chart .l-soc { stroke: var(--bess); stroke-width: 2; } .chart .l-soc-area { fill: var(--bess-soft); }
+.chart .l-pun { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 2 3; }
+.chart .l-cum { stroke: var(--cum); stroke-width: 2; } .chart .l-cum-dot { fill: var(--cum); }
+.chart .b-pos { fill: var(--bess); } .chart .b-neg { fill: var(--bad); } .chart .b-pv { fill: var(--pv); } .chart .b-bess { fill: var(--bess); } .chart .b-com { fill: var(--imp); }
+.chart .t-low { fill: var(--bad); opacity: .75; } .chart .t-high { fill: var(--good); opacity: .8; }
+.busy { opacity: .55; transition: opacity .2s; }
+@media (prefers-reduced-motion: reduce) { .busy { transition: none; } }
+</style>
+<!--HEAD-END-->
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <div class="eyebrow">Pre-fattibilità · impianto C&amp;I in autoconsumo</div>
+      <h1 id="projTitle">Simulatore FV + BESS industriale</h1>
+      <p>Simulazione oraria 8760 h su tutta la vita utile: produzione FV, carico di stabilimento, accumulo, bolletta evitata, CAPEX, incentivi italiani ed europei, flussi di cassa e dimensionamento di ingegneria.</p>
+    </div>
+    <div class="cartiglio" aria-label="Cartiglio">
+      <div><b>Documento</b><span>FVB-SIM-001</span></div>
+      <div><b>Rev.</b><span>A</span></div>
+      <div><b>Stato</b><span>Pre-FEED</span></div>
+      <div><b>Data</b><span id="docDate">–</span></div>
+    </div>
+    <div class="actions">
+      <button id="btnCopyCfg" type="button">Copia configurazione</button>
+      <button id="btnImport" type="button">Importa configurazione</button>
+      <button id="btnReset" type="button">Ripristina esempio</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="inputs" id="inputs" aria-label="Dati di ingresso"></aside>
+  <main>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div id="panels"></div>
+  </main>
+</div>
+
+<script>
+/*
+ * FV+BESS Simulator – dati di base e valori di default.
+ * Tutti i valori sono ipotesi di pre-fattibilità (classe AACE 4-5): vanno sostituiti
+ * con dati di progetto (PVGIS/misure, curve di carico reali, offerte EPC) prima di decidere.
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.FVB_DATA = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  // Irraggiamento globale orizzontale medio mensile (kWh/m2/giorno) e temperatura media (°C).
+  // Ordine di grandezza da atlante ENEA / UNI 10349 / PVGIS-SARAH; per il progetto usare PVGIS TMY del sito.
+  const SITES = {
+    milano:   { name: 'Milano (Lombardia)',   lat: 45.46, lon: 9.19,  zone: 'NORD',
+      ghi: [1.35, 2.25, 3.55, 4.65, 5.65, 6.25, 6.45, 5.35, 3.95, 2.50, 1.45, 1.10],
+      t:   [2.5, 4.5, 9.0, 13.0, 17.5, 21.5, 24.0, 23.5, 19.0, 13.5, 7.5, 3.0] },
+    torino:   { name: 'Torino (Piemonte)',    lat: 45.07, lon: 7.69,  zone: 'NORD',
+      ghi: [1.60, 2.45, 3.70, 4.60, 5.50, 6.10, 6.40, 5.30, 4.00, 2.60, 1.60, 1.30],
+      t:   [2.0, 4.0, 8.5, 12.0, 16.5, 20.5, 23.0, 22.5, 18.5, 12.5, 7.0, 2.5] },
+    venezia:  { name: 'Venezia (Veneto)',     lat: 45.44, lon: 12.32, zone: 'NORD',
+      ghi: [1.50, 2.35, 3.65, 4.85, 5.95, 6.45, 6.65, 5.65, 4.20, 2.70, 1.60, 1.20],
+      t:   [3.5, 5.0, 9.0, 13.0, 17.5, 21.5, 24.0, 23.5, 19.5, 14.5, 9.0, 4.5] },
+    bologna:  { name: 'Bologna (Emilia-Romagna)', lat: 44.49, lon: 11.34, zone: 'NORD',
+      ghi: [1.55, 2.45, 3.85, 4.95, 6.05, 6.65, 6.85, 5.85, 4.35, 2.80, 1.65, 1.25],
+      t:   [3.0, 5.0, 9.5, 13.5, 18.0, 22.5, 25.0, 24.5, 20.0, 14.5, 8.5, 3.5] },
+    firenze:  { name: 'Firenze (Toscana)',    lat: 43.77, lon: 11.25, zone: 'CNOR',
+      ghi: [1.80, 2.65, 3.95, 5.05, 6.15, 6.75, 6.95, 6.05, 4.55, 3.00, 1.90, 1.50],
+      t:   [6.0, 7.5, 10.5, 13.5, 18.0, 22.0, 25.0, 25.0, 21.0, 16.0, 10.5, 6.5] },
+    ancona:   { name: 'Ancona (Marche)',      lat: 43.62, lon: 13.52, zone: 'CSUD',
+      ghi: [1.75, 2.60, 3.90, 5.05, 6.15, 6.80, 7.00, 6.10, 4.55, 3.05, 1.90, 1.50],
+      t:   [6.0, 7.0, 10.0, 13.5, 18.0, 22.0, 25.0, 25.0, 21.0, 16.5, 11.0, 7.0] },
+    roma:     { name: 'Roma (Lazio)',         lat: 41.90, lon: 12.50, zone: 'CSUD',
+      ghi: [2.10, 2.90, 4.20, 5.35, 6.40, 7.05, 7.25, 6.35, 4.85, 3.40, 2.20, 1.80],
+      t:   [8.0, 9.0, 11.5, 14.5, 18.5, 22.5, 25.5, 25.5, 22.0, 17.5, 12.5, 9.0] },
+    napoli:   { name: 'Napoli (Campania)',    lat: 40.85, lon: 14.27, zone: 'CSUD',
+      ghi: [2.20, 3.00, 4.25, 5.40, 6.45, 7.05, 7.25, 6.35, 4.95, 3.50, 2.30, 1.90],
+      t:   [9.0, 9.5, 12.0, 15.0, 19.0, 23.0, 26.0, 26.0, 23.0, 18.5, 14.0, 10.5] },
+    bari:     { name: 'Bari (Puglia)',        lat: 41.12, lon: 16.87, zone: 'SUD',
+      ghi: [2.20, 3.05, 4.35, 5.60, 6.65, 7.30, 7.45, 6.60, 5.00, 3.50, 2.30, 1.90],
+      t:   [8.5, 9.0, 11.5, 14.5, 19.0, 23.5, 26.0, 26.0, 22.5, 18.0, 13.5, 10.0] },
+    catania:  { name: 'Catania (Sicilia)',    lat: 37.50, lon: 15.09, zone: 'SICI',
+      ghi: [2.70, 3.50, 4.80, 6.00, 7.00, 7.60, 7.70, 6.90, 5.40, 4.00, 2.90, 2.40],
+      t:   [11.0, 11.5, 13.5, 16.0, 20.0, 24.5, 27.5, 28.0, 24.5, 20.5, 16.0, 12.5] },
+    palermo:  { name: 'Palermo (Sicilia)',    lat: 38.12, lon: 13.36, zone: 'SICI',
+      ghi: [2.60, 3.40, 4.60, 5.80, 6.80, 7.40, 7.50, 6.70, 5.20, 3.90, 2.80, 2.30],
+      t:   [12.0, 12.0, 14.0, 16.0, 19.5, 23.5, 26.5, 27.0, 24.5, 20.5, 16.5, 13.5] },
+    cagliari: { name: 'Cagliari (Sardegna)',  lat: 39.22, lon: 9.12,  zone: 'SARD',
+      ghi: [2.50, 3.30, 4.60, 5.80, 6.80, 7.40, 7.60, 6.80, 5.20, 3.80, 2.70, 2.20],
+      t:   [10.5, 11.0, 13.0, 15.0, 19.0, 23.0, 26.0, 26.5, 23.5, 19.5, 15.0, 11.5] }
+  };
+
+  // Fattore indicativo prezzo zonale / PUN (media annua) per stimare il ricavo del Ritiro Dedicato.
+  const ZONE_FACTOR = { NORD: 1.00, CNOR: 0.99, CSUD: 0.98, SUD: 0.96, CALA: 0.97, SICI: 1.02, SARD: 0.98 };
+
+  const MODULES = {
+    topcon620: { name: 'TOPCon bifacciale 620 Wp (2382×1134 mm)', pmax: 620, voc: 48.9, vmp: 41.0, isc: 16.0, imp: 15.12,
+      betaVoc: -0.25, betaVmp: -0.29, gammaP: -0.29, alphaIsc: 0.045, noct: 43, length: 2.382, width: 1.134, weight: 33.0, bifaciality: 0.80 },
+    topcon440: { name: 'TOPCon 440 Wp (1722×1134 mm, coperture)', pmax: 440, voc: 39.3, vmp: 32.7, isc: 14.1, imp: 13.46,
+      betaVoc: -0.25, betaVmp: -0.29, gammaP: -0.29, alphaIsc: 0.045, noct: 43, length: 1.722, width: 1.134, weight: 21.5, bifaciality: 0.0 },
+    hjt720: { name: 'HJT bifacciale 720 Wp (2384×1303 mm)', pmax: 720, voc: 50.6, vmp: 42.4, isc: 17.9, imp: 16.98,
+      betaVoc: -0.24, betaVmp: -0.26, gammaP: -0.24, alphaIsc: 0.04, noct: 42, length: 2.384, width: 1.303, weight: 38.5, bifaciality: 0.85 }
+  };
+
+  const INVERTERS = {
+    str110: { name: 'Inverter di stringa 110 kW / 1100 V', pac: 110, vdcMax: 1100, mpptMin: 200, mpptMax: 1000, mpptFullMin: 550, mpptFullMax: 850,
+      nMppt: 10, iMpptMax: 40, iscMpptMax: 60, stringsPerMppt: 2, vac: 400, eff: 0.984 },
+    str350: { name: 'Inverter di stringa 350 kW / 1500 V', pac: 350, vdcMax: 1500, mpptMin: 500, mpptMax: 1500, mpptFullMin: 880, mpptFullMax: 1300,
+      nMppt: 12, iMpptMax: 65, iscMpptMax: 115, stringsPerMppt: 3, vac: 800, eff: 0.988 },
+    str50: { name: 'Inverter di stringa 50 kW / 1100 V', pac: 50, vdcMax: 1100, mpptMin: 180, mpptMax: 1000, mpptFullMin: 520, mpptFullMax: 850,
+      nMppt: 4, iMpptMax: 40, iscMpptMax: 60, stringsPerMppt: 3, vac: 400, eff: 0.982 }
+  };
+
+  const BESS_UNITS = {
+    container5: { name: 'Container 20 ft LFP ~5 MWh (DC block)', kwh: 5016, kw: 2508, footprint: 15.0, weight: 42000 },
+    cabinet261: { name: 'Cabinet C&I LFP 261 kWh / 125 kW (AC block)', kwh: 261, kw: 125, footprint: 1.8, weight: 2900 }
+  };
+
+  // Profili orari del carico industriale (fattore relativo, 24 valori; feriale / sabato / domenica-festivi)
+  const LOAD_PROFILES = {
+    turno1: { name: '1 turno (8–17, lun–ven)', wd: [.18,.18,.18,.18,.18,.2,.3,.75,1,1,1,1,.8,1,1,1,.95,.5,.25,.2,.2,.18,.18,.18], sat: .25, sun: .18 },
+    turno2: { name: '2 turni (6–22, lun–ven)', wd: [.22,.22,.22,.22,.22,.45,.95,1,1,1,1,1,.9,1,1,1,1,1,1,1,.95,.85,.4,.22], sat: .35, sun: .2 },
+    turno3: { name: '3 turni (24/5, weekend ridotto)', wd: [.85,.85,.85,.85,.85,.9,.95,1,1,1,1,1,.95,1,1,1,1,1,.95,.95,.9,.9,.88,.86], sat: .6, sun: .3 },
+    continuo: { name: 'Ciclo continuo (24/7)', wd: [.92,.9,.9,.9,.9,.92,.95,1,1,1,1,1,.98,1,1,1,1,1,.98,.97,.96,.95,.94,.93], sat: .95, sun: .92 }
+  };
+
+  // Festività nazionali (giorno dell'anno, anno non bisestile) – Pasquetta indicativa
+  const HOLIDAYS = [1, 6, 110, 115, 121, 153, 227, 305, 342, 359, 360];
+
+  const CO2_GRID = 0.250; // tCO2/MWh – fattore indicativo mix elettrico nazionale consumi (ISPRA), da aggiornare
+
+  // Default di progetto (caso di riferimento: manifattura al Nord, 2 turni). Fonti: docs/allegati/A2_Benchmark_costi_2026.md
+  const DEFAULTS = {
+    project: { name: 'Impianto FV + BESS – stabilimento industriale', client: 'Cliente', site: 'milano', year: 2027, seed: 7 },
+    load: { annualMWh: 9000, profile: 'turno2', augustShutdownWeeks: 2, christmasShutdown: true, seasonal: 0.08, custom: null },
+    pv: { kwp: 3000, mount: 'ground_fixed', tilt: 25, azimuth: 0, gcr: 0.42, dcac: 1.20, module: 'topcon620', inverter: 'str350',
+      albedo: 0.20, bifacial: true,
+      losses: { soiling: 2.0, shading: 1.5, mismatch: 1.0, dcCable: 1.2, acCable: 0.8, transformer: 1.0, availability: 99.0, lowIrr: 1.0 },
+      degrFirst: 1.0, degrAnnual: 0.40 },
+    bess: { enabled: true, kwh: 2000, kw: 1000, rte: 86.0, dod: 90.0, auxPct: 0.4, calendarDeg: 1.0, cycleDegPer1000: 2.5,
+      eolSoh: 70, augmentation: true, augmentSoh: 80, unit: 'cabinet261',
+      strategy: { selfConsumption: true, arbitrage: true, arbitrageMinSpread: 30, peakShaving: false, peakLimitKw: 2500, reserveSoc: 30, maxCyclesDay: 1.5 } },
+    grid: { importLimitKw: 4000, exportLimitKw: 3000, zeroExport: false, voltageKv: 15, iccKa: 12.5, tFaultS: 0.5 },
+    // costo del prelievo evitato in MT ≈ PUN × (1 + perdite) + spread + oneri variabili (dispacciamento, capacità, trasporto, ASOS/ARIM) + accise
+    prices: { pun: 130, shape: 'duck2025', escalation: 2.0, lossFactor: 3.8, supplierSpread: 8, chargesVar: 64, excise: 12.5,
+      powerChargeKwYear: 28, exportFactor: 1.0, ridFee: 0.5, customPun: null },
+    capex: {
+      pv: [
+        { id: 'mod', label: 'Moduli fotovoltaici (franco cantiere)', unit: '€/kWp', value: 130 },
+        { id: 'inv', label: 'Inverter', unit: '€/kWp', value: 35 },
+        { id: 'str', label: 'Strutture di sostegno', unit: '€/kWp', value: 50 },
+        { id: 'bos', label: 'BOS elettrico DC/AC (cavi, quadri, cavidotti, terra, SPD)', unit: '€/kWp', value: 60 },
+        { id: 'mv', label: 'Cabine MT, trasformatori, protezioni', unit: '€/kWp', value: 50 },
+        { id: 'conn', label: 'Connessione (TICA) e adeguamento cabina utente', unit: '€/kWp', value: 30 },
+        { id: 'civ', label: 'Opere civili, viabilità, drenaggi', unit: '€/kWp', value: 35 },
+        { id: 'sec', label: 'Recinzione, videosorveglianza, antintrusione', unit: '€/kWp', value: 20 },
+        { id: 'mnt', label: 'Montaggi meccanici ed elettrici', unit: '€/kWp', value: 80 },
+        { id: 'eng', label: 'Ingegneria, DL, CSE, collaudi', unit: '€/kWp', value: 30 },
+        { id: 'dev', label: 'Sviluppo, autorizzazioni, pratiche GSE/DSO', unit: '€/kWp', value: 40 }
+      ],
+      bess: [
+        { id: 'dc', label: 'DC block (celle LFP, rack, BMS, container, HVAC, antincendio)', unit: '€/kWh', value: 110 },
+        { id: 'pcs', label: 'PCS (convertitori bidirezionali)', unit: '€/kW', value: 60 },
+        { id: 'mvb', label: 'BoP elettrico (trasformatori MT, quadri, cavi, protezioni)', unit: '€/kW', value: 70 },
+        { id: 'ems', label: 'EMS / SCADA / integrazione', unit: '€', value: 40000 },
+        { id: 'civb', label: 'Installazione, opere civili, trasporti, messa in servizio', unit: '€/kWh', value: 40 },
+        { id: 'safe', label: 'Prevenzione incendi e distanze di sicurezza', unit: '€/kWh', value: 5 },
+        { id: 'engb', label: 'Ingegneria, permessi, aggiornamento connessione', unit: '€/kWh', value: 15 }
+      ],
+      contingencyPct: 8, ownersCostPct: 2
+    },
+    opex: { pvOmKwp: 11, bessOmKwh: 4.0, insurancePct: 0.30, imuEur: 4500, landLeaseEur: 0, monitoringEur: 3000, securityKwp: 2.0,
+      adminEur: 5000, inflation: 2.2, inverterReplYear: 13, inverterReplKw: 45, augmentCostKwh: 120, costDeclineBess: 3.0, decommEurKwp: 25 },
+    finance: { years: 25, wacc: 7.0, ke: 9.0, debtPct: 60, debtRate: 5.0, debtTenor: 12, ires: 24.0, irap: 3.9, deprPv: 9.0, deprBess: 9.0,
+      halfFirstYear: true, taxCapacity: true, residualPct: 0 },
+    incentives: [] // vedi INCENTIVE_CATALOG
+  };
+
+  // Voci di CAPEX che dipendono dal tipo di installazione (€/kWp), applicate quando si cambia tipologia nell'interfaccia
+  const MOUNT_CAPEX = {
+    ground_fixed: { str: 50, civ: 35, sec: 20, dev: 40, mnt: 80 },
+    tracker:      { str: 80, civ: 45, sec: 20, dev: 40, mnt: 90 },
+    roof_tilted:  { str: 30, civ: 15, sec: 5, dev: 15, mnt: 85 },  // civ: linee vita, ripristini, accessi in quota
+    roof_ew:      { str: 55, civ: 20, sec: 5, dev: 15, mnt: 95 }
+  };
+
+  /*
+   * Catalogo strumenti di incentivo (parametri modificabili nell'interfaccia).
+   * type: grant | taxcredit | superdep | tariff_export | tariff_energy | interest_grant | capacity
+   * base: pv | bess | all  (spesa ammissibile)
+   * Stato a ottobre 2026 e fonti: docs/03_Contributi_Incentivi_UE_IT.md (verificare sempre bandi e decreti vigenti).
+   */
+  const INCENTIVE_CATALOG = [
+    { id: 'iperamm2026', name: 'Iper-ammortamento 2026–2028 (L. 199/2025, DM 7/5/2026)', type: 'superdep', base: 'all', enabled: false,
+      tiers: [{ upTo: 2500000, pct: 180 }, { upTo: 10000000, pct: 100 }, { upTo: 20000000, pct: 50 }],
+      requiresEneaBC: true, modulesEneaBC: true, capPvKwp: 840, bessAlpha: 0.5,
+      note: 'Aperta fino al 30/9/2028. Solo IRES. FV solo con moduli ENEA cat. B/C e produzione ≤ 105% dei consumi; massimale FV €/kWp (840 oltre 1 MW, cat. B); BESS ≤ α × FV (α da verificare). Base al netto degli altri aiuti.' },
+    { id: 'tr50', name: 'Credito d\'imposta Transizione 5.0 (DL 19/2024)', type: 'taxcredit', base: 'all', enabled: false,
+      pct: 35, cap: 50000000, years: 1, startYear: 1, note: 'Chiusa (risorse esaurite nel 2025; DL 38/2026 esclude le FER dalla lista d\'attesa). Solo per confronto storico.' },
+    { id: 'zes', name: 'Credito d\'imposta ZES Unica Mezzogiorno', type: 'taxcredit', base: 'all', enabled: false,
+      pct: 24, cap: 100000000, years: 1, startYear: 1, note: 'Aperta 2026–2028, prossima finestra 31/3–30/5/2027. Default 24% = 40% (grande impresa) × riparto ipotetico 60%.' },
+    { id: 'pmiFer', name: 'Bando MIMIT autoproduzione FER nelle PMI', type: 'grant', base: 'all', enabled: false,
+      pct: 30, cap: 1000000, year: 1, note: 'Chiusa (2° sportello chiuso il 10/11/2025). Storico: 30% medie, 40% micro e piccole.' },
+    { id: 'fesr', name: 'Contributo regionale PR FESR 2021-27 (energia nelle imprese)', type: 'grant', base: 'all', enabled: false,
+      pct: 30, cap: 1500000, year: 1, note: 'Bandi regionali a finestra: verificare apertura, intensità e cumulo.' },
+    { id: 'sabatini', name: 'Nuova Sabatini (contributo in conto interessi)', type: 'interest_grant', base: 'all', enabled: false,
+      rate: 3.575, loanYears: 5, financedPct: 100, cap: 4000000, note: 'Aperta a sportello. Tasso convenzionale 3,575% su 5 anni (≈ 10% del finanziato), max 4 M€.' },
+    { id: 'ferx', name: 'FER X – CfD sull\'energia immessa (DM 18/6/2026)', type: 'tariff_export', enabled: false, strike: 70, years: 20,
+      note: 'Aperta (accesso diretto ≤ 1 MW, aste oltre). Paga solo l\'energia immessa. Strike prudenziale; asta NZIA FV media 66,4 €/MWh.' },
+    { id: 'tee', name: 'Altro incentivo €/MWh sull\'energia autoconsumata (generico)', type: 'tariff_energy', on: 'selfcons', enabled: false, value: 0, years: 10,
+      note: 'Per modellare premi o tariffe non elencati (es. tariffa premio CACER sull\'energia condivisa).' },
+    { id: 'msd', name: 'Servizi di flessibilità BESS (UVA/MSD tramite aggregatore)', type: 'capacity', base: 'bess', enabled: false, value: 15, years: 10,
+      note: 'Ipotesi di ricavo netto €/kW·anno da verificare con l\'aggregatore. MACSE non accessibile al BESS dietro il contatore.' }
+  ];
+
+  return { SITES, ZONE_FACTOR, MODULES, INVERTERS, BESS_UNITS, LOAD_PROFILES, HOLIDAYS, CO2_GRID, DEFAULTS, MOUNT_CAPEX, INCENTIVE_CATALOG };
+});
+</script>
+<script>
+/*
+ * FV+BESS Simulator – motore di calcolo (browser e Node).
+ *  1. meteo orario sintetico da medie mensili (Erbs + Hay-Davies)
+ *  2. produzione FV oraria (fisso, tracker monoassiale, falda, est-ovest; bifacciale)
+ *  3. carico industriale orario e prezzi orari (forma "duck curve")
+ *  4. dispacciamento BESS (autoconsumo, arbitraggio con scelta giornaliera, peak shaving)
+ *  5. simulazione pluriennale con degrado FV/BESS e augmentation
+ *  6. CAPEX, OPEX, incentivi, fiscalità, debito, NPV/IRR/LCOE/LCOS, sensitività
+ *  7. calcoli di ingegneria (stringhe, cavi, trasformatori, BESS, protezioni, MDR)
+ * Convenzioni: ora solare CET senza ora legale, anno non bisestile (8760 h), potenze in kW, energie in kWh.
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./data.js'));
+  else root.FVB = factory(root.FVB_DATA);
+})(typeof self !== 'undefined' ? self : this, function (D) {
+  'use strict';
+
+  const H = 8760, DEG = Math.PI / 180;
+  const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const MONTH_START = MONTH_DAYS.reduce((a, d, i) => (a.push(i ? a[i - 1] + MONTH_DAYS[i - 1] : 0), a), []);
+  const monthOfDay = d => { let m = 0; while (m < 11 && d >= MONTH_START[m + 1]) m++; return m; };
+
+  // ---------- utilità ----------
+  function rng(seed) { // mulberry32
+    let a = seed >>> 0;
+    return function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function gauss(r) { let u = 0, v = 0; while (u === 0) u = r(); while (v === 0) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const sum = a => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i]; return s; };
+  function mergeDeep(base, over) {
+    if (over === undefined || over === null) return base;
+    if (Array.isArray(base) || typeof base !== 'object' || base === null) return over;
+    const out = Object.assign({}, base);
+    for (const k of Object.keys(over)) out[k] = (k in base) ? mergeDeep(base[k], over[k]) : over[k];
+    return out;
+  }
+  function defaultConfig() {
+    const c = clone(D.DEFAULTS);
+    c.incentives = clone(D.INCENTIVE_CATALOG);
+    return c;
+  }
+  function normalizeConfig(cfg) {
+    cfg = cfg ? clone(cfg) : {}; // mai condividere array/oggetti con la configurazione del chiamante
+    const c = mergeDeep(defaultConfig(), cfg);
+    if (cfg && Array.isArray(cfg.incentives)) { // unisce per id con il catalogo
+      const cat = clone(D.INCENTIVE_CATALOG);
+      c.incentives = cat.map(i => Object.assign(i, cfg.incentives.find(x => x.id === i.id) || {}))
+        .concat(cfg.incentives.filter(x => !cat.find(i => i.id === x.id)));
+    }
+    return c;
+  }
+  function dayOfWeek(year, doy) { return new Date(Date.UTC(year, 0, 1 + doy)).getUTCDay(); } // 0 = domenica
+
+  // ---------- 1. meteo ----------
+  function sunVector(lat, decl, omega) {
+    const sz = Math.sin(lat) * Math.sin(decl) + Math.cos(lat) * Math.cos(decl) * Math.cos(omega);
+    const sx = -Math.cos(decl) * Math.sin(omega);                                             // est +
+    const sy = Math.cos(lat) * Math.sin(decl) - Math.sin(lat) * Math.cos(decl) * Math.cos(omega); // nord +
+    return [sx, sy, sz];
+  }
+  function buildWeather(site, seed) {
+    const lat = site.lat * DEG, r = rng(seed || 1);
+    const G0h = new Float64Array(H), sun = new Float64Array(H * 3), ghi = new Float64Array(H), ta = new Float64Array(H);
+    const H0d = new Float64Array(365);
+    for (let d = 0; d < 365; d++) {
+      const n = d + 1, decl = 23.45 * DEG * Math.sin(2 * Math.PI * (284 + n) / 365);
+      const B = 2 * Math.PI * (n - 81) / 364, eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+      const E0 = 1 + 0.033 * Math.cos(2 * Math.PI * n / 365);
+      for (let h = 0; h < 24; h++) {
+        let g = 0, vx = 0, vy = 0, vz = 0;
+        for (let k = 0; k < 6; k++) { // sotto-campionamento 10 min
+          const t = h + (k + 0.5) / 6 + (4 * (site.lon - 15) + eot) / 60;
+          const s = sunVector(lat, decl, 15 * DEG * (t - 12));
+          if (s[2] > 0) { g += s[2]; vx += s[0] * s[2]; vy += s[1] * s[2]; vz += s[2] * s[2]; }
+        }
+        const i = d * 24 + h;
+        G0h[i] = 1.367 * E0 * g / 6; // kWh/m2 nell'ora
+        if (g > 0) { const nrm = Math.hypot(vx, vy, vz); sun[3 * i] = vx / nrm; sun[3 * i + 1] = vy / nrm; sun[3 * i + 2] = vz / nrm; }
+        H0d[d] += G0h[i];
+      }
+    }
+    // indice di serenità giornaliero: AR(1) attorno al valore mensile, poi riscalato per conservare la media mensile
+    const kd = new Float64Array(365); let z = 0;
+    for (let m = 0; m < 12; m++) {
+      let H0m = 0; for (let d = MONTH_START[m]; d < MONTH_START[m] + MONTH_DAYS[m]; d++) H0m += H0d[d];
+      const Ktm = site.ghi[m] * MONTH_DAYS[m] / H0m, sd = 0.10 + 0.25 * (0.75 - Ktm);
+      for (let d = MONTH_START[m]; d < MONTH_START[m] + MONTH_DAYS[m]; d++) { z = 0.55 * z + Math.sqrt(1 - 0.55 * 0.55) * gauss(r); kd[d] = clamp(Ktm * (1 + sd * z), 0.04, 0.78); }
+      for (let it = 0; it < 6; it++) {
+        let Hm = 0; for (let d = MONTH_START[m]; d < MONTH_START[m] + MONTH_DAYS[m]; d++) Hm += kd[d] * H0d[d];
+        const f = site.ghi[m] * MONTH_DAYS[m] / Hm;
+        for (let d = MONTH_START[m]; d < MONTH_START[m] + MONTH_DAYS[m]; d++) kd[d] = clamp(kd[d] * f, 0.04, 0.80);
+      }
+    }
+    for (let d = 0; d < 365; d++) {
+      const m = monthOfDay(d), tm = site.t[m], amp = 4 + 2.5 * kd[d];
+      for (let h = 0; h < 24; h++) {
+        const i = d * 24 + h, noise = kd[d] < 0.45 ? clamp(1 + 0.25 * gauss(r), 0.4, 1.6) : 1;
+        ghi[i] = Math.min(G0h[i] * kd[d] * noise, G0h[i] * 0.82);
+        ta[i] = tm + amp * Math.cos(2 * Math.PI * (h - 14.5) / 24);
+      }
+    }
+    return { G0h, sun, ghi, ta, site };
+  }
+  function erbsDiffuse(kt) {
+    if (kt <= 0.22) return 1 - 0.09 * kt;
+    if (kt <= 0.80) return 0.9511 - 0.1604 * kt + 4.388 * kt * kt - 16.638 * kt ** 3 + 12.336 * kt ** 4;
+    return 0.165;
+  }
+  // irraggiamento sul piano (kWh/m2 nell'ora) con normale n e inclinazione beta
+  function poa(i, w, n, beta, albedo) {
+    const G = w.ghi[i]; if (G <= 0) return 0;
+    const sx = w.sun[3 * i], sy = w.sun[3 * i + 1], sz = w.sun[3 * i + 2];
+    const kt = clamp(G / w.G0h[i], 0, 1), Dh = G * erbsDiffuse(kt), Bh = G - Dh;
+    const cosT = n[0] * sx + n[1] * sy + n[2] * sz, Rb = cosT > 0 ? cosT / Math.max(sz, 0.065) : 0;
+    const Ai = clamp(Bh / w.G0h[i], 0, 1), cb = Math.cos(beta);
+    return Math.max(0, Bh * Rb + Dh * (Ai * Rb + (1 - Ai) * (1 + cb) / 2) + G * albedo * (1 - cb) / 2);
+  }
+  const normal = (beta, gamma) => [-Math.sin(beta) * Math.sin(gamma), -Math.sin(beta) * Math.cos(gamma), Math.cos(beta)];
+
+  // ---------- 2. FV ----------
+  // restituisce potenza AC (kW per kWp DC) e irraggiamento sul piano dei moduli
+  function pvModel(pv, w) {
+    const mod = D.MODULES[pv.module] || D.MODULES.topcon620, inv = D.INVERTERS[pv.inverter] || D.INVERTERS.str350;
+    const L = pv.losses, ac = new Float64Array(H), poaArr = new Float64Array(H), dcArr = new Float64Array(H);
+    const dcLoss = (1 - L.soiling / 100) * (1 - L.shading / 100) * (1 - L.mismatch / 100) * (1 - L.dcCable / 100);
+    const acLoss = (1 - L.acCable / 100) * (1 - L.transformer / 100) * (L.availability / 100);
+    const yieldFactor = pv.yieldFactor || 1;
+    const ground = pv.mount === 'ground_fixed' || pv.mount === 'tracker';
+    const bif = ground && pv.bifacial ? (mod.bifaciality || 0) : 0;
+    const kTemp = pv.mount === 'tracker' ? 0.95 : ground ? 1.0 : pv.mount === 'roof_ew' ? 1.2 : 1.12;
+    const acLim = 1 / pv.dcac, invEff = inv.eff;
+    const trackerLoss = pv.mount === 'tracker' ? 0.96 : 1; // backtracking e ombreggiamento reciproco tra file
+    const planes = [];
+    if (pv.mount === 'roof_ew') { const b = (pv.tilt || 10) * DEG; planes.push([normal(b, -90 * DEG), b, 0.5], [normal(b, 90 * DEG), b, 0.5]); }
+    else if (pv.mount !== 'tracker') { const b = pv.tilt * DEG; planes.push([normal(b, pv.azimuth * DEG), b, 1]); }
+    for (let i = 0; i < H; i++) {
+      let g = 0;
+      if (pv.mount === 'tracker') {
+        if (w.ghi[i] > 0) {
+          const R = clamp(Math.atan2(w.sun[3 * i], w.sun[3 * i + 2]), -55 * DEG, 55 * DEG);
+          g = poa(i, w, [Math.sin(R), 0, Math.cos(R)], Math.abs(R), pv.albedo);
+        }
+      } else for (const p of planes) g += p[2] * poa(i, w, p[0], p[1], pv.albedo);
+      if (bif > 0) g += bif * pv.albedo * w.ghi[i] * 0.25;
+      poaArr[i] = g;
+      if (g <= 0) continue;
+      const Wm2 = g * 1000, tc = w.ta[i] + Wm2 * (mod.noct - 20) / 800 * kTemp;
+      const lowIrr = 1 - (L.lowIrr / 100) * clamp(2 * (500 - Wm2) / 500, 0, 2);
+      const dc = g * (1 + mod.gammaP / 100 * (tc - 25)) * lowIrr * dcLoss * trackerLoss * yieldFactor; // kW per kWp
+      const frac = dc / acLim, eff = clamp(invEff - 0.004 / Math.max(frac, 0.01), 0.80, invEff);
+      dcArr[i] = dc;
+      ac[i] = Math.min(dc * eff, acLim) * acLoss;
+    }
+    return { ac, poa: poaArr, dc: dcArr };
+  }
+
+  // ---------- 3. carico e prezzi ----------
+  function loadModel(load, year, seed) {
+    if (Array.isArray(load.custom) && load.custom.length >= H) return Float64Array.from(load.custom.slice(0, H));
+    const p = D.LOAD_PROFILES[load.profile] || D.LOAD_PROFILES.turno2, r = rng((seed || 1) + 101);
+    const out = new Float64Array(H), hol = new Set(D.HOLIDAYS);
+    const aug0 = 226 - Math.round(load.augustShutdownWeeks * 3.5), aug1 = aug0 + load.augustShutdownWeeks * 7;
+    for (let d = 0; d < 365; d++) {
+      const dow = dayOfWeek(year, d);
+      const shut = hol.has(d + 1) || dow === 0 || (d >= aug0 && d < aug1) || (load.christmasShutdown && (d >= 357 || d < 5));
+      const seas = 1 + load.seasonal * Math.cos(2 * Math.PI * (d - 196) / 365);
+      for (let h = 0; h < 24; h++) {
+        const f = shut ? p.sun : dow === 6 ? Math.max(p.sat * p.wd[h], p.sun) : p.wd[h];
+        out[d * 24 + h] = f * seas * (1 + 0.04 * gauss(r));
+      }
+    }
+    const k = load.annualMWh * 1000 / sum(out);
+    for (let i = 0; i < H; i++) out[i] *= k;
+    return out;
+  }
+  const BASE_SHAPE = [0.92, 0.88, 0.86, 0.85, 0.86, 0.92, 1.02, 1.12, 1.12, 1.05, 1.00, 0.97, 0.95, 0.95, 0.98, 1.02, 1.08, 1.18, 1.22, 1.20, 1.12, 1.04, 0.98, 0.94];
+  const SOLAR_DIP = [0.06, 0.09, 0.16, 0.24, 0.27, 0.24, 0.19, 0.19, 0.16, 0.11, 0.06, 0.04];
+  const MONTH_LEVEL = [1.08, 1.05, 0.98, 0.92, 0.90, 0.98, 1.05, 1.00, 1.00, 1.00, 1.02, 1.05];
+  function punModel(pr, year) {
+    if (Array.isArray(pr.customPun) && pr.customPun.length >= H) return Float64Array.from(pr.customPun.slice(0, H));
+    const out = new Float64Array(H);
+    for (let d = 0; d < 365; d++) {
+      const m = monthOfDay(d), dow = dayOfWeek(year, d), we = dow === 0 || dow === 6 ? 0.90 : 1;
+      for (let h = 0; h < 24; h++) {
+        const dip = h >= 8 && h <= 17 ? Math.sin(Math.PI * (h - 7.5) / 10.5) : 0;
+        const eve = h >= 18 && h <= 21 ? 0.5 : 0;
+        out[d * 24 + h] = MONTH_LEVEL[m] * we * (BASE_SHAPE[h] - SOLAR_DIP[m] * (dip * 1.45 - eve * 1.3));
+      }
+    }
+    const k = pr.pun / (sum(out) / H);
+    for (let i = 0; i < H; i++) out[i] = Math.max(0, out[i] * k);
+    return out;
+  }
+  function priceModel(cfg) {
+    const pr = cfg.prices, site = D.SITES[cfg.project.site] || D.SITES.milano;
+    const pun = punModel(pr, cfg.project.year), buy = new Float64Array(H), sell = new Float64Array(H);
+    const zf = (D.ZONE_FACTOR[site.zone] || 1) * pr.exportFactor;
+    for (let i = 0; i < H; i++) {
+      buy[i] = pun[i] * (1 + pr.lossFactor / 100) + pr.supplierSpread + pr.chargesVar + pr.excise; // €/MWh evitati
+      sell[i] = Math.max(0, pun[i] * zf - pr.ridFee);
+    }
+    return { pun, buy, sell };
+  }
+
+  // ---------- 4. dispacciamento ----------
+  // simula un anno; bess = {cap (kWh utili), pw (kW), etaC, etaD, aux (kW)} oppure null
+  function dispatchYear(pvAc, load, prices, bess, cfg, keepHourly) {
+    const g = cfg.grid, st = cfg.bess.strategy;
+    const expLim = g.zeroExport ? 0 : g.exportLimitKw, impLim = g.importLimitKw;
+    const T = { pv: 0, pvDirect: 0, pvToBess: 0, gridToBess: 0, bessOut: 0, bessToLoad: 0, imp: 0, exp: 0, curt: 0, load: 0, aux: 0,
+      costImp: 0, revExp: 0, costBase: 0, impOverLimit: 0, efc: 0 };
+    const peakBase = new Float64Array(12), peakProj = new Float64Array(12);
+    const hr = keepHourly ? { imp: new Float64Array(H), exp: new Float64Array(H), soc: new Float64Array(H), ch: new Float64Array(H), pvch: new Float64Array(H), dis: new Float64Array(H), pvDirect: new Float64Array(H), curt: new Float64Array(H) } : null;
+    let soc = bess ? bess.cap * 0.5 : 0;
+    const reserve = bess && st.peakShaving ? bess.cap * st.reserveSoc / 100 : 0;
+    // simula un giorno con un'energia di carica da rete pianificata (Egc); se commit registra i risultati
+    function day(d, Egc, commit) {
+      let s = soc, cost = 0, disDay = 0;
+      const i0 = d * 24, maxDis = bess ? st.maxCyclesDay * bess.cap : 0;
+      let dayMinBuy = Infinity; for (let h = 0; h < 24; h++) dayMinBuy = Math.min(dayMinBuy, prices.buy[i0 + h]);
+      const thr = bess && st.arbitrage ? dayMinBuy / (bess.etaC * bess.etaD) + st.arbitrageMinSpread * 0.5 : -Infinity;
+      // ore di carica da rete: le più economiche tra 0 e 6
+      let gcHours = null;
+      if (Egc > 0) { gcHours = [0, 1, 2, 3, 4, 5, 6].sort((a, b) => prices.buy[i0 + a] - prices.buy[i0 + b]).slice(0, 4); }
+      for (let h = 0; h < 24; h++) {
+        const i = i0 + h, aux = bess ? bess.aux : 0, L = load[i] + aux, P = pvAc[i];
+        const direct = Math.min(P, L);
+        let surplus = P - direct, deficit = L - direct, ch = 0, chG = 0, dis = 0;
+        if (bess) {
+          // carica da FV
+          ch = Math.min(surplus, bess.pw, (bess.cap - s) / bess.etaC); if (ch < 0) ch = 0;
+          s += ch * bess.etaC; surplus -= ch;
+          // scarica: peak shaving prioritario, poi autoconsumo/arbitraggio sopra la riserva
+          if (deficit > 0) {
+            let need = 0;
+            if (st.peakShaving && deficit > st.peakLimitKw) need = deficit - st.peakLimitKw;
+            let avail = Math.min(bess.pw, s * bess.etaD, maxDis - disDay);
+            let dps = Math.min(need, avail); if (dps < 0) dps = 0;
+            dis = dps;
+            if (st.selfConsumption && prices.buy[i] >= thr) {
+              const above = Math.max(0, (s - reserve) * bess.etaD - dis);
+              dis += Math.max(0, Math.min(deficit - dis, bess.pw - dis, above, maxDis - disDay - dis));
+            }
+            s -= dis / bess.etaD; deficit -= dis; disDay += dis;
+          }
+          // carica da rete (arbitraggio pianificato o ripristino della riserva per il peak shaving)
+          let want = 0;
+          if (gcHours && gcHours.indexOf(h) >= 0) want = Egc / gcHours.length;
+          if (st.peakShaving && s < reserve && deficit < st.peakLimitKw && h < 7) want = Math.max(want, (reserve - s) / bess.etaC);
+          if (want > 0 && ch < bess.pw) {
+            chG = Math.min(want, bess.pw - ch, (bess.cap - s) / bess.etaC, Math.max(0, impLim - deficit));
+            if (chG < 0) chG = 0;
+            s += chG * bess.etaC;
+          }
+        }
+        const imp = deficit + chG, exp = Math.min(surplus, expLim), curt = surplus - exp;
+        cost += imp * prices.buy[i] / 1000 - exp * prices.sell[i] / 1000;
+        if (commit) {
+          const m = monthOfDay(d);
+          T.pv += P; T.pvDirect += direct; T.pvToBess += ch; T.gridToBess += chG; T.bessOut += dis; T.bessToLoad += dis;
+          T.imp += imp; T.exp += exp; T.curt += curt; T.load += load[i]; T.aux += aux;
+          T.costImp += imp * prices.buy[i] / 1000; T.revExp += exp * prices.sell[i] / 1000; T.costBase += load[i] * prices.buy[i] / 1000;
+          if (imp > impLim + 1e-6) T.impOverLimit += imp - impLim;
+          if (load[i] > peakBase[m]) peakBase[m] = load[i];
+          if (imp > peakProj[m]) peakProj[m] = imp;
+          if (hr) { hr.imp[i] = imp; hr.exp[i] = exp; hr.soc[i] = bess ? s / bess.cap : 0; hr.ch[i] = ch + chG; hr.pvch[i] = ch; hr.dis[i] = dis; hr.pvDirect[i] = direct; hr.curt[i] = curt; }
+        }
+      }
+      return { cost, s };
+    }
+    for (let d = 0; d < 365; d++) {
+      let best = 0;
+      if (bess && st.arbitrage) {
+        const vEnd = Math.min(...Array.from({ length: 24 }, (_, h) => prices.buy[d * 24 + h])) / 1000; // valore €/kWh dell'energia residua
+        const maxE = Math.min(bess.cap - soc, bess.pw * 4 * bess.etaC) / bess.etaC;
+        let bestCost = Infinity;
+        for (const f of [0, 0.25, 0.5, 0.75, 1]) {
+          const r = day(d, f * maxE, false), c = r.cost - (r.s - soc) * vEnd / bess.etaC;
+          if (c < bestCost - 1e-9) { bestCost = c; best = f * maxE; }
+        }
+      }
+      const r = day(d, best, true); soc = r.s;
+    }
+    T.peakBase = Array.from(peakBase); T.peakProj = Array.from(peakProj);
+    T.efc = bess ? T.bessOut / bess.cap : 0;
+    if (hr) T.hourly = hr;
+    return T;
+  }
+
+  // ---------- 5. CAPEX / OPEX ----------
+  function capexModel(cfg) {
+    const kwp = cfg.pv.kwp, b = cfg.bess, kwh = b.enabled ? b.kwh : 0, kw = b.enabled ? b.kw : 0;
+    const qty = { '€/kWp': kwp, '€/kWh': kwh, '€/kW': kw, '€': 1 };
+    const rows = [];
+    let pv = 0, bs = 0;
+    for (const it of cfg.capex.pv) { const v = it.value * qty[it.unit]; pv += v; rows.push({ group: 'FV', id: it.id, label: it.label, unit: it.unit, unitValue: it.value, qty: qty[it.unit], total: v }); }
+    if (b.enabled) for (const it of cfg.capex.bess) { const v = it.value * (it.unit === '€' ? 1 : qty[it.unit]); bs += v; rows.push({ group: 'BESS', id: it.id, label: it.label, unit: it.unit, unitValue: it.value, qty: qty[it.unit], total: v }); }
+    const cont = cfg.capex.contingencyPct / 100, own = cfg.capex.ownersCostPct / 100;
+    const pvTot = pv * (1 + cont + own), bsTot = bs * (1 + cont + own);
+    rows.push({ group: 'Comune', id: 'cont', label: 'Contingenze', unit: '%', unitValue: cfg.capex.contingencyPct, qty: pv + bs, total: (pv + bs) * cont });
+    rows.push({ group: 'Comune', id: 'own', label: 'Costi del committente (owner\'s cost)', unit: '%', unitValue: cfg.capex.ownersCostPct, qty: pv + bs, total: (pv + bs) * own });
+    return { rows, pv: pvTot, bess: bsTot, total: pvTot + bsTot, pvPerKwp: kwp ? pvTot / kwp : 0, bessPerKwh: kwh ? bsTot / kwh : 0, directPv: pv, directBess: bs };
+  }
+
+  // ---------- 6. simulazione completa ----------
+  function simulate(cfgIn, opts) {
+    opts = opts || {};
+    const cfg = normalizeConfig(cfgIn), N = cfg.finance.years;
+    const site = D.SITES[cfg.project.site] || D.SITES.milano;
+    const w = opts.cache && opts.cache.w && opts.cache.siteKey === cfg.project.site + cfg.project.seed ? opts.cache.w : buildWeather(site, cfg.project.seed);
+    const pvm = pvModel(cfg.pv, w);
+    const load = loadModel(cfg.load, cfg.project.year, cfg.project.seed);
+    const prices = priceModel(cfg);
+    const kwp = cfg.pv.kwp, b = cfg.bess;
+    const pvBase = new Float64Array(H); for (let i = 0; i < H; i++) pvBase[i] = pvm.ac[i] * kwp;
+    const usable0 = b.enabled ? b.kwh * b.dod / 100 : 0;
+    const etaC = Math.sqrt(b.rte / 100), etaD = etaC;
+    const years = []; let soh = 1, cumEfcSinceAug = 0, y1 = null;
+    const capex = capexModel(cfg);
+    for (let y = 1; y <= N; y++) {
+      const pvF = (1 - cfg.pv.degrFirst / 100) * Math.pow(1 - cfg.pv.degrAnnual / 100, y - 1);
+      const pvY = new Float64Array(H); for (let i = 0; i < H; i++) pvY[i] = pvBase[i] * pvF;
+      let aug = 0, repl = 0;
+      if (b.enabled && y > 1) {
+        if (b.augmentation && soh < b.augmentSoh / 100) { aug = (1 - soh) * b.kwh; soh = 1; cumEfcSinceAug = 0; }
+        else if (!b.augmentation && soh < b.eolSoh / 100) { repl = b.kwh; soh = 1; cumEfcSinceAug = 0; }
+      }
+      const bess = b.enabled ? { cap: usable0 * soh, pw: b.kw, etaC, etaD, aux: b.auxPct / 100 * b.kwh / 24 } : null;
+      const T = dispatchYear(pvY, load, prices, bess, cfg, y === 1 || opts.keepAllHourly);
+      T.year = y; T.soh = soh; T.augKwh = aug; T.replKwh = repl; T.pvFactor = pvF;
+      if (b.enabled) { // degrado per l'anno successivo
+        const efcNom = T.bessOut / Math.max(usable0, 1);
+        cumEfcSinceAug += efcNom;
+        soh = Math.max(0.3, soh - cfg.bess.calendarDeg / 100 - cfg.bess.cycleDegPer1000 / 100 * efcNom / 1000);
+      }
+      if (y === 1) y1 = T;
+      years.push(T);
+    }
+    const fin = finance(cfg, years, capex);
+    const eng = engineering(cfg, w, pvm, capex);
+    const poaYear = sum(pvm.poa);
+    const k = {
+      specificYield: y1.pv / kwp, poa: poaYear, pr: y1.pv / kwp / Math.max(poaYear, 1),
+      selfConsumptionRate: (y1.pvDirect + y1.pvToBess) / Math.max(y1.pv, 1),
+      selfSufficiency: (y1.pvDirect + y1.bessToLoad) / Math.max(y1.load, 1),
+      co2: (y1.load - y1.imp) / 1000 * D.CO2_GRID, cycles: y1.efc
+    };
+    return { cfg, site, years, y1, capex, fin, eng, kpi: k, monthly: monthly(y1, load, prices), load, prices, weather: w, pvm };
+  }
+  function monthly(y1, load, prices) {
+    const out = []; const h = y1.hourly;
+    for (let m = 0; m < 12; m++) {
+      const r = { m, pv: 0, load: 0, direct: 0, pvch: 0, bess: 0, imp: 0, exp: 0, curt: 0, pun: 0 };
+      for (let d = MONTH_START[m]; d < MONTH_START[m] + MONTH_DAYS[m]; d++) for (let k = 0; k < 24; k++) {
+        const i = d * 24 + k; r.load += load[i]; r.direct += h.pvDirect[i]; r.pvch += h.pvch[i]; r.bess += h.dis[i]; r.imp += h.imp[i]; r.exp += h.exp[i]; r.curt += h.curt[i]; r.pun += prices.pun[i];
+      }
+      r.pv = r.direct + r.pvch + r.exp + r.curt; r.pun /= MONTH_DAYS[m] * 24; out.push(r);
+    }
+    return out;
+  }
+
+  // ---------- incentivi, fiscalità, flussi di cassa ----------
+  function npv(rate, cf) { let v = 0; for (let t = 0; t < cf.length; t++) v += cf[t] / Math.pow(1 + rate, t); return v; }
+  function irr(cf) {
+    let lo = -0.99, hi = 10.0, flo = npv(lo, cf), fhi = npv(hi, cf);
+    if (!isFinite(flo) || flo * fhi > 0) return null;
+    for (let k = 0; k < 200; k++) { const mid = (lo + hi) / 2, f = npv(mid, cf); if (Math.abs(f) < 1e-7) return mid; if (f * flo > 0) { lo = mid; flo = f; } else hi = mid; }
+    return (lo + hi) / 2;
+  }
+  function payback(cf) {
+    let c = 0;
+    for (let t = 0; t < cf.length; t++) { const p = c; c += cf[t]; if (t > 0 && c >= 0 && p < 0) return t - 1 + (-p) / cf[t]; }
+    return null;
+  }
+  function deprSchedule(base, ratePct, half, N) {
+    const out = new Float64Array(N + 1); let left = base;
+    for (let y = 1; y <= N && left > 1e-6; y++) { const q = Math.min(left, base * ratePct / 100 * (half && y === 1 ? 0.5 : 1)); out[y] = q; left -= q; }
+    return out;
+  }
+  function tierAmount(base, tiers) {
+    let prev = 0, extra = 0;
+    for (const t of tiers) { const slice = Math.max(0, Math.min(base, t.upTo) - prev); extra += slice * t.pct / 100; prev = t.upTo; if (base <= prev) break; }
+    return extra;
+  }
+  function annuity(P, r, n) { return r === 0 ? P / n : P * r / (1 - Math.pow(1 + r, -n)); }
+
+  function finance(cfg, years, capex) {
+    const f = cfg.finance, o = cfg.opex, pr = cfg.prices, N = f.years, b = cfg.bess;
+    const infl = o.inflation / 100, esc = pr.escalation / 100, ires = f.ires / 100, irap = f.irap / 100;
+    const kwp = cfg.pv.kwp, kwac = kwp / cfg.pv.dcac, kwh = b.enabled ? b.kwh : 0, kw = b.enabled ? b.kw : 0;
+    const ground = cfg.pv.mount === 'ground_fixed' || cfg.pv.mount === 'tracker';
+    const baseOf = s => s === 'pv' ? capex.pv : s === 'bess' ? capex.bess : capex.total;
+    // incentivi
+    const inc = (cfg.incentives || []).filter(i => i.enabled);
+    const grantY = new Float64Array(N + 1), creditY = new Float64Array(N + 1), tariffY = new Float64Array(N + 1);
+    let grantPv = 0, grantBess = 0, superExtraPv = 0, superExtraBess = 0; const incSummary = []; const superdeps = [];
+    for (const i of inc) {
+      const base = baseOf(i.base || 'all'), sharePv = (i.base === 'bess') ? 0 : (i.base === 'pv' ? 1 : capex.pv / Math.max(capex.total, 1));
+      if (i.type === 'grant') {
+        const a = Math.min(base * i.pct / 100, i.cap || Infinity); grantY[clamp(i.year || 0, 0, N)] += a;
+        grantPv += a * sharePv; grantBess += a * (1 - sharePv); incSummary.push({ id: i.id, name: i.name, type: i.type, amount: a });
+      } else if (i.type === 'taxcredit') {
+        const a = Math.min(base * i.pct / 100, i.cap || Infinity), n = Math.max(1, i.years || 1), s0 = i.startYear || 1;
+        for (let k = 0; k < n && s0 + k <= N; k++) creditY[s0 + k] += a / n;
+        incSummary.push({ id: i.id, name: i.name, type: i.type, amount: a });
+      } else if (i.type === 'superdep') {
+        superdeps.push(i);
+      } else if (i.type === 'interest_grant') {
+        const L = Math.min(base * (i.financedPct || 100) / 100, i.cap || Infinity), r = i.rate / 100 / 2, n = (i.loanYears || 5) * 2;
+        const rata = annuity(L, r, n); let bal = L, intTot = 0; for (let k = 0; k < n; k++) { const it = bal * r; intTot += it; bal -= rata - it; }
+        const yrs = i.loanYears || 5; for (let k = 1; k <= yrs && k <= N; k++) grantY[k] += intTot / yrs;
+        grantPv += intTot * sharePv; grantBess += intTot * (1 - sharePv);
+        incSummary.push({ id: i.id, name: i.name, type: i.type, amount: intTot });
+      } else if (i.type === 'tariff_export') {
+        let tot = 0; for (let y = 1; y <= Math.min(N, i.years); y++) { const Y = years[y - 1], ef = Math.pow(1 + esc, y - 1); const v = i.strike * Y.exp / 1000 - Y.revExp * ef; tariffY[y] += v; tot += v; }
+        incSummary.push({ id: i.id, name: i.name, type: i.type, amount: tot, note: 'differenziale CfD rispetto al prezzo di mercato, somma nominale' });
+      } else if (i.type === 'tariff_energy') {
+        let tot = 0; for (let y = 1; y <= Math.min(N, i.years); y++) { const Y = years[y - 1]; const e = i.on === 'production' ? Y.pv : Y.pvDirect + Y.bessToLoad; const v = i.value * e / 1000; tariffY[y] += v; tot += v; }
+        incSummary.push({ id: i.id, name: i.name, type: i.type, amount: tot });
+      } else if (i.type === 'capacity') {
+        let tot = 0; for (let y = 1; y <= Math.min(N, i.years); y++) { const v = i.value * kw; tariffY[y] += v; tot += v; }
+        incSummary.push({ id: i.id, name: i.name, type: i.type, amount: tot });
+      }
+    }
+    // maggiorazione dell'ammortamento: base al netto dei contributi e crediti sugli stessi beni
+    const otherAid = sum(grantY) + sum(creditY);
+    for (const i of superdeps) {
+      // spesa ammissibile: FV entro il massimale €/kWp, BESS entro α × spesa FV ammessa; poi al netto degli altri aiuti
+      if (i.requiresEneaBC && !i.modulesEneaBC) { incSummary.push({ id: i.id, name: i.name, type: i.type, amount: 0, note: 'non applicata: moduli non iscritti al registro ENEA cat. B/C' }); continue; }
+      const pvB = i.base === 'bess' ? 0 : Math.min(capex.pv, i.capPvKwp ? i.capPvKwp * kwp : Infinity);
+      const bsB = i.base === 'pv' ? 0 : Math.min(capex.bess, i.bessAlpha ? i.bessAlpha * (i.base === 'bess' ? capex.pv : pvB) : Infinity);
+      const gross = pvB + bsB, sharePv = gross > 0 ? pvB / gross : 0;
+      const extra = tierAmount(Math.max(0, gross - otherAid * gross / Math.max(capex.total, 1)), i.tiers || []);
+      superExtraPv += extra * sharePv; superExtraBess += extra * (1 - sharePv);
+      incSummary.push({ id: i.id, name: i.name, type: i.type, amount: extra * ires, note: 'beneficio IRES nominale su ' + Math.round(extra) + ' € di maggiorazione' });
+    }
+    const deprPv = deprSchedule(Math.max(0, capex.pv - grantPv), f.deprPv, f.halfFirstYear, N);
+    const deprBess = deprSchedule(Math.max(0, capex.bess - grantBess), f.deprBess, f.halfFirstYear, N);
+    const extraPv = deprSchedule(superExtraPv, f.deprPv, f.halfFirstYear, N), extraBess = deprSchedule(superExtraBess, f.deprBess, f.halfFirstYear, N);
+    // debito
+    const debt = capex.total * f.debtPct / 100, r = f.debtRate / 100, rata = debt > 0 ? annuity(debt, r, f.debtTenor) : 0;
+    let bal = debt;
+    const rows = []; const cfProj = [], cfEq = [];
+    cfProj.push(-capex.total + grantY[0]); cfEq.push(-capex.total + debt + grantY[0]);
+    let carry = 0;
+    for (let y = 1; y <= N; y++) {
+      const Y = years[y - 1], ef = Math.pow(1 + esc, y - 1), of = Math.pow(1 + infl, y - 1);
+      const energySaving = (Y.costBase - Y.costImp) * ef;
+      const exportRev = Y.revExp * ef;
+      const powerSaving = (sum(Y.peakBase) - sum(Y.peakProj)) * pr.powerChargeKwYear / 12 * ef;
+      const revenue = energySaving + exportRev + powerSaving + tariffY[y];
+      let opex = (o.pvOmKwp * kwp + (ground ? o.securityKwp * kwp : 0) + o.bessOmKwh * kwh + o.insurancePct / 100 * capex.total + o.imuEur + o.landLeaseEur + o.monitoringEur + o.adminEur) * of;
+      let extraord = 0;
+      if (y === o.inverterReplYear) extraord += o.inverterReplKw * kwac * of;
+      const bessPriceF = Math.pow(1 - o.costDeclineBess / 100, y - 1) * of;
+      if (Y.augKwh) extraord += Y.augKwh * o.augmentCostKwh * bessPriceF;
+      if (Y.replKwh) extraord += Y.replKwh * (cfg.capex.bess.find(x => x.id === 'dc') || { value: 115 }).value * bessPriceF;
+      const decomm = y === N ? o.decommEurKwp * kwp * of : 0;
+      const residual = y === N ? capex.total * f.residualPct / 100 : 0;
+      const ebitda = revenue - opex - extraord - decomm;
+      const depr = deprPv[y] + deprBess[y], extra = extraPv[y] + extraBess[y];
+      const interest = bal * r, principal = y <= f.debtTenor && debt > 0 ? rata - interest : 0;
+      bal = y >= f.debtTenor ? 0 : Math.max(0, bal - principal);
+      // imposte
+      const iresBaseU = ebitda - depr - extra, irapBase = ebitda - depr;
+      const taxU = (f.taxCapacity ? iresBaseU * ires : Math.max(0, iresBaseU) * ires) + (f.taxCapacity ? irapBase * irap : Math.max(0, irapBase) * irap);
+      let iresBaseL = ebitda - depr - extra - interest, iresL;
+      if (f.taxCapacity) iresL = iresBaseL * ires;
+      else { const tb = iresBaseL + carry; if (tb < 0) { carry = tb; iresL = 0; } else { carry = 0; iresL = tb * ires; } }
+      const taxL = iresL + (f.taxCapacity ? irapBase * irap : Math.max(0, irapBase) * irap);
+      const cfp = ebitda - taxU + creditY[y] + grantY[y] + residual;
+      const cfe = ebitda - taxL + creditY[y] + grantY[y] + residual - interest - principal;
+      cfProj.push(cfp); cfEq.push(cfe);
+      const ds = interest + principal;
+      rows.push({ y, energySaving, exportRev, powerSaving, tariffs: tariffY[y], revenue, opex, extraord, decomm, ebitda, depr, superdep: extra, interest, principal,
+        taxU, taxL, credits: creditY[y], grants: grantY[y], cfProj: cfp, cfEq: cfe, dscr: ds > 1 ? (ebitda - taxL + creditY[y]) / ds : null, debtBal: bal,
+        pvMWh: Y.pv / 1000, selfMWh: (Y.pvDirect + Y.bessToLoad) / 1000, expMWh: Y.exp / 1000, impMWh: Y.imp / 1000, bessMWh: Y.bessOut / 1000, soh: Y.soh });
+    }
+    const wacc = f.wacc / 100, ke = f.ke / 100;
+    const discCum = []; let acc = 0; cfProj.forEach((c, t) => { acc += c / Math.pow(1 + wacc, t); discCum.push(acc); });
+    let dpb = null; for (let t = 1; t < discCum.length; t++) if (discCum[t] >= 0 && discCum[t - 1] < 0) { dpb = t - 1 + (-discCum[t - 1]) / (discCum[t] - discCum[t - 1]); break; }
+    // LCOE FV / LCOS BESS (reali al tasso WACC, € per MWh)
+    let ePv = 0, cPv = capex.pv, eB = 0, cB = capex.bess;
+    const dcCost = (cfg.capex.bess.find(x => x.id === 'dc') || { value: 115 }).value;
+    for (let y = 1; y <= N; y++) {
+      const dfc = Math.pow(1 + wacc, y), Y = years[y - 1], of = Math.pow(1 + infl, y - 1);
+      ePv += Y.pv / 1000 / dfc; eB += Y.bessOut / 1000 / dfc;
+      cPv += ((o.pvOmKwp + (ground ? o.securityKwp : 0)) * kwp + o.insurancePct / 100 * capex.pv + o.imuEur + o.landLeaseEur + o.monitoringEur + (y === o.inverterReplYear ? o.inverterReplKw * kwac : 0)) * of / dfc;
+      cB += (o.bessOmKwh * kwh + o.insurancePct / 100 * capex.bess + (Y.augKwh * o.augmentCostKwh + Y.replKwh * dcCost) * Math.pow(1 - o.costDeclineBess / 100, y - 1)) * of / dfc;
+    }
+    const totAid = sum(grantY) + sum(creditY) + (superExtraPv + superExtraBess) * ires;
+    const warnings = [];
+    if (totAid > capex.total) warnings.push('Il totale degli aiuti supera il 100% della spesa: verificare il cumulo (divieto di doppio finanziamento).');
+    if (inc.some(i => i.id === 'tr50') && inc.some(i => i.id === 'iperamm2026')) warnings.push('Transizione 5.0 e iper-ammortamento 2026 sono in genere alternativi sugli stessi beni: verificare.');
+    if (inc.some(i => i.id === 'iperamm2026') && years[0].pv > 1.05 * years[0].load) warnings.push('Iper-ammortamento: la produzione FV supera il 105% dei consumi, limite previsto dalla misura.');
+    if (inc.some(i => i.id === 'tr50')) warnings.push('Transizione 5.0 è chiusa per i nuovi progetti FER: usare solo per confronto.');
+    if (inc.some(i => i.id === 'pmiFer')) warnings.push('Il bando MIMIT autoproduzione FER PMI è chiuso: usare solo come scenario.');
+    if (years[0].impOverLimit > 0) warnings.push('Il prelievo supera la potenza disponibile in alcune ore (' + Math.round(years[0].impOverLimit / 1000) + ' MWh/anno).');
+    return {
+      rows, cfProj, cfEq, debt, npvProject: npv(wacc, cfProj), irrProject: irr(cfProj), npvEquity: npv(ke, cfEq), irrEquity: irr(cfEq),
+      paybackProject: payback(cfProj), paybackDisc: dpb, paybackEquity: payback(cfEq),
+      lcoePv: ePv > 0 ? cPv / ePv : null, lcosBess: eB > 0 ? cB / eB : null,
+      minDscr: Math.min(...rows.filter(r => r.dscr !== null && r.y <= f.debtTenor).map(r => r.dscr).concat([Infinity])),
+      incentives: incSummary, totalAid: totAid, aidIntensity: totAid / Math.max(capex.total, 1), netCapex: capex.total - sum(grantY) - sum(creditY), warnings
+    };
+  }
+
+  // ---------- 7. ingegneria ----------
+  const STD_TR = [250, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150];
+  const LV_AL = [[70, 165], [95, 200], [120, 230], [150, 260], [185, 295], [240, 345], [300, 390]];
+  const MV_AL = [[35, 140], [50, 165], [70, 200], [95, 240], [120, 275], [150, 305], [185, 345], [240, 400]];
+  function engineering(cfg, w, pvm, capex) {
+    const mod = D.MODULES[cfg.pv.module] || D.MODULES.topcon620, inv = D.INVERTERS[cfg.pv.inverter] || D.INVERTERS.str350;
+    const site = w.site, tMin = Math.min(...site.t) - 12, tAmbMax = Math.max(...site.t) + 12, tCellMax = tAmbMax + (mod.noct - 20) * 1.25;
+    const vocCold = mod.voc * (1 + mod.betaVoc / 100 * (tMin - 25)), vmpCold = mod.vmp * (1 + mod.betaVmp / 100 * (tMin - 25));
+    const vmpHot = mod.vmp * (1 + mod.betaVmp / 100 * (tCellMax - 25));
+    const nMaxV = Math.floor(inv.vdcMax / vocCold), nMaxMppt = Math.floor(inv.mpptMax / vmpCold);
+    const nMin = Math.ceil(inv.mpptMin / vmpHot), nMinFull = Math.ceil(inv.mpptFullMin / vmpHot);
+    const Ns = Math.min(nMaxV, nMaxMppt);
+    const stringKwp = Ns * mod.pmax / 1000;
+    let nInv = Math.max(1, Math.round(cfg.pv.kwp / (cfg.pv.dcac * inv.pac)));
+    let strings = Math.round(cfg.pv.kwp / stringKwp);
+    const spInv = Math.ceil(strings / nInv), spMppt = Math.ceil(spInv / inv.nMppt);
+    const iMppt = spMppt * mod.imp, iscMppt = spMppt * mod.isc * 1.25 * (1 + mod.alphaIsc / 100 * (tCellMax - 25));
+    const kwpReal = strings * stringKwp, kwac = nInv * inv.pac, nMod = strings * Ns;
+    const modArea = nMod * mod.length * mod.width;
+    const ground = cfg.pv.mount === 'ground_fixed' || cfg.pv.mount === 'tracker';
+    const landHa = ground ? modArea / cfg.pv.gcr * 1.15 / 10000 : 0;
+    const roofM2 = !ground ? modArea / (cfg.pv.mount === 'roof_ew' ? 0.85 : 0.60) : 0;
+    const checks = [
+      { id: 'S1', what: 'Tensione a vuoto alla Tmin ≤ Vdc max inverter', value: (Ns * vocCold).toFixed(0) + ' V', limit: '≤ ' + inv.vdcMax + ' V', ok: Ns * vocCold <= inv.vdcMax },
+      { id: 'S2', what: 'Vmp alla Tmin ≤ limite superiore MPPT', value: (Ns * vmpCold).toFixed(0) + ' V', limit: '≤ ' + inv.mpptMax + ' V', ok: Ns * vmpCold <= inv.mpptMax },
+      { id: 'S3', what: 'Vmp alla Tcella max ≥ limite inferiore MPPT a piena potenza', value: (Ns * vmpHot).toFixed(0) + ' V', limit: '≥ ' + inv.mpptFullMin + ' V', ok: Ns * vmpHot >= inv.mpptFullMin },
+      { id: 'S4', what: 'Corrente di lavoro per MPPT', value: iMppt.toFixed(1) + ' A', limit: '≤ ' + inv.iMpptMax + ' A', ok: iMppt <= inv.iMpptMax },
+      { id: 'S5', what: 'Corrente di cortocircuito per MPPT (×1,25, Tmax)', value: iscMppt.toFixed(1) + ' A', limit: '≤ ' + inv.iscMpptMax + ' A', ok: iscMppt <= inv.iscMpptMax },
+      { id: 'S6', what: 'Stringhe per inverter entro gli ingressi disponibili', value: spInv + '', limit: '≤ ' + inv.nMppt * inv.stringsPerMppt, ok: spInv <= inv.nMppt * inv.stringsPerMppt },
+      { id: 'S7', what: 'Rapporto DC/AC effettivo', value: (kwpReal / kwac).toFixed(2), limit: '1,00 – 1,40', ok: kwpReal / kwac >= 1 && kwpReal / kwac <= 1.4 }
+    ];
+    // cavi DC di stringa (rame, 70 °C)
+    const rhoCu = 0.0216, rhoAl = 0.0345, Lstr = ground ? 70 : 50, Vstr = Ns * mod.vmp;
+    const dcCable = [6, 10, 16].map(S => ({ S, dv: 2 * Lstr * mod.imp * rhoCu / S / Vstr * 100 })).find(x => x.dv <= 1.0) || { S: 16, dv: 2 * Lstr * mod.imp * rhoCu / 16 / Vstr * 100 };
+    // cavo AC inverter -> quadro BT/cabina (alluminio, cosφ 1)
+    const Iac = inv.pac * 1000 / (Math.sqrt(3) * inv.vac), Lac = ground ? 150 : 80;
+    let acCable = null;
+    for (let par = 1; par <= 4 && !acCable; par++) for (const [S, Iz] of LV_AL) {
+      const dv = Math.sqrt(3) * Lac * (Iac / par) * rhoAl / S / inv.vac * 100;
+      if (Iz * 0.8 >= Iac / par && dv <= 1.5) { acCable = { S, par, Iz, dv, I: Iac }; break; }
+    }
+    // trasformatori MT/BT
+    const reqKva = kwac * 1.05 / 0.95;
+    const nTr = Math.max(1, Math.ceil(reqKva / 3150)), trKva = STD_TR.find(s => s >= reqKva / nTr) || 3150;
+    const b = cfg.bess, bessOn = b.enabled;
+    const unit = D.BESS_UNITS[b.unit] || D.BESS_UNITS.container5;
+    const nUnits = bessOn ? Math.ceil(b.kwh / unit.kwh) : 0;
+    const bessTrKva = bessOn ? (STD_TR.find(s => s >= b.kw / 0.95) || 3150) : 0, nBessTr = bessOn ? Math.max(1, Math.ceil(b.kw / 0.95 / 3150)) : 0;
+    // linea MT verso la cabina utente
+    const Vmv = cfg.grid.voltageKv * 1000, Imv = (kwac + (bessOn ? b.kw : 0)) * 1000 / (Math.sqrt(3) * Vmv * 0.95), Lmv = ground ? 400 : 150;
+    // sezione MT: portata (80 %), caduta ≤ 0,5 % e tenuta al cortocircuito di rete S ≥ Icc·√t / K (K = 92 Al/XLPE)
+    const iccKa = cfg.grid.iccKa || 12.5, tFault = cfg.grid.tFaultS || 0.5, sMinSc = iccKa * 1000 * Math.sqrt(tFault) / 92;
+    const mvc = MV_AL.find(([S, Iz]) => Iz * 0.8 >= Imv && S >= sMinSc && Math.sqrt(3) * Lmv * Imv * rhoAl / S / Vmv * 100 <= 0.5) || MV_AL[MV_AL.length - 1];
+    const prot = [
+      { code: '27.S1', fn: 'Minima tensione', setting: '0,85 Vn', time: '1,5 s' },
+      { code: '27.S2', fn: 'Minima tensione (2ª soglia)', setting: '0,40 Vn', time: '0,2 s' },
+      { code: '59.S1', fn: 'Massima tensione (media mobile 10 min)', setting: '1,10 Vn', time: '≤ 3 s' },
+      { code: '59.S2', fn: 'Massima tensione', setting: '1,20 Vn', time: '0,6 s' },
+      { code: '81>.S1', fn: 'Massima frequenza (soglia restrittiva)', setting: '50,2 Hz', time: '0,15 s' },
+      { code: '81<.S1', fn: 'Minima frequenza (soglia restrittiva)', setting: '49,8 Hz', time: '0,15 s' },
+      { code: '81>.S2', fn: 'Massima frequenza (soglia permissiva)', setting: '51,5 Hz', time: '1,0 s' },
+      { code: '81<.S2', fn: 'Minima frequenza (soglia permissiva)', setting: '47,5 Hz', time: '4,0 s' },
+      { code: '59N', fn: 'Massima tensione omopolare (SPI in MT)', setting: '5 % Vn', time: '25 s' },
+      { code: '50/51', fn: 'Massima corrente di fase (SPG)', setting: 'I> 250 A, I>> 600 A (tipici)', time: '0,5 s / 0,12 s' },
+      { code: '51N/67N', fn: 'Guasto a terra (SPG)', setting: 'secondo regolamento DSO', time: '0,17–0,45 s' }
+    ];
+    return {
+      module: mod, inverter: inv, tMin, tAmbMax, tCellMax, vocCold, vmpCold, vmpHot, Ns, nMin, nMinFull, nMaxV, nMaxMppt,
+      strings, nInv, spInv, spMppt, iMppt, iscMppt, kwpReal, kwac, nMod, modArea, landHa, roofM2, checks,
+      dcCable: { S: dcCable.S, dv: dcCable.dv, L: Lstr, type: 'H1Z2Z2-K 1,5 kV DC, rame' },
+      acCable: acCable ? Object.assign(acCable, { L: Lac, type: 'ARG16R16 / ARE4R 0,6/1 kV, alluminio' }) : null,
+      transformer: { n: nTr, kva: trKva, lv: inv.vac, mv: cfg.grid.voltageKv },
+      bess: bessOn ? { unit, n: nUnits, kwhInst: nUnits * unit.kwh, cRate: b.kw / b.kwh, hours: b.kwh / b.kw, footprint: nUnits * unit.footprint, areaWithSpacing: nUnits * unit.footprint * 3.2 + 60, trKva: bessTrKva, nTr: nBessTr } : null,
+      mvCable: { S: mvc[0], Iz: mvc[1], I: Imv, L: Lmv, sMinSc, iccKa, tFault, type: 'ARE4H5E 12/20 kV, alluminio' },
+      iscContribution: kwac * 1000 / (Math.sqrt(3) * Vmv) * 1.2 + (bessOn ? b.kw * 1000 / (Math.sqrt(3) * Vmv) * 1.2 : 0),
+      protections: prot, mdr: mdr(cfg, bessOn)
+    };
+  }
+  function mdr(cfg, bessOn) {
+    const L = [
+      ['GEN', 'G', 'Relazione tecnica generale e Basis of Design'], ['GEN', 'G', 'Elenco elaborati (MDR)'], ['GEN', 'G', 'Cronoprogramma di progetto'],
+      ['GEN', 'G', 'Piano di sicurezza e coordinamento (PSC)'], ['GEN', 'G', 'Piano di manutenzione dell\'opera'],
+      ['CIV', 'C', 'Inquadramento territoriale e vincoli (aree idonee)'], ['CIV', 'C', 'Planimetria generale / layout di impianto'],
+      ['CIV', 'C', 'Relazione geologica e geotecnica'], ['CIV', 'C', 'Relazione idraulica e invarianza idraulica'],
+      ['CIV', 'C', 'Calcolo strutture di sostegno e fondazioni (NTC 2018)'], ['CIV', 'C', 'Viabilità, recinzione, cancelli, drenaggi'],
+      ['ELE', 'E', 'Schema unifilare generale MT/BT'], ['ELE', 'E', 'Schemi di stringa e cablaggio DC'], ['ELE', 'E', 'Dimensionamento cavi DC/AC e cadute di tensione'],
+      ['ELE', 'E', 'Calcolo correnti di cortocircuito e selettività'], ['ELE', 'E', 'Impianto di terra e protezione contro i fulmini (CEI EN 62305)'],
+      ['ELE', 'E', 'Cabina di consegna/utente: layout e apparecchiature (CEI 0-16)'], ['ELE', 'E', 'Tarature SPG/SPI e regolamento di esercizio'],
+      ['ELE', 'E', 'Specifica tecnica moduli FV'], ['ELE', 'E', 'Specifica tecnica inverter'], ['ELE', 'E', 'Specifica tecnica trasformatori MT/BT'],
+      ['ELE', 'E', 'Elenco cavi e percorsi'], ['ELE', 'E', 'Impianto di illuminazione, videosorveglianza e antintrusione'],
+      ['AUT', 'I', 'Architettura SCADA / monitoraggio / EMS'], ['AUT', 'I', 'Lista I/O e protocolli (Modbus TCP, IEC 61850)'],
+      ['AUT', 'I', 'Controllore centrale di impianto (CCI) – CEI 0-16 All. O/T'],
+      ['PRM', 'P', 'Pratica di connessione (TICA) e STMG/STMD'], ['PRM', 'P', 'Titolo autorizzativo (PAS / edilizia libera / AU)'],
+      ['PRM', 'P', 'Pratica prevenzione incendi / valutazione VVF'], ['PRM', 'P', 'Pratiche GSE (RID/FER X) e Terna GAUDÌ'],
+      ['ECO', 'K', 'Computo metrico estimativo e stima CAPEX'], ['ECO', 'K', 'Piano economico-finanziario e analisi incentivi'],
+      ['COM', 'Q', 'Piano di collaudo e messa in servizio (CEI EN 62446-1)'], ['COM', 'Q', 'Verifiche prestazionali (PR) e collaudo funzionale']
+    ];
+    if (bessOn) L.push(
+      ['BES', 'E', 'Specifica tecnica BESS (IEC 62933, IEC 62619, UL 9540A)'], ['BES', 'E', 'Schema unifilare BESS e PCS'],
+      ['BES', 'E', 'Relazione di sicurezza BESS e analisi rischio incendio/thermal runaway'], ['BES', 'C', 'Layout area BESS, distanze e fondazioni'],
+      ['BES', 'I', 'Logiche EMS: autoconsumo, arbitraggio, peak shaving'], ['BES', 'Q', 'Piano di prove FAT/SAT del BESS']);
+    return L.map((r, k) => ({ code: 'FVB-' + r[0] + '-' + String(k + 1).padStart(3, '0'), area: r[0], disc: r[1], title: r[2], rev: 'A' }));
+  }
+
+  // ---------- sensitività ----------
+  // ogni caso: [nome, variazione sfavorevole, variazione favorevole, ampiezza]; low = VAN nello scenario sfavorevole
+  function sensitivity(cfg0) {
+    const base = simulate(cfg0), b0 = base.fin.npvProject;
+    const cases = [
+      ['CAPEX', c => { c.capex.pv.forEach(x => x.value *= 1.2); c.capex.bess.forEach(x => x.value *= 1.2); }, c => { c.capex.pv.forEach(x => x.value *= 0.8); c.capex.bess.forEach(x => x.value *= 0.8); }, '±20%'],
+      ['Prezzo energia (PUN)', c => { c.prices.pun *= 0.8; }, c => { c.prices.pun *= 1.2; }, '±20%'],
+      ['Producibilità FV', c => { c.pv.yieldFactor = 0.92; }, c => { c.pv.yieldFactor = 1.08; }, '±8%'],
+      ['OPEX', c => { c.opex.pvOmKwp *= 1.2; c.opex.bessOmKwh *= 1.2; c.opex.insurancePct *= 1.2; }, c => { c.opex.pvOmKwp *= 0.8; c.opex.bessOmKwh *= 0.8; c.opex.insurancePct *= 0.8; }, '±20%'],
+      ['WACC', c => { c.finance.wacc += 2; }, c => { c.finance.wacc -= 2; }, '±2 pp'],
+      ['Escalation prezzi', c => { c.prices.escalation -= 1.5; }, c => { c.prices.escalation += 1.5; }, '±1,5 pp'],
+      ['Oneri e componenti variabili', c => { c.prices.chargesVar *= 0.7; }, c => { c.prices.chargesVar *= 1.3; }, '±30%']
+    ];
+    const out = [];
+    for (const [name, lo, hi, range] of cases) {
+      const a = normalizeConfig(cfg0), z = normalizeConfig(cfg0); lo(a); hi(z);
+      const ra = simulate(a), rz = simulate(z);
+      out.push({ name, range, low: ra.fin.npvProject, high: rz.fin.npvProject, irrLow: ra.fin.irrProject, irrHigh: rz.fin.irrProject });
+    }
+    out.sort((x, y) => Math.abs(y.high - y.low) - Math.abs(x.high - x.low));
+    return { base: b0, items: out };
+  }
+
+  return { simulate, sensitivity, defaultConfig, normalizeConfig, capexModel, buildWeather, pvModel, loadModel, priceModel, dispatchYear, npv, irr, payback, tierAmount, H, MONTH_START, MONTH_DAYS, DATA: D };
+});
+</script>
+<script>
+/* Grafici SVG minimi, colori dai token CSS (tema chiaro/scuro). */
+(function (root) {
+  'use strict';
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const fmt = (v, d) => (v === null || v === undefined || !isFinite(v)) ? '–' : v.toLocaleString('it-IT', { maximumFractionDigits: d === undefined ? 0 : d, minimumFractionDigits: d === undefined ? 0 : d });
+  function niceStep(span, n) { const raw = span / n, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
+  function scale(lo, hi, n) { lo = Math.min(lo, 0); hi = Math.max(hi, 0); if (hi - lo < 1e-9) hi = lo + 1; const st = niceStep(hi - lo, n); return { lo: Math.floor(lo / st - 1e-9) * st, hi: Math.ceil(hi / st - 1e-9) * st, step: st }; }
+  function frame(W, Hh, inner) { return `<svg viewBox="0 0 ${W} ${Hh}" class="chart" role="img" preserveAspectRatio="xMidYMid meet">${inner}</svg>`; }
+  function yAxis(x0, x1, y, lo, hi, step, unit, H0) {
+    let s = ''; const ticks = Math.round((hi - lo) / step);
+    for (let k = 0; k <= ticks; k++) {
+      const v = lo + step * k, yy = y(v);
+      s += `<line x1="${x0}" x2="${x1}" y1="${yy}" y2="${yy}" class="grid${Math.abs(v) < 1e-9 ? ' zero' : ''}"/>`;
+      s += `<text x="${x0 - 6}" y="${yy + 4}" class="tick" text-anchor="end">${fmt(v, step < 1 ? 1 : 0)}</text>`;
+    }
+    if (unit) s += `<text x="${x0 - 6}" y="${H0 - 8}" class="unit" text-anchor="end">${esc(unit)}</text>`;
+    return s;
+  }
+  // barre impilate; series: [{name, cls, values}] ; line: {name, cls, values}
+  function stackedBars(labels, series, opt) {
+    opt = opt || {}; const W = 720, Hh = opt.height || 300, L = 62, R = 16, T = 24, B = 40;
+    const n = labels.length, pos = new Array(n).fill(0), neg = new Array(n).fill(0);
+    series.forEach(s => s.values.forEach((v, i) => { if (v >= 0) pos[i] += v; else neg[i] += v; }));
+    const sc = scale(Math.min(...neg, 0), Math.max(...pos, ...(opt.line ? opt.line.values : [0])), 4), lo = sc.lo, hi = sc.hi;
+    const y = v => T + (hi - v) / (hi - lo) * (Hh - T - B), bw = (W - L - R) / n;
+    let s = yAxis(L, W - R, y, lo, hi, sc.step, opt.unit, T);
+    labels.forEach((lab, i) => {
+      let up = 0, dn = 0; const x = L + i * bw + bw * 0.16, w = bw * 0.68;
+      series.forEach(se => {
+        const v = se.values[i]; if (!v) return;
+        const y0 = v >= 0 ? y(up + v) : y(dn);
+        s += `<rect x="${x}" y="${y0}" width="${w}" height="${Math.max(0, Math.abs(y(0) - y(v)))}" class="${se.cls}"><title>${esc(lab)} – ${esc(se.name)}: ${fmt(v, opt.dec)} ${esc(opt.unit || '')}</title></rect>`;
+        if (v >= 0) up += v; else dn += v;
+      });
+      if (i % (opt.every || 1) === 0) s += `<text x="${L + i * bw + bw / 2}" y="${Hh - B + 16}" class="tick" text-anchor="middle">${esc(lab)}</text>`;
+    });
+    if (opt.line) {
+      const pts = opt.line.values.map((v, i) => `${L + i * bw + bw / 2},${y(v)}`).join(' ');
+      s += `<polyline points="${pts}" class="${opt.line.cls}" fill="none"/>`;
+      opt.line.values.forEach((v, i) => { s += `<circle cx="${L + i * bw + bw / 2}" cy="${y(v)}" r="3" class="${opt.line.cls}-dot"><title>${esc(labels[i])} – ${esc(opt.line.name)}: ${fmt(v, opt.dec)}</title></circle>`; });
+    }
+    return frame(W, Hh, s);
+  }
+  // linee multiple con asse destro opzionale
+  function lines(xLabels, series, opt) {
+    opt = opt || {}; const W = 720, Hh = opt.height || 280, L = 62, R = opt.right ? 52 : 16, T = 24, B = 36;
+    const left = series.filter(s => !s.right), right = series.filter(s => s.right);
+    const sc = scale(Math.min(...left.flatMap(s => s.values)), Math.max(...left.flatMap(s => s.values)), 4), lo = sc.lo, hi = sc.hi;
+    const n = xLabels.length, x = i => L + (W - L - R) * (n === 1 ? 0.5 : i / (n - 1)), y = v => T + (hi - v) / (hi - lo) * (Hh - T - B);
+    const yr = v => T + (1 - v / (opt.rightMax || 1)) * (Hh - T - B);
+    let s = yAxis(L, W - R, y, lo, hi, sc.step, opt.unit, T);
+    if (opt.right) for (let k = 0; k <= 4; k++) { const v = (opt.rightMax || 1) * k / 4; s += `<text x="${W - R + 6}" y="${yr(v) + 4}" class="tick">${fmt(v * (opt.rightScale || 1), 0)}</text>`; }
+    if (opt.right) s += `<text x="${W - R + 6}" y="${T - 8}" class="unit">${esc(opt.right)}</text>`;
+    xLabels.forEach((lab, i) => { if (i % (opt.every || 1) === 0) s += `<text x="${x(i)}" y="${Hh - B + 16}" class="tick" text-anchor="middle">${esc(lab)}</text>`; });
+    series.forEach(se => {
+      const f = se.right ? yr : y, pts = se.values.map((v, i) => `${x(i).toFixed(1)},${f(v).toFixed(1)}`);
+      if (se.area) s += `<polygon points="${x(0)},${f(0)} ${pts.join(' ')} ${x(n - 1)},${f(0)}" class="${se.cls}-area"/>`;
+      s += `<polyline points="${pts.join(' ')}" class="${se.cls}" fill="none"/>`;
+    });
+    return frame(W, Hh, s);
+  }
+  // flussi di cassa: barre annuali + linea cumulata
+  function cashflow(cf, opt) {
+    opt = opt || {}; const W = 720, Hh = 300, L = 70, R = 16, T = 24, B = 36;
+    const cum = []; cf.reduce((a, v, i) => (cum[i] = a + v, a + v), 0);
+    const sc = scale(Math.min(...cf, ...cum), Math.max(...cf, ...cum), 5), lo = sc.lo, hi = sc.hi;
+    const n = cf.length, bw = (W - L - R) / n, y = v => T + (hi - v) / (hi - lo) * (Hh - T - B);
+    let s = yAxis(L, W - R, y, lo, hi, sc.step, opt.unit || 'k€', T);
+    cf.forEach((v, i) => {
+      s += `<rect x="${L + i * bw + bw * 0.15}" y="${Math.min(y(0), y(v))}" width="${bw * 0.7}" height="${Math.abs(y(0) - y(v))}" class="${v >= 0 ? 'b-pos' : 'b-neg'}"><title>Anno ${i}: ${fmt(v)} ${opt.unit || 'k€'}</title></rect>`;
+      if (i % 5 === 0) s += `<text x="${L + i * bw + bw / 2}" y="${Hh - B + 16}" class="tick" text-anchor="middle">${i}</text>`;
+    });
+    s += `<polyline points="${cum.map((v, i) => `${L + i * bw + bw / 2},${y(v)}`).join(' ')}" class="l-cum" fill="none"/>`;
+    const last = cum.length - 1; s += `<circle cx="${L + last * bw + bw / 2}" cy="${y(cum[last])}" r="4" class="l-cum-dot"/>`;
+    return frame(W, Hh, s);
+  }
+  // tornado: items [{name, range, low, high}] rispetto a base
+  function tornado(items, base, opt) {
+    opt = opt || {}; const W = 720, row = 34, T = 30, Hh = T + items.length * row + 26, L = 210, R = 24;
+    const all = items.flatMap(i => [i.low, i.high]).concat([base]);
+    let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+    const x = v => L + (v - lo) / (hi - lo) * (W - L - R);
+    let s = `<line x1="${x(base)}" x2="${x(base)}" y1="${T - 10}" y2="${Hh - 20}" class="grid zero"/>`;
+    s += `<text x="${x(base)}" y="${T - 14}" class="tick" text-anchor="middle">base ${fmt(base / 1000)} k€</text>`;
+    items.forEach((it, k) => {
+      const yy = T + k * row;
+      s += `<text x="${L - 10}" y="${yy + row / 2 + 2}" class="label" text-anchor="end">${esc(it.name)} <tspan class="tick">${esc(it.range)}</tspan></text>`;
+      const a = Math.min(it.low, base), b2 = Math.max(it.low, base), c = Math.min(it.high, base), d = Math.max(it.high, base);
+      s += `<rect x="${x(a)}" y="${yy + 6}" width="${x(b2) - x(a)}" height="${row - 12}" class="t-low"><title>scenario sfavorevole: ${fmt(it.low / 1000)} k€</title></rect>`;
+      s += `<rect x="${x(c)}" y="${yy + 6}" width="${x(d) - x(c)}" height="${row - 12}" class="t-high"><title>scenario favorevole: ${fmt(it.high / 1000)} k€</title></rect>`;
+    });
+    return frame(W, Hh, s);
+  }
+  function hbars(items, opt) {
+    opt = opt || {}; const W = 720, row = 26, T = 8, L = 300, R = 90, Hh = T + items.length * row + 8;
+    const mx = Math.max(...items.map(i => i.value), 1);
+    let s = '';
+    items.forEach((it, k) => {
+      const yy = T + k * row, w = (W - L - R) * it.value / mx;
+      s += `<text x="${L - 8}" y="${yy + row / 2 + 4}" class="label" text-anchor="end">${esc(it.label.length > 46 ? it.label.slice(0, 45) + '…' : it.label)}</text>`;
+      s += `<rect x="${L}" y="${yy + 5}" width="${Math.max(1, w)}" height="${row - 10}" class="${it.cls || 'b-pv'}"><title>${esc(it.label)}: ${fmt(it.value)} €</title></rect>`;
+      s += `<text x="${L + w + 6}" y="${yy + row / 2 + 4}" class="tick">${fmt(it.value / 1000)} k€</text>`;
+    });
+    return frame(W, Hh, s);
+  }
+  root.FVB_CHARTS = { stackedBars, lines, cashflow, tornado, hbars, fmt, esc };
+})(typeof self !== 'undefined' ? self : this);
+</script>
+<script>
+/* Interfaccia del simulatore: form di input, esecuzione, schede risultati. */
+(function () {
+  'use strict';
+  const F = window.FVB, D = window.FVB_DATA, C = window.FVB_CHARTS, fmt = C.fmt, esc = C.esc;
+  const STORE = 'fvb-cfg-v1';
+  const MONTHS = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+  const $ = s => document.querySelector(s);
+  const get = (o, p) => p.split('.').reduce((a, k) => a == null ? a : a[k], o);
+  const set = (o, p, v) => { const ks = p.split('.'); let a = o; ks.slice(0, -1).forEach(k => { a = a[k]; }); a[ks[ks.length - 1]] = v; };
+  const kE = v => fmt(v / 1000) + ' k€';
+  const pct = (v, d) => v === null || v === undefined ? '–' : fmt(v * 100, d === undefined ? 1 : d) + ' %';
+  const opt = obj => Object.keys(obj).map(k => [k, obj[k].name]);
+
+  let cfg = load(), R = null, Rpv = null, SENS = null, tab = 'sintesi', timer = null;
+  function load() {
+    try { const s = localStorage.getItem(STORE); if (s) return F.normalizeConfig(JSON.parse(s)); } catch (e) { /* archivio non disponibile */ }
+    return F.defaultConfig();
+  }
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(cfg)); } catch (e) { /* ignora */ } }
+
+  // ---------- schema dei campi ----------
+  const MOUNTS = [['ground_fixed', 'A terra, struttura fissa'], ['tracker', 'A terra, tracker monoassiale N-S'], ['roof_tilted', 'Copertura a falda / inclinata'], ['roof_ew', 'Copertura piana est-ovest']];
+  const SECTIONS = [
+    { id: 'site', title: 'Sito e consumi', open: true, f: [
+      ['project.name', 'Nome progetto', 'text'],
+      ['project.site', 'Località (meteo e zona di mercato)', 'select', opt(D.SITES)],
+      ['load.annualMWh', 'Consumo annuo', 'number', 'MWh/a', 100, 500000, 100],
+      ['load.profile', 'Organizzazione dei turni', 'select', opt(D.LOAD_PROFILES)],
+      ['load.augustShutdownWeeks', 'Fermata estiva', 'number', 'settimane', 0, 4, 1],
+      ['load.christmasShutdown', 'Fermata natalizia', 'check'],
+      ['load.seasonal', 'Stagionalità (+ = picco estivo)', 'number', 'frazione', -0.3, 0.3, 0.01],
+      ['#loadcsv', 'Curva di carico misurata (CSV)', 'file']
+    ] },
+    { id: 'pv', title: 'Impianto fotovoltaico', open: true, f: [
+      ['pv.kwp', 'Potenza DC', 'number', 'kWp', 10, 50000, 10],
+      ['pv.mount', 'Tipologia di installazione', 'select', MOUNTS],
+      ['pv.tilt', 'Inclinazione moduli', 'number', '°', 0, 60, 1],
+      ['pv.azimuth', 'Azimut (0 = sud, + ovest)', 'number', '°', -90, 90, 1],
+      ['pv.gcr', 'Ground coverage ratio', 'number', '–', 0.2, 0.8, 0.01],
+      ['pv.dcac', 'Rapporto DC/AC', 'number', '–', 1, 1.5, 0.01],
+      ['pv.module', 'Modulo', 'select', opt(D.MODULES)],
+      ['pv.inverter', 'Inverter', 'select', opt(D.INVERTERS)],
+      ['pv.bifacial', 'Guadagno bifacciale (solo a terra)', 'check'],
+      ['pv.albedo', 'Albedo del terreno', 'number', '–', 0.1, 0.8, 0.01],
+      ['§', 'Perdite e degrado'],
+      ['pv.losses.soiling', 'Sporcamento', 'number', '%', 0, 10, 0.1],
+      ['pv.losses.shading', 'Ombreggiamento', 'number', '%', 0, 15, 0.1],
+      ['pv.losses.mismatch', 'Mismatch', 'number', '%', 0, 5, 0.1],
+      ['pv.losses.dcCable', 'Cavi DC', 'number', '%', 0, 5, 0.1],
+      ['pv.losses.acCable', 'Cavi AC', 'number', '%', 0, 5, 0.1],
+      ['pv.losses.transformer', 'Trasformatore', 'number', '%', 0, 3, 0.1],
+      ['pv.losses.availability', 'Disponibilità', 'number', '%', 90, 100, 0.1],
+      ['pv.degrFirst', 'Degrado primo anno (incl. LID)', 'number', '%', 0, 3, 0.1],
+      ['pv.degrAnnual', 'Degrado annuo', 'number', '%/a', 0, 1.5, 0.05]
+    ] },
+    { id: 'bess', title: 'Sistema di accumulo (BESS)', open: true, f: [
+      ['bess.enabled', 'BESS presente', 'check'],
+      ['bess.kwh', 'Energia nominale', 'number', 'kWh', 0, 200000, 50],
+      ['bess.kw', 'Potenza PCS', 'number', 'kW', 0, 100000, 50],
+      ['bess.unit', 'Unità di accumulo', 'select', opt(D.BESS_UNITS)],
+      ['bess.rte', 'Rendimento round-trip AC', 'number', '%', 70, 98, 0.5],
+      ['bess.dod', 'Profondità di scarica utile', 'number', '%', 50, 100, 1],
+      ['bess.auxPct', 'Ausiliari (HVAC, BMS)', 'number', '% cap./giorno', 0, 3, 0.1],
+      ['bess.calendarDeg', 'Degrado calendario', 'number', '%/a', 0, 4, 0.1],
+      ['bess.cycleDegPer1000', 'Degrado per 1000 cicli', 'number', '%', 0, 10, 0.1],
+      ['bess.augmentation', 'Augmentation programmata', 'check'],
+      ['bess.augmentSoh', 'Soglia SOH per augmentation', 'number', '%', 50, 95, 1],
+      ['bess.eolSoh', 'Fine vita (senza augmentation)', 'number', '%', 50, 90, 1],
+      ['§', 'Strategia EMS'],
+      ['bess.strategy.selfConsumption', 'Autoconsumo FV', 'check'],
+      ['bess.strategy.arbitrage', 'Arbitraggio (carica notturna da rete)', 'check'],
+      ['bess.strategy.arbitrageMinSpread', 'Spread minimo arbitraggio', 'number', '€/MWh', 0, 200, 5],
+      ['bess.strategy.peakShaving', 'Peak shaving', 'check'],
+      ['bess.strategy.peakLimitKw', 'Soglia di prelievo', 'number', 'kW', 0, 100000, 50],
+      ['bess.strategy.reserveSoc', 'Riserva SOC per peak shaving', 'number', '%', 0, 90, 5],
+      ['bess.strategy.maxCyclesDay', 'Cicli massimi al giorno', 'number', 'n', 0.5, 3, 0.1]
+    ] },
+    { id: 'grid', title: 'Connessione alla rete', f: [
+      ['grid.voltageKv', 'Tensione di consegna', 'number', 'kV', 10, 36, 1],
+      ['grid.importLimitKw', 'Potenza disponibile in prelievo', 'number', 'kW', 0, 100000, 50],
+      ['grid.exportLimitKw', 'Potenza in immissione', 'number', 'kW', 0, 100000, 50],
+      ['grid.zeroExport', 'Immissione zero', 'check'],
+      ['grid.iccKa', 'Corrente di cortocircuito di rete MT', 'number', 'kA', 1, 25, 0.5],
+      ['grid.tFaultS', 'Tempo di eliminazione del guasto', 'number', 's', 0.1, 1, 0.05]
+    ] },
+    { id: 'prices', title: 'Prezzi dell\'energia', f: [
+      ['prices.pun', 'PUN medio anno 1', 'number', '€/MWh', 20, 400, 1],
+      ['prices.escalation', 'Variazione annua prezzi', 'number', '%/a', -5, 8, 0.1],
+      ['prices.lossFactor', 'Perdite di rete in prelievo', 'number', '%', 0, 15, 0.1],
+      ['prices.supplierSpread', 'Spread del fornitore', 'number', '€/MWh', 0, 50, 0.5],
+      ['prices.chargesVar', 'Oneri di rete e di sistema variabili', 'number', '€/MWh', 0, 120, 0.5],
+      ['prices.excise', 'Accise', 'number', '€/MWh', 0, 25, 0.1],
+      ['prices.powerChargeKwYear', 'Quota potenza', 'number', '€/kW·a', 0, 120, 1],
+      ['prices.exportFactor', 'Prezzo di cessione / prezzo zonale', 'number', '–', 0.5, 1.2, 0.01],
+      ['prices.ridFee', 'Corrispettivi GSE sulla cessione', 'number', '€/MWh', 0, 5, 0.1],
+      ['#puncsv', 'PUN orario (CSV)', 'file']
+    ] },
+    { id: 'opex', title: 'Costi operativi', f: [
+      ['opex.pvOmKwp', 'O&M fotovoltaico', 'number', '€/kWp·a', 0, 40, 0.5],
+      ['opex.securityKwp', 'Vigilanza (solo a terra)', 'number', '€/kWp·a', 0, 10, 0.5],
+      ['opex.bessOmKwh', 'O&M BESS', 'number', '€/kWh·a', 0, 20, 0.5],
+      ['opex.insurancePct', 'Assicurazione', 'number', '% CAPEX', 0, 2, 0.05],
+      ['opex.imuEur', 'IMU e tributi', 'number', '€/a', 0, 200000, 500],
+      ['opex.landLeaseEur', 'Diritto di superficie / affitto', 'number', '€/a', 0, 500000, 500],
+      ['opex.monitoringEur', 'Monitoraggio e telecontrollo', 'number', '€/a', 0, 50000, 500],
+      ['opex.adminEur', 'Gestione e pratiche', 'number', '€/a', 0, 50000, 500],
+      ['opex.inflation', 'Inflazione costi', 'number', '%/a', 0, 6, 0.1],
+      ['opex.inverterReplYear', 'Sostituzione inverter all\'anno', 'number', 'anno', 0, 30, 1],
+      ['opex.inverterReplKw', 'Costo sostituzione inverter', 'number', '€/kWac', 0, 100, 1],
+      ['opex.augmentCostKwh', 'Costo augmentation (oggi)', 'number', '€/kWh', 0, 300, 5],
+      ['opex.costDeclineBess', 'Calo reale prezzo batterie', 'number', '%/a', 0, 10, 0.5],
+      ['opex.decommEurKwp', 'Dismissione a fine vita', 'number', '€/kWp', 0, 80, 1]
+    ] },
+    { id: 'fin', title: 'Finanza e fisco', f: [
+      ['finance.years', 'Orizzonte di analisi', 'number', 'anni', 10, 35, 1],
+      ['finance.wacc', 'WACC nominale', 'number', '%', 2, 15, 0.1],
+      ['finance.ke', 'Costo del capitale proprio', 'number', '%', 2, 20, 0.1],
+      ['finance.debtPct', 'Quota a debito', 'number', '% CAPEX', 0, 90, 1],
+      ['finance.debtRate', 'Tasso del finanziamento', 'number', '%', 0, 12, 0.05],
+      ['finance.debtTenor', 'Durata del finanziamento', 'number', 'anni', 1, 20, 1],
+      ['finance.ires', 'IRES', 'number', '%', 0, 30, 0.1],
+      ['finance.irap', 'IRAP', 'number', '%', 0, 6, 0.01],
+      ['finance.deprPv', 'Aliquota ammortamento FV', 'number', '%/a', 1, 30, 0.5],
+      ['finance.deprBess', 'Aliquota ammortamento BESS', 'number', '%/a', 1, 30, 0.5],
+      ['finance.halfFirstYear', 'Primo anno ad aliquota dimezzata', 'check'],
+      ['finance.taxCapacity', 'Capienza fiscale del gruppo', 'check'],
+      ['finance.residualPct', 'Valore residuo', 'number', '% CAPEX', 0, 30, 1]
+    ] }
+  ];
+
+  function buildInputs() {
+    const box = $('#inputs'); box.innerHTML = '';
+    for (const s of SECTIONS) {
+      const d = document.createElement('details'); d.className = 'sec'; d.open = !!s.open;
+      let h = `<summary>${esc(s.title)}</summary><div class="fields">`;
+      for (const f of s.f) {
+        const [path, label, type, unit, min, max, step] = f, id = 'in-' + path.replace(/[.#]/g, '_');
+        if (path === '§') { h += `<div class="sub">${esc(label)}</div>`; continue; }
+        if (type === 'file') { h += `<label class="full" for="${id}">${esc(label)} <small>8760 valori orari (kW o €/MWh) o 35 040 quartorari; un valore per riga o separati da ;</small></label><input class="full" type="file" id="${id}" accept=".csv,.txt" data-kind="${path}"><div class="full hint" id="${id}-st"></div>`; continue; }
+        h += `<label for="${id}">${esc(label)}${unit && type === 'number' ? ` <small>${esc(unit)}</small>` : ''}</label>`;
+        if (type === 'select') h += `<select id="${id}" data-path="${path}">${f[3].map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join('')}</select>`;
+        else if (type === 'check') h += `<input type="checkbox" id="${id}" data-path="${path}">`;
+        else if (type === 'text') h += `<input type="text" id="${id}" data-path="${path}">`;
+        else h += `<input type="number" id="${id}" data-path="${path}" min="${min}" max="${max}" step="${step}">`;
+      }
+      d.innerHTML = h + '</div>'; box.appendChild(d);
+    }
+    box.addEventListener('change', onInput); box.addEventListener('input', e => { if (e.target.type === 'number' || e.target.type === 'text') onInput(e); });
+    fillInputs();
+  }
+  function fillInputs() {
+    document.querySelectorAll('[data-path]').forEach(el => {
+      const v = get(cfg, el.dataset.path);
+      if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
+    });
+    $('#in-_loadcsv-st').textContent = Array.isArray(cfg.load.custom) ? 'Curva misurata in uso (' + fmt(cfg.load.custom.reduce((a, b) => a + b, 0) / 1000) + ' MWh/a). Il consumo annuo e i turni sono ignorati.' : 'Curva sintetica dai turni.';
+    $('#in-_puncsv-st').textContent = Array.isArray(cfg.prices.customPun) ? 'PUN orario caricato (media ' + fmt(cfg.prices.customPun.reduce((a, b) => a + b, 0) / cfg.prices.customPun.length, 1) + ' €/MWh).' : 'Profilo orario sintetico tarato sul PUN medio.';
+    syncVisibility();
+  }
+  function syncVisibility() {
+    const roof = cfg.pv.mount.startsWith('roof'), tr = cfg.pv.mount === 'tracker';
+    const vis = { 'pv.gcr': !roof, 'pv.bifacial': !roof, 'pv.albedo': !roof, 'pv.azimuth': !tr && cfg.pv.mount !== 'roof_ew', 'pv.tilt': !tr };
+    for (const p in vis) { const el = document.querySelector(`[data-path="${p}"]`); if (el) { el.hidden = !vis[p]; el.previousElementSibling.hidden = !vis[p]; } }
+  }
+  function onInput(e) {
+    const el = e.target;
+    if (el.dataset.kind) return readCsv(el);
+    if (!el.dataset.path) return;
+    let v = el.type === 'checkbox' ? el.checked : el.type === 'number' ? parseFloat(el.value) : el.value;
+    if (el.type === 'number' && !isFinite(v)) return;
+    set(cfg, el.dataset.path, v);
+    if (el.dataset.path === 'pv.mount') { const mc = D.MOUNT_CAPEX[v] || {}; cfg.capex.pv.forEach(it => { if (it.id in mc) it.value = mc[it.id]; }); if (v === 'roof_ew') cfg.pv.tilt = 10; else if (v === 'roof_tilted') { cfg.pv.tilt = 15; cfg.pv.bifacial = false; } else if (v === 'ground_fixed' && cfg.pv.tilt < 15) cfg.pv.tilt = 25; fillInputs(); }
+    if (el.dataset.path === 'pv.module' || el.dataset.path === 'pv.inverter') fillInputs();
+    if (el.dataset.path === 'project.name') $('#projTitle').textContent = v || 'Simulatore FV + BESS industriale';
+    syncVisibility(); schedule();
+  }
+  function readCsv(el) {
+    const f = el.files && el.files[0]; if (!f) return;
+    const st = $('#' + el.id + '-st'), rd = new FileReader();
+    rd.onload = () => {
+      const vals = [];
+      for (const raw of String(rd.result).split(/\r?\n/)) {
+        const line = raw.trim(); if (!line) continue;
+        let parts;
+        if (/[;\t]/.test(line)) parts = line.split(/[;\t]/).map(x => x.replace(',', '.'));
+        else if ((line.match(/,/g) || []).length === 1 && line.indexOf('.') < 0) parts = [line.replace(',', '.')];
+        else parts = line.split(',');
+        const v = parseFloat(parts[parts.length - 1]); if (isFinite(v)) vals.push(v);
+      }
+      let arr = null;
+      if (vals.length >= 35040) { arr = []; for (let i = 0; i < 8760; i++) arr.push((vals[4 * i] + vals[4 * i + 1] + vals[4 * i + 2] + vals[4 * i + 3]) / 4); }
+      else if (vals.length >= 8760) arr = vals.slice(0, 8760);
+      if (!arr) { st.textContent = 'Il file contiene ' + vals.length + ' valori numerici: ne servono 8760 (orari) o 35 040 (quartorari).'; return; }
+      if (el.dataset.kind === '#loadcsv') cfg.load.custom = arr; else cfg.prices.customPun = arr;
+      fillInputs(); schedule();
+    };
+    rd.readAsText(f);
+  }
+
+  // ---------- esecuzione ----------
+  function schedule() { clearTimeout(timer); document.querySelector('main').classList.add('busy'); timer = setTimeout(run, 350); }
+  function run() {
+    try {
+      R = F.simulate(cfg);
+      Rpv = cfg.bess.enabled ? F.simulate(Object.assign(F.normalizeConfig(cfg), { bess: Object.assign({}, cfg.bess, { enabled: false }) })) : null;
+      SENS = null; save(); render();
+    } catch (err) { $('#panels').innerHTML = `<div class="card note">Errore di calcolo: ${esc(err.message)}. Controlla i dati inseriti o ripristina l'esempio.</div>`; console.error(err); }
+    document.querySelector('main').classList.remove('busy');
+  }
+
+  // ---------- schede ----------
+  const TABS = [['sintesi', 'Sintesi'], ['energia', 'Energia'], ['bess', 'Accumulo'], ['economia', 'Economia'], ['capex', 'CAPEX'], ['incentivi', 'Incentivi'], ['sensitivita', 'Sensitività'], ['ingegneria', 'Ingegneria'], ['relazione', 'Relazione']];
+  function buildTabs() {
+    $('#tabs').innerHTML = TABS.map(([k, t]) => `<button role="tab" type="button" id="tab-${k}" data-tab="${k}" aria-selected="${k === tab}">${t}</button>`).join('');
+    $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; try { localStorage.setItem(STORE + '-tab', tab); } catch (x) { /* ignora */ } document.querySelectorAll('#tabs button').forEach(x => x.setAttribute('aria-selected', x.dataset.tab === tab)); render(); });
+  }
+  function render() {
+    if (!R) return;
+    const P = { sintesi, energia, bess: bessTab, economia, capex: capexTab, incentivi, sensitivita, ingegneria, relazione }[tab];
+    $('#panels').innerHTML = `<div class="panel">${P()}</div>`;
+    bindPanel();
+  }
+  const kpi = (l, v, s, cls) => `<div class="kpi ${cls || ''}"><div class="l">${esc(l)}</div><div class="v">${v}</div>${s ? `<div class="s">${s}</div>` : ''}</div>`;
+  const legend = items => `<div class="legend">${items.map(([c, t]) => `<span><i style="background:var(${c})"></i>${esc(t)}</span>`).join('')}</div>`;
+
+  function sintesi() {
+    const f = R.fin, k = R.kpi, y = R.y1, c = R.capex;
+    const dBess = Rpv ? f.npvProject - Rpv.fin.npvProject : null;
+    const tiles = [
+      kpi('VAN di progetto', kE(f.npvProject), 'al WACC ' + fmt(cfg.finance.wacc, 1) + ' %', f.npvProject >= 0 ? 'good' : 'bad'),
+      kpi('TIR di progetto', pct(f.irrProject), 'TIR equity ' + pct(f.irrEquity)),
+      kpi('Tempo di ritorno', f.paybackProject ? fmt(f.paybackProject, 1) + ' anni' : 'oltre l\'orizzonte', 'attualizzato ' + (f.paybackDisc ? fmt(f.paybackDisc, 1) + ' anni' : '–')),
+      kpi('CAPEX totale', kE(c.total), fmt(c.pvPerKwp) + ' €/kWp FV' + (cfg.bess.enabled ? ' · ' + fmt(c.bessPerKwh) + ' €/kWh BESS' : '')),
+      kpi('CAPEX netto aiuti', kE(f.netCapex), 'intensità aiuti ' + pct(f.aidIntensity, 0)),
+      kpi('Produzione FV anno 1', fmt(y.pv / 1000) + ' MWh', fmt(k.specificYield) + ' kWh/kWp · PR ' + fmt(k.pr * 100, 1) + ' %'),
+      kpi('Autoconsumo', pct(k.selfConsumptionRate), 'quota della produzione FV usata in sito'),
+      kpi('Autosufficienza', pct(k.selfSufficiency), 'quota dei consumi coperta da FV + BESS'),
+      kpi('LCOE fotovoltaico', fmt(f.lcoePv, 1) + ' €/MWh', cfg.bess.enabled ? 'LCOS BESS ' + fmt(f.lcosBess, 0) + ' €/MWh' : ''),
+      kpi('CO₂ evitata', fmt(k.co2) + ' t/a', 'fattore rete ' + D.CO2_GRID + ' t/MWh')
+    ];
+    if (dBess !== null) tiles.push(kpi('Contributo del BESS al VAN', kE(dBess), 'rispetto al solo FV (VAN ' + kE(Rpv.fin.npvProject) + ')', dBess >= 0 ? 'good' : 'bad'));
+    const yr1 = f.rows[0];
+    let verdict = `Con i dati inseriti l'impianto da <b>${fmt(cfg.pv.kwp)} kWp</b>${cfg.bess.enabled ? ` con accumulo da <b>${fmt(cfg.bess.kwh)} kWh / ${fmt(cfg.bess.kw)} kW</b>` : ''} a ${esc(R.site.name)} produce ${fmt(y.pv / 1000)} MWh nel primo anno e copre il ${pct(k.selfSufficiency, 0)} dei consumi dello stabilimento. `;
+    verdict += `Il risparmio in bolletta del primo anno vale ${kE(yr1.energySaving + yr1.powerSaving)}, la vendita delle eccedenze ${kE(yr1.exportRev)}. `;
+    verdict += f.npvProject >= 0 ? `L'investimento crea valore: VAN ${kE(f.npvProject)}, TIR ${pct(f.irrProject)}. ` : `L'investimento non raggiunge il rendimento richiesto: VAN ${kE(f.npvProject)}. `;
+    if (dBess !== null) verdict += dBess >= 0 ? `L'accumulo aggiunge ${kE(dBess)} di VAN.` : `L'accumulo, da solo, riduce il VAN di ${kE(-dBess)}: conviene se ci sono incentivi sul BESS, ricavi da servizi di rete, quote potenza elevate o vincoli di immissione.`;
+    const warn = f.warnings.concat(R.eng.checks.filter(x => !x.ok).map(x => 'Verifica stringhe ' + x.id + ' non superata: ' + x.what + ' (' + x.value + ', limite ' + x.limit + ').'));
+    return `<div class="kpis">${tiles.join('')}</div>
+      <div class="card"><h2>In breve</h2><p class="verdict">${verdict}</p>${warn.map(w => `<p class="note">${esc(w)}</p>`).join('')}
+      <p class="hint">Stima di pre-fattibilità (classe AACE 4–5). Meteo sintetico da medie mensili, prezzi orari con profilo tipo: per decisioni di investimento usa PVGIS/TMY del sito, la curva di carico misurata e offerte EPC.</p></div>
+      <div class="card"><h2>Bilancio energetico mensile, anno 1</h2>${monthlyChart()}</div>`;
+  }
+  function monthlyChart() {
+    const m = R.monthly;
+    return C.stackedBars(MONTHS, [
+      { name: 'FV autoconsumato', cls: 's-pvd', values: m.map(x => x.direct / 1000) },
+      { name: 'FV in batteria', cls: 's-pvb', values: m.map(x => x.pvch / 1000) },
+      { name: 'Immissione in rete', cls: 's-exp', values: m.map(x => x.exp / 1000) },
+      { name: 'Taglio (curtailment)', cls: 's-curt', values: m.map(x => x.curt / 1000) }
+    ], { unit: 'MWh', line: { name: 'Consumo', cls: 'l-load', values: m.map(x => x.load / 1000) } }) +
+      legend([['--pv', 'FV autoconsumato'], ['--bess', 'FV caricato in batteria'], ['--exp', 'Immissione in rete'], ['--curt', 'Energia tagliata'], ['--load', 'Consumo dello stabilimento']]);
+  }
+  function energia() {
+    const y = R.y1, MWh = v => fmt(v / 1000) + ' MWh';
+    const rows = [['Produzione FV (AC, al punto di consegna)', y.pv], ['· autoconsumata direttamente', y.pvDirect], ['· caricata nel BESS', y.pvToBess], ['· immessa in rete', y.exp], ['· tagliata (limite di immissione)', y.curt],
+      ['Scarica BESS verso i carichi', y.bessToLoad], ['Carica BESS da rete (arbitraggio/riserva)', y.gridToBess], ['Ausiliari BESS', y.aux], ['Prelievo da rete', y.imp], ['Consumo dello stabilimento', y.load]];
+    const m = sel('mese', 5, MONTHS.map((t, i) => [i, t]));
+    return `<div class="card"><h2>Bilancio mensile</h2>${monthlyChart()}</div>
+      <div class="card"><h2>Giorno medio del mese</h2><div class="row"><label for="selMonth">Mese</label>${m}</div><div id="dayChart">${dayChart(5)}</div>
+        ${legend([['--pv', 'Produzione FV'], ['--load', 'Consumo'], ['--imp', 'Prelievo da rete'], ['--bess', 'Stato di carica (asse destro)']])}</div>
+      <div class="card"><h2>Bilancio annuo, anno 1</h2><div class="tbl-wrap"><table><tbody>${rows.map(r => `<tr><td>${esc(r[0])}</td><td class="n">${MWh(r[1])}</td></tr>`).join('')}</tbody></table></div>
+      <p class="hint">Picco di prelievo massimo: ${fmt(Math.max(...y.peakBase))} kW senza impianto, ${fmt(Math.max(...y.peakProj))} kW con impianto.</p></div>`;
+  }
+  function sel(id, v, opts) { return `<select id="sel-${id}" data-sel="${id}">${opts.map(([k, t]) => `<option value="${k}"${+k === +v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`; }
+  function dayChart(m) {
+    const h = R.y1.hourly, d0 = F.MONTH_START[m], nd = F.MONTH_DAYS[m];
+    const avg = arr => Array.from({ length: 24 }, (_, k) => { let s = 0; for (let d = d0; d < d0 + nd; d++) s += arr[d * 24 + k]; return s / nd; });
+    const pv = Array.from({ length: 24 }, (_, k) => { let s = 0; for (let d = d0; d < d0 + nd; d++) { const i = d * 24 + k; s += h.pvDirect[i] + h.pvch[i] + h.exp[i] + h.curt[i]; } return s / nd; });
+    return C.lines(Array.from({ length: 24 }, (_, k) => k + ''), [
+      { name: 'FV', cls: 'l-pv', values: pv, area: true }, { name: 'Consumo', cls: 'l-load', values: avg(R.load) },
+      { name: 'Prelievo', cls: 'l-imp', values: avg(h.imp) }, { name: 'SOC', cls: 'l-soc', values: avg(h.soc), right: true }
+    ], { unit: 'kW', every: 3, right: cfg.bess.enabled ? 'SOC %' : '', rightMax: 1, rightScale: 100 });
+  }
+  function weekChart(w) {
+    const h = R.y1.hourly, i0 = w * 168, n = 168, idx = Array.from({ length: n }, (_, k) => i0 + k);
+    const lab = idx.map((i, k) => k % 24 === 0 ? (Math.floor(i / 24) + 1) + '' : '');
+    return C.lines(lab, [
+      { name: 'FV', cls: 'l-pv', values: idx.map(i => h.pvDirect[i] + h.pvch[i] + h.exp[i] + h.curt[i]), area: true },
+      { name: 'Consumo', cls: 'l-load', values: idx.map(i => R.load[i]) },
+      { name: 'Prelievo', cls: 'l-imp', values: idx.map(i => h.imp[i]) },
+      { name: 'SOC', cls: 'l-soc', values: idx.map(i => h.soc[i]), right: true, area: true }
+    ], { unit: 'kW', every: 24, right: 'SOC %', rightMax: 1, rightScale: 100, height: 300 });
+  }
+  function bessTab() {
+    if (!cfg.bess.enabled) return `<div class="card"><h2>Accumulo non attivo</h2><p>Attiva il BESS nel pannello “Sistema di accumulo” per vedere esercizio, cicli e degrado.</p></div>`;
+    const y = R.y1, e = R.eng.bess;
+    const tiles = [kpi('Cicli equivalenti anno 1', fmt(y.efc), 'sulla capacità utile'), kpi('Energia scaricata', fmt(y.bessOut / 1000) + ' MWh/a', 'di cui da FV ' + pct(y.pvToBess / Math.max(1, y.pvToBess + y.gridToBess), 0)),
+      kpi('Durata a piena potenza', fmt(e.hours, 1) + ' h', 'C-rate ' + fmt(e.cRate, 2)), kpi('Unità', fmt(e.n) + ' × ' + esc(e.unit.name.split('(')[0]), fmt(e.kwhInst) + ' kWh installati'),
+      kpi('LCOS', fmt(R.fin.lcosBess, 0) + ' €/MWh', 'esclusa l\'energia di carica')];
+    const augY = R.years.filter(x => x.augKwh || x.replKwh).map(x => x.year);
+    return `<div class="kpis">${tiles.join('')}</div>
+      <div class="card"><h2>Esercizio settimanale</h2><div class="row"><label for="sel-week">Settimana</label>${sel('week', 20, Array.from({ length: 52 }, (_, k) => [k, 'Settimana ' + (k + 1)]))}</div><div id="weekChart">${weekChart(20)}</div>
+      ${legend([['--pv', 'Produzione FV'], ['--load', 'Consumo'], ['--imp', 'Prelievo da rete'], ['--bess', 'Stato di carica (asse destro)']])}</div>
+      <div class="card"><h2>Stato di salute e cicli per anno</h2>${augY.length ? `<p class="hint">Augmentation o sostituzione negli anni: ${augY.join(', ')}.</p>` : ''}
+      <div class="tbl-wrap"><table><thead><tr><th>Anno</th><th class="n">SOH inizio anno</th><th class="n">Cicli equivalenti</th><th class="n">Scarica MWh</th><th class="n">Da rete MWh</th><th class="n">Augmentation kWh</th></tr></thead>
+      <tbody>${R.years.map(x => `<tr><td>${x.year}</td><td class="n">${pct(x.soh)}</td><td class="n">${fmt(x.efc)}</td><td class="n">${fmt(x.bessOut / 1000)}</td><td class="n">${fmt(x.gridToBess / 1000)}</td><td class="n">${fmt(x.augKwh + x.replKwh)}</td></tr>`).join('')}</tbody></table></div></div>`;
+  }
+  let cfView = 'proj';
+  function economia() {
+    const f = R.fin, cf = (cfView === 'proj' ? f.cfProj : f.cfEq).map(v => v / 1000);
+    const tiles = [kpi('VAN progetto', kE(f.npvProject), 'WACC ' + fmt(cfg.finance.wacc, 1) + ' %', f.npvProject >= 0 ? 'good' : 'bad'), kpi('TIR progetto', pct(f.irrProject)),
+      kpi('VAN equity', kE(f.npvEquity), 'Ke ' + fmt(cfg.finance.ke, 1) + ' %', f.npvEquity >= 0 ? 'good' : 'bad'), kpi('TIR equity', pct(f.irrEquity)),
+      kpi('Payback equity', f.paybackEquity ? fmt(f.paybackEquity, 1) + ' anni' : '–'), kpi('DSCR minimo', isFinite(f.minDscr) ? fmt(f.minDscr, 2) : '–', 'debito ' + kE(f.debt))];
+    const cols = [['y', 'Anno'], ['pvMWh', 'FV MWh'], ['selfMWh', 'Autocons. MWh'], ['energySaving', 'Risparmio energia'], ['powerSaving', 'Risparmio potenza'], ['exportRev', 'Vendita'], ['tariffs', 'Tariffe/servizi'],
+      ['opex', 'OPEX'], ['extraord', 'Straordinari'], ['ebitda', 'EBITDA'], ['depr', 'Ammortamento'], ['superdep', 'Maggiorazione'], ['taxU', 'Imposte (unlev.)'], ['credits', 'Crediti d\'imposta'], ['grants', 'Contributi'], ['cfProj', 'FCF progetto'], ['interest', 'Interessi'], ['cfEq', 'FCF equity'], ['dscr', 'DSCR']];
+    const cell = (r, k) => k === 'y' ? r.y : k === 'dscr' ? (r.dscr === null ? '–' : fmt(r.dscr, 2)) : /MWh$/.test(k) ? fmt(r[k]) : fmt(r[k] / 1000, 1);
+    return `<div class="kpis">${tiles.join('')}</div>
+      <div class="card"><h2>Flussi di cassa</h2><div class="row"><label for="sel-cfv">Vista</label>${sel('cfv', cfView === 'proj' ? 0 : 1, [[0, 'Progetto (unlevered)'], [1, 'Equity (levered)']])}</div>${C.cashflow(cf)}
+      ${legend([['--bess', 'Flusso annuo positivo'], ['--bad', 'Flusso annuo negativo'], ['--cum', 'Flusso cumulato']])}</div>
+      <div class="card"><h2>Conto economico e flussi per anno <small class="hint">(k€ nominali)</small></h2><div class="tbl-wrap"><table><thead><tr>${cols.map(c => `<th class="n">${esc(c[1])}</th>`).join('')}</tr></thead>
+      <tbody><tr><td class="n">0</td>${cols.slice(1).map(c => `<td class="n">${c[0] === 'cfProj' ? fmt(f.cfProj[0] / 1000, 1) : c[0] === 'cfEq' ? fmt(f.cfEq[0] / 1000, 1) : ''}</td>`).join('')}</tr>
+      ${f.rows.map(r => `<tr>${cols.map(c => `<td class="n">${cell(r, c[0])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      <p class="hint">Risparmio energia = costo del prelievo evitato (PUN × perdite + spread + oneri variabili + accise). Sostituzione inverter e augmentation sono spesati nell'anno. I contributi in conto impianti riducono la base ammortizzabile; i crediti d'imposta non concorrono al reddito.</p></div>`;
+  }
+  function capexTab() {
+    const c = R.capex, rowsFor = (grp, list, key) => list.map((it, i) => {
+      const r = c.rows.find(x => x.group === grp && x.id === it.id) || { qty: 0, total: 0 };
+      return `<tr><td>${esc(it.label)}</td><td class="n"><input type="number" step="any" data-capex="${key}.${i}" value="${it.value}" aria-label="${esc(it.label)}"></td><td>${esc(it.unit)}</td><td class="n">${it.unit === '€' ? '' : fmt(r.qty)}</td><td class="n">${fmt(r.total)}</td><td class="n">${pct(r.total / c.total)}</td></tr>`;
+    }).join('');
+    const items = c.rows.filter(r => r.total > 0).sort((a, b) => b.total - a.total).map(r => ({ label: r.group + ' · ' + r.label, value: r.total, cls: r.group === 'FV' ? 'b-pv' : r.group === 'BESS' ? 'b-bess' : 'b-com' }));
+    const own = c.rows.find(r => r.id === 'own'), cont = c.rows.find(r => r.id === 'cont');
+    return `<div class="kpis">${kpi('CAPEX totale', kE(c.total))}${kpi('FV', fmt(c.pvPerKwp) + ' €/kWp', kE(c.pv))}${cfg.bess.enabled ? kpi('BESS', fmt(c.bessPerKwh) + ' €/kWh', kE(c.bess) + ' · ' + fmt(c.bess / Math.max(cfg.bess.kw, 1)) + ' €/kW') : ''}${kpi('Contingenze + owner', kE(own.total + cont.total))}</div>
+      <div class="card"><h2>Computo per voci <small class="hint">(valori modificabili)</small></h2><div class="tbl-wrap"><table><thead><tr><th>Voce</th><th class="n">Costo unitario</th><th>Unità</th><th class="n">Quantità</th><th class="n">Totale €</th><th class="n">Quota</th></tr></thead><tbody>
+      <tr><td colspan="6"><b>Fotovoltaico</b></td></tr>${rowsFor('FV', cfg.capex.pv, 'pv')}
+      ${cfg.bess.enabled ? `<tr><td colspan="6"><b>Sistema di accumulo</b></td></tr>${rowsFor('BESS', cfg.capex.bess, 'bess')}` : ''}
+      <tr><td>Contingenze</td><td class="n"><input type="number" step="0.5" data-capex="contingencyPct" value="${cfg.capex.contingencyPct}" aria-label="Contingenze"></td><td>% diretti</td><td></td><td class="n">${fmt(cont.total)}</td><td class="n">${pct(cont.total / c.total)}</td></tr>
+      <tr><td>Costi del committente</td><td class="n"><input type="number" step="0.5" data-capex="ownersCostPct" value="${cfg.capex.ownersCostPct}" aria-label="Costi del committente"></td><td>% diretti</td><td></td><td class="n">${fmt(own.total)}</td><td class="n">${pct(own.total / c.total)}</td></tr>
+      <tr class="tot"><td>Totale</td><td></td><td></td><td></td><td class="n">${fmt(c.total)}</td><td class="n">100 %</td></tr></tbody></table></div>
+      <p class="hint">Valori 2026 per C&amp;I in Italia, classe di stima AACE 4 (−20/+30 %). Fonti e intervalli in docs/04_Valutazione_CAPEX.md.</p></div>
+      <div class="card"><h2>Ripartizione</h2>${C.hbars(items)}</div>`;
+  }
+  const TYPE_LABEL = { grant: 'Contributo in conto capitale', taxcredit: 'Credito d\'imposta', superdep: 'Maggiorazione dell\'ammortamento', tariff_export: 'Tariffa sull\'energia immessa (CfD)', tariff_energy: 'Tariffa sull\'energia', interest_grant: 'Contributo in conto interessi', capacity: 'Ricavo di capacità/servizi' };
+  const PARAMS = { grant: [['pct', '%'], ['cap', 'massimale €'], ['year', 'anno di incasso']], taxcredit: [['pct', '%'], ['cap', 'massimale €'], ['years', 'quote annue'], ['startYear', 'primo anno']],
+    superdep: [], interest_grant: [['rate', 'tasso %'], ['loanYears', 'anni'], ['financedPct', '% finanziato'], ['cap', 'massimale €']], tariff_export: [['strike', '€/MWh'], ['years', 'anni']],
+    tariff_energy: [['value', '€/MWh'], ['years', 'anni']], capacity: [['value', '€/kW·a'], ['years', 'anni']] };
+  function incentivi() {
+    const res = R.fin.incentives;
+    const rows = cfg.incentives.map((i, k) => {
+      const r = res.find(x => x.id === i.id);
+      let ps = (PARAMS[i.type] || []).map(([p, u]) => `<label>${esc(u)} <input type="number" step="any" data-inc="${k}.${p}" value="${i[p]}"></label>`).join(' ');
+      if (i.type === 'superdep') ps = (i.tiers || []).map((t, j) => `<label>fino a € <input type="number" step="any" data-inc="${k}.tiers.${j}.upTo" value="${t.upTo}"></label> <label>% <input type="number" step="any" data-inc="${k}.tiers.${j}.pct" value="${t.pct}"></label>`).join('<br>')
+        + `<br><label>massimale FV €/kWp <input type="number" step="any" data-inc="${k}.capPvKwp" value="${i.capPvKwp || 0}"></label> <label>α BESS/FV <input type="number" step="0.05" data-inc="${k}.bessAlpha" value="${i.bessAlpha || 0}"></label>`
+        + (i.requiresEneaBC ? ` <label><input type="checkbox" data-inc="${k}.modulesEneaBC" ${i.modulesEneaBC ? 'checked' : ''}> moduli ENEA cat. B/C</label>` : '');
+      if (['grant', 'taxcredit', 'superdep', 'interest_grant'].includes(i.type)) ps += ` <label>su <select data-inc="${k}.base">${[['all', 'FV + BESS'], ['pv', 'solo FV'], ['bess', 'solo BESS']].map(([v, t]) => `<option value="${v}"${(i.base || 'all') === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>`;
+      return `<tr><td><input type="checkbox" data-inc="${k}.enabled" ${i.enabled ? 'checked' : ''} aria-label="Attiva ${esc(i.name)}"></td><td><b>${esc(i.name)}</b><br><span class="hint">${esc(TYPE_LABEL[i.type] || i.type)} · ${esc(i.note || '')}</span><div class="row" style="margin-top:6px">${ps}</div></td><td class="n">${r ? fmt(r.amount) + ' €' : '–'}</td></tr>`;
+    }).join('');
+    const f = R.fin;
+    return `<div class="kpis">${kpi('Aiuti totali', kE(f.totalAid), 'valore nominale, incl. beneficio fiscale')}${kpi('Intensità', pct(f.aidIntensity, 0), 'sul CAPEX')}${kpi('CAPEX netto', kE(f.netCapex), 'dopo contributi e crediti')}${kpi('VAN con incentivi', kE(f.npvProject), '', f.npvProject >= 0 ? 'good' : 'bad')}</div>
+      ${f.warnings.map(w => `<p class="note">${esc(w)}</p>`).join('')}
+      <div class="card"><h2>Strumenti di incentivo</h2><p class="hint">Attiva le misure per cui l'impresa è ammissibile e aggiorna i parametri all'avviso o decreto in vigore. Stato delle misure a ottobre 2026, cumulabilità e fonti in docs/03_Contributi_Incentivi_UE_IT.md.</p>
+      <div class="tbl-wrap"><table><thead><tr><th></th><th>Misura e parametri</th><th class="n">Valore stimato</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+  function sensitivita() {
+    if (!SENS) return `<div class="card"><h2>Analisi di sensitività</h2><p>Ricalcola il VAN di progetto variando una grandezza alla volta (CAPEX, PUN, producibilità, OPEX, WACC, escalation, oneri). Richiede alcuni secondi.</p><button class="primary" id="btnSens" type="button">Calcola sensitività</button></div>`;
+    return `<div class="card"><h2>Tornado del VAN di progetto</h2>${C.tornado(SENS.items, SENS.base)}${legend([['--bad', 'Variazione sfavorevole'], ['--good', 'Variazione favorevole']])}</div>
+      <div class="card"><h2>Dettaglio</h2><div class="tbl-wrap"><table><thead><tr><th>Grandezza</th><th>Variazione</th><th class="n">VAN sfavorevole</th><th class="n">VAN favorevole</th><th class="n">TIR sfavorevole</th><th class="n">TIR favorevole</th></tr></thead>
+      <tbody>${SENS.items.map(i => `<tr><td>${esc(i.name)}</td><td>${esc(i.range)}</td><td class="n">${kE(i.low)}</td><td class="n">${kE(i.high)}</td><td class="n">${pct(i.irrLow)}</td><td class="n">${pct(i.irrHigh)}</td></tr>`).join('')}</tbody></table></div>
+      <button id="btnSens" type="button">Ricalcola</button></div>`;
+  }
+  function ingegneria() {
+    const e = R.eng, m = e.module, inv = e.inverter, b = e.bess;
+    const ok = x => `<span class="pill ${x ? 'ok' : 'ko'}">${x ? 'verificato' : 'non verificato'}</span>`;
+    const t = (rows) => `<div class="tbl-wrap"><table class="kv"><tbody>${rows.map(r => `<tr><td>${esc(r[0])}</td><td class="v">${r[1]}</td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="kpis">${kpi('Moduli', fmt(e.nMod), esc(m.name.split('(')[0]))}${kpi('Stringhe', fmt(e.strings), e.Ns + ' moduli in serie')}${kpi('Inverter', fmt(e.nInv), esc(inv.name))}${kpi('Potenza installata', fmt(e.kwpReal, 1) + ' kWp', fmt(e.kwac) + ' kWac')}
+      ${kpi(e.landHa ? 'Superficie terreno' : 'Superficie copertura', e.landHa ? fmt(e.landHa, 2) + ' ha' : fmt(e.roofM2) + ' m²', 'moduli ' + fmt(e.modArea) + ' m²')}${kpi('Trasformatori FV', e.transformer.n + ' × ' + fmt(e.transformer.kva) + ' kVA', fmt(e.transformer.mv) + ' / ' + (e.transformer.lv / 1000).toLocaleString('it-IT') + ' kV')}</div>
+      <div class="grid2"><div class="card"><h2>Dimensionamento delle stringhe</h2>${t([
+        ['Temperatura minima di progetto', fmt(e.tMin, 1) + ' °C'], ['Temperatura cella massima', fmt(e.tCellMax, 1) + ' °C'], ['Voc alla Tmin', fmt(e.vocCold, 2) + ' V'], ['Vmp alla Tmin / alla Tmax', fmt(e.vmpCold, 2) + ' / ' + fmt(e.vmpHot, 2) + ' V'],
+        ['Moduli in serie max (Vdc) / max (MPPT)', e.nMaxV + ' / ' + e.nMaxMppt], ['Moduli in serie min (MPPT) / piena potenza', e.nMin + ' / ' + e.nMinFull], ['Moduli in serie scelti', '<b>' + e.Ns + '</b>'],
+        ['Stringhe per inverter / per MPPT', e.spInv + ' / ' + e.spMppt]])}</div>
+      <div class="card"><h2>Verifiche elettriche</h2><div class="tbl-wrap"><table><thead><tr><th>Rif.</th><th>Verifica</th><th class="n">Valore</th><th class="n">Limite</th><th>Esito</th></tr></thead><tbody>${e.checks.map(c => `<tr><td>${c.id}</td><td>${esc(c.what)}</td><td class="n">${esc(c.value)}</td><td class="n">${esc(c.limit)}</td><td>${ok(c.ok)}</td></tr>`).join('')}</tbody></table></div></div></div>
+      <div class="grid2"><div class="card"><h2>Cavi e trasformazione</h2>${t([
+        ['Cavo di stringa ' + e.dcCable.type, e.dcCable.S + ' mm² · ' + e.dcCable.L + ' m · ΔV ' + fmt(e.dcCable.dv, 2) + ' %'],
+        ['Cavo AC inverter–quadro ' + (e.acCable ? e.acCable.type : ''), e.acCable ? `${e.acCable.par} × ${e.acCable.S} mm² · I ${fmt(e.acCable.I)} A · ΔV ${fmt(e.acCable.dv, 2)} %` : 'da verificare'],
+        ['Linea MT ' + e.mvCable.type, e.mvCable.S + ' mm² · I ' + fmt(e.mvCable.I) + ' A (Iz ' + e.mvCable.Iz + ' A) · ' + e.mvCable.L + ' m · Smin cto ' + fmt(e.mvCable.sMinSc) + ' mm²'],
+        ['Trasformatori FV', e.transformer.n + ' × ' + fmt(e.transformer.kva) + ' kVA, Dyn11, ' + e.transformer.mv + '/' + (e.transformer.lv / 1000).toLocaleString('it-IT') + ' kV'],
+        ['Contributo alla corrente di cortocircuito in MT', fmt(e.iscContribution) + ' A']])}</div>
+      <div class="card"><h2>Sistema di accumulo</h2>${b ? t([['Unità', b.n + ' × ' + esc(b.unit.name)], ['Energia installata', fmt(b.kwhInst) + ' kWh'], ['Durata / C-rate', fmt(b.hours, 1) + ' h / ' + fmt(b.cRate, 2) + ' C'],
+        ['Trasformatori BESS', b.nTr + ' × ' + fmt(b.trKva) + ' kVA'], ['Ingombro unità', fmt(b.footprint, 1) + ' m²'], ['Area con distanze e viabilità (stima)', fmt(b.areaWithSpacing) + ' m²']]) : '<p>BESS non attivo.</p>'}</div></div>
+      <div class="card"><h2>Protezioni di interfaccia e generale (CEI 0-16)</h2><div class="tbl-wrap"><table><thead><tr><th>Codice</th><th>Funzione</th><th>Taratura tipica</th><th>Tempo</th></tr></thead><tbody>${e.protections.map(p => `<tr><td>${esc(p.code)}</td><td>${esc(p.fn)}</td><td>${esc(p.setting)}</td><td>${esc(p.time)}</td></tr>`).join('')}</tbody></table></div>
+      <p class="hint">Tarature da confermare con il regolamento di esercizio del distributore. Dettagli in docs/01_Relazione_Ingegneria_Dettaglio.md.</p></div>
+      <div class="card"><h2>Elenco elaborati (MDR)</h2><div class="tbl-wrap"><table><thead><tr><th>Codice</th><th>Disc.</th><th>Titolo</th><th>Rev.</th></tr></thead><tbody>${e.mdr.map(d => `<tr><td class="num">${d.code}</td><td>${d.disc}</td><td>${esc(d.title)}</td><td>${d.rev}</td></tr>`).join('')}</tbody></table></div></div>`;
+  }
+  function reportMd() {
+    const f = R.fin, k = R.kpi, y = R.y1, c = R.capex, e = R.eng;
+    const L = [];
+    L.push(`# ${cfg.project.name}`, '', `Sito: ${R.site.name} · data ${new Date().toISOString().slice(0, 10)} · stima di pre-fattibilità (AACE classe 4–5)`, '');
+    L.push('## Configurazione', `- FV: ${fmt(e.kwpReal, 1)} kWp DC / ${fmt(e.kwac)} kWac, ${MOUNTS.find(m => m[0] === cfg.pv.mount)[1]}, ${e.nMod} moduli ${e.module.name}, ${e.nInv} inverter ${e.inverter.name}`);
+    if (cfg.bess.enabled) L.push(`- BESS: ${fmt(cfg.bess.kwh)} kWh / ${fmt(cfg.bess.kw)} kW (${fmt(cfg.bess.kwh / cfg.bess.kw, 1)} h), RTE ${cfg.bess.rte} %, strategia: ${['selfConsumption', 'arbitrage', 'peakShaving'].filter(s => cfg.bess.strategy[s]).join(', ')}`);
+    L.push(`- Consumo stabilimento: ${fmt(y.load / 1000)} MWh/a, profilo ${D.LOAD_PROFILES[cfg.load.profile] ? D.LOAD_PROFILES[cfg.load.profile].name : 'misurato'}`, '');
+    L.push('## Energia (anno 1)', `| Grandezza | Valore |`, `|---|---:|`, `| Produzione FV | ${fmt(y.pv / 1000)} MWh |`, `| Producibilità specifica | ${fmt(k.specificYield)} kWh/kWp |`, `| Performance ratio | ${fmt(k.pr * 100, 1)} % |`,
+      `| Autoconsumo | ${pct(k.selfConsumptionRate)} |`, `| Autosufficienza | ${pct(k.selfSufficiency)} |`, `| Immissione | ${fmt(y.exp / 1000)} MWh |`, `| Cicli BESS | ${fmt(y.efc)} |`, `| CO₂ evitata | ${fmt(k.co2)} t/a |`, '');
+    L.push('## Economia', `| Indicatore | Valore |`, `|---|---:|`, `| CAPEX | ${fmt(c.total)} € (${fmt(c.pvPerKwp)} €/kWp FV${cfg.bess.enabled ? ', ' + fmt(c.bessPerKwh) + ' €/kWh BESS' : ''}) |`,
+      `| Aiuti | ${fmt(f.totalAid)} € (${pct(f.aidIntensity, 0)}) |`, `| VAN progetto (WACC ${cfg.finance.wacc} %) | ${fmt(f.npvProject)} € |`, `| TIR progetto | ${pct(f.irrProject)} |`, `| TIR equity | ${pct(f.irrEquity)} |`,
+      `| Payback | ${f.paybackProject ? fmt(f.paybackProject, 1) + ' anni' : '–'} |`, `| LCOE FV | ${fmt(f.lcoePv, 1)} €/MWh |`, `| DSCR minimo | ${isFinite(f.minDscr) ? fmt(f.minDscr, 2) : '–'} |`);
+    if (Rpv) L.push(`| VAN solo FV (confronto) | ${fmt(Rpv.fin.npvProject)} € |`);
+    L.push('', '## Incentivi considerati', ...(f.incentives.length ? f.incentives.map(i => `- ${i.name}: ${fmt(i.amount)} €`) : ['- nessuno']), '');
+    if (f.warnings.length) L.push('## Avvertenze', ...f.warnings.map(w => '- ' + w), '');
+    L.push('_Risultati del simulatore FV+BESS (meteo sintetico da medie mensili, prezzi con profilo orario tipo). Da verificare con dati di sito, curva di carico misurata e offerte._');
+    return L.join('\n');
+  }
+  function relazione() {
+    return `<div class="card"><h2>Relazione sintetica</h2><p class="hint">Testo in Markdown pronto da incollare in una relazione o in un'e-mail.</p><div class="row"><button class="primary" id="btnCopyMd" type="button">Copia relazione</button><span id="copyMdSt" class="hint"></span></div><textarea id="mdOut" readonly>${esc(reportMd())}</textarea></div>
+      <div class="card"><h2>Documenti di progetto</h2><p>Nella cartella <code>fv-bess-simulator/docs/</code> del repository:</p><ol>
+      <li>Relazione di ingegneria di dettaglio (basi di progetto, calcoli, norme, protezioni, sicurezza BESS, MDR)</li><li>Analisi economica del caso di riferimento, scenari e confronto FV / FV + BESS</li>
+      <li>Contributi e incentivi italiani ed europei, stato a ottobre 2026, cumulabilità</li><li>Valutazione del CAPEX per voci, benchmark e contingenze</li></ol></div>`;
+  }
+
+  function bindPanel() {
+    const p = $('#panels');
+    p.querySelectorAll('[data-sel]').forEach(s => s.addEventListener('change', () => {
+      const v = +s.value;
+      if (s.dataset.sel === 'mese') $('#dayChart').innerHTML = dayChart(v);
+      if (s.dataset.sel === 'week') $('#weekChart').innerHTML = weekChart(v);
+      if (s.dataset.sel === 'cfv') { cfView = v ? 'eq' : 'proj'; render(); }
+    }));
+    p.querySelectorAll('[data-capex]').forEach(el => el.addEventListener('change', () => {
+      const v = parseFloat(el.value); if (!isFinite(v)) return;
+      const k = el.dataset.capex.split('.');
+      if (k.length === 2) cfg.capex[k[0]][+k[1]].value = v; else cfg.capex[k[0]] = v;
+      schedule();
+    }));
+    p.querySelectorAll('[data-inc]').forEach(el => el.addEventListener('change', () => {
+      const [i, ...rest] = el.dataset.inc.split('.'); let v = el.type === 'checkbox' ? el.checked : el.tagName === 'SELECT' ? el.value : parseFloat(el.value);
+      if (typeof v === 'number' && !isFinite(v)) return;
+      if (typeof v === 'number' && v === 0 && /capPvKwp|bessAlpha/.test(el.dataset.inc)) v = null; // 0 = nessun limite
+      let o = cfg.incentives[+i]; for (let j = 0; j < rest.length - 1; j++) o = o[rest[j]]; o[rest[rest.length - 1]] = v;
+      schedule();
+    }));
+    const bs = $('#btnSens'); if (bs) bs.addEventListener('click', () => { bs.textContent = 'Calcolo in corso…'; bs.disabled = true; setTimeout(() => { SENS = F.sensitivity(cfg); render(); }, 30); });
+    const bc = $('#btnCopyMd'); if (bc) bc.addEventListener('click', () => copy($('#mdOut'), $('#copyMdSt')));
+  }
+  function copy(area, st) {
+    const txt = area.value;
+    const fallback = () => { area.hidden = false; area.focus(); area.select(); if (st) st.textContent = 'Testo selezionato: premi Ctrl+C / Cmd+C.'; };
+    try { navigator.clipboard.writeText(txt).then(() => { if (st) st.textContent = 'Copiato negli appunti.'; }, fallback); } catch (e) { fallback(); }
+  }
+
+  // ---------- importa / esporta configurazione ----------
+  function cfgBox(mode) {
+    let box = $('#cfgBox');
+    if (!box) { box = document.createElement('div'); box.id = 'cfgBox'; box.className = 'card'; $('main').insertBefore(box, $('#tabs')); }
+    box.innerHTML = mode === 'export'
+      ? `<h3>Configurazione corrente (JSON)</h3><p class="hint" id="cfgSt"></p><textarea id="cfgTxt" readonly></textarea><div class="row"><button type="button" id="cfgClose">Chiudi</button></div>`
+      : `<h3>Importa configurazione</h3><p class="hint">Incolla qui il JSON copiato in precedenza e premi Applica.</p><textarea id="cfgTxt"></textarea><div class="row"><button class="primary" type="button" id="cfgApply">Applica</button><button type="button" id="cfgClose">Chiudi</button><span class="hint" id="cfgSt"></span></div>`;
+    const ta = $('#cfgTxt');
+    if (mode === 'export') { const c = JSON.parse(JSON.stringify(cfg)); ta.value = JSON.stringify(c, null, 1); copy(ta, $('#cfgSt')); }
+    $('#cfgClose').onclick = () => box.remove();
+    if ($('#cfgApply')) $('#cfgApply').onclick = () => {
+      try { cfg = F.normalizeConfig(JSON.parse(ta.value)); fillInputs(); $('#projTitle').textContent = cfg.project.name; box.remove(); schedule(); }
+      catch (e) { $('#cfgSt').textContent = 'JSON non valido: ' + e.message; }
+    };
+  }
+
+  // ---------- avvio ----------
+  function start() {
+    try { tab = localStorage.getItem(STORE + '-tab') || tab; } catch (e) { /* ignora */ }
+    if (!TABS.find(t => t[0] === tab)) tab = 'sintesi';
+    $('#docDate').textContent = new Date().toLocaleDateString('it-IT');
+    $('#projTitle').textContent = cfg.project.name;
+    buildInputs(); buildTabs();
+    $('#btnReset').onclick = () => { cfg = F.defaultConfig(); fillInputs(); $('#projTitle').textContent = cfg.project.name; schedule(); };
+    $('#btnCopyCfg').onclick = () => cfgBox('export');
+    $('#btnImport').onclick = () => cfgBox('import');
+    run();
+  }
+  start();
+})();
+</script>
+<!--ARTIFACT-END-->
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--ARTIFACT-START-->
+<title>Simulatore FV + BESS industriale</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Sans+3:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<!--HEAD-END-->
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <div class="eyebrow">Pre-fattibilità · impianto C&amp;I in autoconsumo</div>
+      <h1 id="projTitle">Simulatore FV + BESS industriale</h1>
+      <p>Simulazione oraria 8760 h su tutta la vita utile: produzione FV, carico di stabilimento, accumulo, bolletta evitata, CAPEX, incentivi italiani ed europei, flussi di cassa e dimensionamento di ingegneria.</p>
+    </div>
+    <div class="cartiglio" aria-label="Cartiglio">
+      <div><b>Documento</b><span>FVB-SIM-001</span></div>
+      <div><b>Rev.</b><span>A</span></div>
+      <div><b>Stato</b><span>Pre-FEED</span></div>
+      <div><b>Data</b><span id="docDate">–</span></div>
+    </div>
+    <div class="actions">
+      <button id="btnCopyCfg" type="button">Copia configurazione</button>
+      <button id="btnImport" type="button">Importa configurazione</button>
+      <button id="btnReset" type="button">Ripristina esempio</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="inputs" id="inputs" aria-label="Dati di ingresso"></aside>
+  <main>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div id="panels"></div>
+  </main>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui.js"></script>
+<!--ARTIFACT-END-->
+</body>
+</html>

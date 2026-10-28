@@ -1,0 +1,12 @@
+{
+  "name": "fv-bess-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Simulatore di impianto fotovoltaico industriale con accumulo (BESS): energia, CAPEX, incentivi, analisi economica e ingegneria",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "build": "node tools/build-single.js",
+    "report": "node tools/report-cases.js"
+  },
+  "license": "UNLICENSED"
+}
