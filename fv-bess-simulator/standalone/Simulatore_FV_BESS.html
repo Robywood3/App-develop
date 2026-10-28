@@ -2090,6 +2090,18 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   // ---------- elaborati di progetto: 1) scelta  2) elenco  3) generazione ed estrazione ----------
   const DOCS = window.FVB_DOCS;
   const docState = { phase: null, config: null, procedure: 'pas', prefix: 'FVB', rev: 'A', list: null, gen: null, current: 1, busy: false };
+  // download dei file: nel visualizzatore claude.ai tramite la capability "downloads", altrove con un link al blob
+  let dlCap = null;
+  try { if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { dlCap = d; if (d && tab === 'elaborati' && docState.gen) render(); }, () => {}); } catch (e) { /* non disponibile */ }
+  async function offerFile(filename, blob, st) {
+    if (dlCap) {
+      try { await dlCap.save({ filename, data: blob }); st.textContent = 'File salvato: ' + filename; }
+      catch (e) { st.textContent = e && e.code === 'declined' ? 'Download annullato.' : e && e.code === 'rate_limited' ? 'C\'è già una richiesta aperta: riprova tra poco.' : 'Download non disponibile in questa vista: usa Copia.'; }
+      return;
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000); st.textContent = 'File creato: ' + filename;
+  }
   const defaultDocConfig = () => cfg.bess.enabled ? (cfg.pv.kwp > 0 ? 'FB' : 'B') : 'FV';
   const radios = (name, obj, val) => Object.keys(obj).map(k => `<label class="opt"><input type="radio" name="${name}" value="${k}"${k === val ? ' checked' : ''}> ${esc(typeof obj[k] === 'string' ? obj[k] : obj[k].name)}${obj[k].desc ? `<br><span class="hint">${esc(obj[k].desc)}</span>` : ''}</label>`).join('');
   function elaborati() {
@@ -2113,13 +2125,13 @@ button:disabled { opacity: .5; cursor: not-allowed; }
         <div class="row" style="margin-top:12px"><button class="primary" id="btnDocGen" type="button"${nSel && !st.busy ? '' : ' disabled'}>${st.busy ? 'Generazione in corso…' : `Genera ${nSel} elaborati in Markdown`}</button><button type="button" id="btnDocAllOpt">Includi tutti i pertinenti</button></div></div>`;
     }
     if (st.gen) {
-      const g = st.gen, f = g.files[st.current] || g.files[0], inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+      const g = st.gen, f = g.files[st.current] || g.files[0], inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })(), canSave = !inFrame || !!dlCap;
       h += `<div class="card"><h2>3. Estrai i documenti <small class="hint">${g.files.length - 1} elaborati + indice</small></h2>
         ${g.warnings.map(w => `<p class="note">${esc(w)}</p>`).join('')}
         <div class="row"><label for="docPick">Documento</label><select id="docPick">${g.files.map((x, i) => `<option value="${i}"${i === st.current ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
-        <button type="button" id="btnDocCopy">Copia documento</button><button type="button" id="btnDocCopyAll">Copia tutti in un unico .md</button>${inFrame ? '' : '<button class="primary" type="button" id="btnDocZip">Scarica ZIP</button>'}<span class="hint" id="docCopySt"></span></div>
+        <button type="button" id="btnDocCopy">Copia documento</button><button type="button" id="btnDocCopyAll">Copia tutti in un unico .md</button>${canSave ? '<button type="button" id="btnDocMd">Scarica .md</button><button class="primary" type="button" id="btnDocZip">Scarica ZIP</button>' : ''}<span class="hint" id="docCopySt"></span></div>
         <textarea id="docOut" readonly style="min-height:420px">${esc(f.md)}</textarea>
-        <p class="hint">${inFrame ? 'In questa vista i download sono bloccati: usa i pulsanti di copia, oppure apri standalone/Simulatore_FV_BESS.html per scaricare lo ZIP. ' : ''}Da riga di comando: <code>node tools/genera-elaborati.js --fase ${st.phase} --config ${st.config} --procedura ${st.procedure}</code>.</p></div>`;
+        <p class="hint">${canSave ? '' : 'In questa vista i download non sono disponibili: usa i pulsanti di copia, oppure apri standalone/Simulatore_FV_BESS.html per scaricare lo ZIP. '}Da riga di comando: <code>node tools/genera-elaborati.js --fase ${st.phase} --config ${st.config} --procedura ${st.procedure}</code>.</p></div>`;
     }
     return h;
   }
@@ -2144,13 +2156,8 @@ button:disabled { opacity: .5; cursor: not-allowed; }
     const dp = $('#docPick'); if (dp) dp.addEventListener('change', () => { st.current = +dp.value; $('#docOut').value = st.gen.files[st.current].md; });
     const dc = $('#btnDocCopy'); if (dc) dc.addEventListener('click', () => copy($('#docOut'), $('#docCopySt')));
     const dca = $('#btnDocCopyAll'); if (dca) dca.addEventListener('click', () => { const ta = $('#docOut'); ta.value = st.gen.files.map(f => f.md).join('\n\n---\n\n'); copy(ta, $('#docCopySt')); });
-    const dz = $('#btnDocZip'); if (dz) dz.addEventListener('click', () => {
-      try {
-        const blob = new Blob([DOCS.zip(st.gen.files, st.gen.folder)], { type: 'application/zip' }), a = document.createElement('a');
-        a.href = URL.createObjectURL(blob); a.download = st.gen.folder + '.zip'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-        $('#docCopySt').textContent = 'ZIP creato: ' + st.gen.folder + '.zip';
-      } catch (e) { $('#docCopySt').textContent = 'Download non riuscito: usa Copia.'; }
-    });
+    const dz = $('#btnDocZip'); if (dz) dz.addEventListener('click', () => offerFile(st.gen.folder + '.zip', new Blob([DOCS.zip(st.gen.files, st.gen.folder)], { type: 'application/zip' }), $('#docCopySt')));
+    const dm = $('#btnDocMd'); if (dm) dm.addEventListener('click', () => { const f = st.gen.files[st.current]; offerFile(f.name, new Blob([f.md], { type: 'text/markdown' }), $('#docCopySt')); });
   }
   function relazione() {
     return `<div class="card"><h2>Relazione sintetica</h2><p class="hint">Testo in Markdown pronto da incollare in una relazione o in un'e-mail.</p><div class="row"><button class="primary" id="btnCopyMd" type="button">Copia relazione</button><span id="copyMdSt" class="hint"></span></div><textarea id="mdOut" readonly>${esc(reportMd())}</textarea></div>
