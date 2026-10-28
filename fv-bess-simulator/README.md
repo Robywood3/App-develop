@@ -23,6 +23,7 @@ Il caso di esempio si carica all'apertura. Le modifiche restano salvate nel brow
 | Incentivi | Iper-ammortamento 2026, ZES, Sabatini, FESR, FER X, servizi di flessibilità e altri strumenti, con parametri modificabili e controllo del cumulo |
 | Sensitività | Tornado del VAN su CAPEX, PUN, escalation, producibilità, OPEX, WACC e oneri |
 | Ingegneria | Dimensionamento delle stringhe con 7 verifiche, cavi DC/AC/MT, trasformatori, BESS, tarature SPG/SPI (CEI 0-16), elenco elaborati |
+| Elaborati | Generazione in Markdown degli elaborati di progetto in tre passi: scelta di fase e configurazione → elenco applicabile → generazione ed estrazione (copia o ZIP) |
 | Relazione | Testo Markdown dei risultati, da copiare |
 
 Dati di ingresso principali:
@@ -45,6 +46,26 @@ Dati di ingresso principali:
 | [04 – Valutazione del CAPEX](docs/04_Valutazione_CAPEX.md) | Stima per voci, Monte Carlo P10/P50/P90, registro dei rischi di costo, tipologie e taglie, spesa nel tempo, OPEX |
 | [A1 – Risultati dei casi di studio](docs/allegati/A1_Risultati_casi.md) | Tabelle generate dal simulatore (`npm run report`) |
 | [A2 – Benchmark di costo 2025–2026](docs/allegati/A2_Benchmark_costi_2026.md) | CAPEX, OPEX, prestazioni, prezzi dell'energia e parametri finanziari, con le fonti |
+
+## Elaborati di progetto
+
+La scheda **Elaborati** produce le bozze dei documenti dell'elenco standard FV / FV + BESS / solo BESS (64 elaborati, tabella in `js/elaborati.js`).
+
+1. **Scegli** la fase (PFTE o progetto definitivo, oppure progetto esecutivo), la configurazione (solo FV, FV + BESS, solo BESS), la procedura autorizzativa, il prefisso dei codici e la revisione. Finché la fase non è scelta l'elenco non si prepara.
+2. **Prepara** l'elenco. Gli elaborati ● sono già selezionati e si possono escludere; quelli ○ ("se pertinente") si aggiungono a mano. Alcuni sono proposti in base alla procedura: screening VIA per il PAUR, relazione paesaggistica per AU e PAUR, VPIA per le opere pubbliche, PEF. Quelli – non sono generabili.
+3. **Genera ed estrai.** Ogni elaborato diventa un file `.md` con cartiglio, scopo, riferimenti normativi e contenuti compilati con i dati del simulatore: tabelle, calcoli, schema unifilare e cronoprogramma in Mermaid. I dati che mancano sono marcati **[DA COMPLETARE]**. Si copia un documento o tutti insieme, oppure si scarica lo ZIP con l'indice (nel visualizzatore claude.ai i download sono bloccati: usa la copia o il file `standalone`).
+
+Gli elaborati grafici (T, D) sono schede con i contenuti e i dati da riportare in tavola: il disegno va fatto in CAD. Per la configurazione solo BESS i documenti includono i punti rafforzati dell'elenco: rischio incendio, distanze, accessibilità VVF, acustica di HVAC e PCS, acque di spegnimento, augmentation e fine vita.
+
+Da riga di comando, con lo stesso obbligo di scelta:
+
+```bash
+node tools/genera-elaborati.js                                        # mostra fasi e configurazioni
+node tools/genera-elaborati.js --fase pfte --config FB --elenco       # elenco applicabile, senza generare
+node tools/genera-elaborati.js --fase esecutivo --config B --procedura au --includi D01 --caso caso.json
+```
+
+`--caso` legge il JSON copiato con **Copia configurazione**. I file vanno in `elaborati/<fase>_<configurazione>_<data>/` (cartella esclusa da git).
 
 ## Modello di calcolo
 
@@ -76,18 +97,20 @@ fv-bess-simulator/
 ├── js/data.js               siti, componenti, default, catalogo incentivi
 ├── js/engine.js             motore di calcolo (browser e Node)
 ├── js/charts.js             grafici SVG
+├── js/elaborati.js          elenco elaborati e generazione dei documenti .md
 ├── js/ui.js                 interfaccia
 ├── tools/build-single.js    genera il file unico
 ├── tools/report-cases.js    calcola i casi di studio → docs/allegati/A1
 ├── tools/capex-montecarlo.js analisi di rischio del CAPEX
-├── tests/engine.test.js     test del motore (npm test)
+├── tools/genera-elaborati.js generazione degli elaborati da riga di comando
+├── tests/                   test del motore e degli elaborati (npm test)
 └── docs/                    documenti di progetto
 ```
 
 ## Comandi
 
 ```bash
-npm test                         # test del motore (Node ≥ 18)
+npm test                         # test del motore e degli elaborati (Node ≥ 18)
 npm run build                    # rigenera standalone/Simulatore_FV_BESS.html
 npm run report                   # rigenera docs/allegati/A1_Risultati_casi.md
 node tools/capex-montecarlo.js   # percentili del CAPEX

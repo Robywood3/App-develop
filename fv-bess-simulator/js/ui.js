@@ -203,20 +203,20 @@
     try {
       R = F.simulate(cfg);
       Rpv = cfg.bess.enabled ? F.simulate(Object.assign(F.normalizeConfig(cfg), { bess: Object.assign({}, cfg.bess, { enabled: false }) })) : null;
-      SENS = null; save(); render();
+      SENS = null; if (docState.gen) { docState.gen = null; } save(); render(); // i documenti generati non seguono più i dati
     } catch (err) { $('#panels').innerHTML = `<div class="card note">Errore di calcolo: ${esc(err.message)}. Controlla i dati inseriti o ripristina l'esempio.</div>`; console.error(err); }
     document.querySelector('main').classList.remove('busy');
   }
 
   // ---------- schede ----------
-  const TABS = [['sintesi', 'Sintesi'], ['energia', 'Energia'], ['bess', 'Accumulo'], ['economia', 'Economia'], ['capex', 'CAPEX'], ['incentivi', 'Incentivi'], ['sensitivita', 'Sensitività'], ['ingegneria', 'Ingegneria'], ['relazione', 'Relazione']];
+  const TABS = [['sintesi', 'Sintesi'], ['energia', 'Energia'], ['bess', 'Accumulo'], ['economia', 'Economia'], ['capex', 'CAPEX'], ['incentivi', 'Incentivi'], ['sensitivita', 'Sensitività'], ['ingegneria', 'Ingegneria'], ['elaborati', 'Elaborati'], ['relazione', 'Relazione']];
   function buildTabs() {
     $('#tabs').innerHTML = TABS.map(([k, t]) => `<button role="tab" type="button" id="tab-${k}" data-tab="${k}" aria-selected="${k === tab}">${t}</button>`).join('');
     $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; try { localStorage.setItem(STORE + '-tab', tab); } catch (x) { /* ignora */ } document.querySelectorAll('#tabs button').forEach(x => x.setAttribute('aria-selected', x.dataset.tab === tab)); render(); });
   }
   function render() {
     if (!R) return;
-    const P = { sintesi, energia, bess: bessTab, economia, capex: capexTab, incentivi, sensitivita, ingegneria, relazione }[tab];
+    const P = { sintesi, energia, bess: bessTab, economia, capex: capexTab, incentivi, sensitivita, ingegneria, elaborati, relazione }[tab];
     $('#panels').innerHTML = `<div class="panel">${P()}</div>`;
     bindPanel();
   }
@@ -408,11 +408,76 @@
     L.push('_Risultati del simulatore FV+BESS (meteo sintetico da medie mensili, prezzi con profilo orario tipo). Da verificare con dati di sito, curva di carico misurata e offerte._');
     return L.join('\n');
   }
+  // ---------- elaborati di progetto: 1) scelta  2) elenco  3) generazione ed estrazione ----------
+  const DOCS = window.FVB_DOCS;
+  const docState = { phase: null, config: null, procedure: 'pas', prefix: 'FVB', rev: 'A', list: null, gen: null, current: 1, busy: false };
+  const defaultDocConfig = () => cfg.bess.enabled ? (cfg.pv.kwp > 0 ? 'FB' : 'B') : 'FV';
+  const radios = (name, obj, val) => Object.keys(obj).map(k => `<label class="opt"><input type="radio" name="${name}" value="${k}"${k === val ? ' checked' : ''}> ${esc(typeof obj[k] === 'string' ? obj[k] : obj[k].name)}${obj[k].desc ? `<br><span class="hint">${esc(obj[k].desc)}</span>` : ''}</label>`).join('');
+  function elaborati() {
+    const st = docState; if (!st.config) st.config = defaultDocConfig();
+    const ready = !!st.phase;
+    let h = `<div class="card"><h2>1. Scegli fase e configurazione</h2>
+      <p class="hint">L'elenco degli elaborati dipende dal livello di progettazione e dalla configurazione. Scegli prima la fase: l'elenco si prepara solo dopo la scelta.</p>
+      <div class="grid2"><fieldset class="choice"><legend>Fase di progettazione</legend>${radios('docPhase', DOCS.PHASES, st.phase)}</fieldset>
+      <fieldset class="choice"><legend>Configurazione</legend>${radios('docConfig', DOCS.CONFIGS, st.config)}
+      <span class="hint">Il simulatore oggi è impostato come “${esc(DOCS.CONFIGS[defaultDocConfig()])}”. Se scegli un'altra configurazione i documenti escludono il FV o il BESS di conseguenza.</span></fieldset></div>
+      <div class="row" style="margin-top:12px"><label for="docProc">Procedura autorizzativa</label><select id="docProc">${Object.keys(DOCS.PROCEDURES).map(k => `<option value="${k}"${k === st.procedure ? ' selected' : ''}>${esc(DOCS.PROCEDURES[k])}</option>`).join('')}</select>
+      <label for="docPrefix">Prefisso codici</label><input id="docPrefix" type="text" size="6" value="${esc(st.prefix)}"><label for="docRev">Rev.</label><input id="docRev" type="text" size="3" value="${esc(st.rev)}"></div>
+      <div class="row" style="margin-top:12px"><button class="primary" id="btnDocPrepare" type="button"${ready ? '' : ' disabled'}>Prepara l'elenco degli elaborati</button>${ready ? '' : '<span class="hint">Seleziona la fase per continuare.</span>'}</div></div>`;
+    if (st.list) {
+      const groups = [...new Set(st.list.map(d => d.group))], nSel = st.list.filter(d => d.selected && d.status !== 'na').length;
+      const mark = { required: '<span class="pill ok">●</span>', optional: '<span class="pill w">○ se pertinente</span>', na: '<span class="pill ko">– non applicabile</span>' };
+      h += `<div class="card"><h2>2. Elaborati da preparare <small class="hint">${esc(DOCS.PHASES[st.phase].name)} · ${esc(DOCS.CONFIGS[st.config])}</small></h2>
+        <p class="hint">● richiesti per la configurazione (puoi escluderli), ○ da includere se pertinenti al sito o alla procedura; quelli proposti sono già spuntati.</p>
+        <div class="tbl-wrap"><table><thead><tr><th></th><th>Codice</th><th>Elaborato</th><th>Applicabilità</th></tr></thead><tbody>${groups.map(g => `<tr><td colspan="4"><b>${esc(g)}</b></td></tr>` + st.list.filter(d => d.group === g).map(d =>
+          `<tr><td><input type="checkbox" data-doc="${d.code}" ${d.selected && d.status !== 'na' ? 'checked' : ''} ${d.status === 'na' ? 'disabled' : ''} aria-label="Includi ${d.code}"></td><td class="num">${d.code}</td><td>${esc(d.title)}</td><td>${mark[d.status]}</td></tr>`).join('')).join('')}</tbody></table></div>
+        <div class="row" style="margin-top:12px"><button class="primary" id="btnDocGen" type="button"${nSel && !st.busy ? '' : ' disabled'}>${st.busy ? 'Generazione in corso…' : `Genera ${nSel} elaborati in Markdown`}</button><button type="button" id="btnDocAllOpt">Includi tutti i pertinenti</button></div></div>`;
+    }
+    if (st.gen) {
+      const g = st.gen, f = g.files[st.current] || g.files[0], inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+      h += `<div class="card"><h2>3. Estrai i documenti <small class="hint">${g.files.length - 1} elaborati + indice</small></h2>
+        ${g.warnings.map(w => `<p class="note">${esc(w)}</p>`).join('')}
+        <div class="row"><label for="docPick">Documento</label><select id="docPick">${g.files.map((x, i) => `<option value="${i}"${i === st.current ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
+        <button type="button" id="btnDocCopy">Copia documento</button><button type="button" id="btnDocCopyAll">Copia tutti in un unico .md</button>${inFrame ? '' : '<button class="primary" type="button" id="btnDocZip">Scarica ZIP</button>'}<span class="hint" id="docCopySt"></span></div>
+        <textarea id="docOut" readonly style="min-height:420px">${esc(f.md)}</textarea>
+        <p class="hint">${inFrame ? 'In questa vista i download sono bloccati: usa i pulsanti di copia, oppure apri standalone/Simulatore_FV_BESS.html per scaricare lo ZIP. ' : ''}Da riga di comando: <code>node tools/genera-elaborati.js --fase ${st.phase} --config ${st.config} --procedura ${st.procedure}</code>.</p></div>`;
+    }
+    return h;
+  }
+  function bindDocs(p) {
+    const st = docState, reset = () => { st.list = null; st.gen = null; render(); };
+    p.querySelectorAll('input[name=docPhase]').forEach(r => r.addEventListener('change', () => { st.phase = r.value; reset(); }));
+    p.querySelectorAll('input[name=docConfig]').forEach(r => r.addEventListener('change', () => { st.config = r.value; reset(); }));
+    const pr = $('#docProc'); if (pr) pr.addEventListener('change', () => { st.procedure = pr.value; reset(); });
+    const px = $('#docPrefix'); if (px) px.addEventListener('change', () => { st.prefix = px.value.trim() || 'FVB'; st.gen = null; render(); });
+    const rv = $('#docRev'); if (rv) rv.addEventListener('change', () => { st.rev = rv.value.trim() || 'A'; st.gen = null; render(); });
+    const bp = $('#btnDocPrepare'); if (bp) bp.addEventListener('click', () => { st.list = DOCS.prepare({ phase: st.phase, config: st.config, procedure: st.procedure }); st.gen = null; render(); });
+    p.querySelectorAll('[data-doc]').forEach(c => c.addEventListener('change', () => { const d = st.list.find(z => z.code === c.dataset.doc); d.selected = c.checked; st.gen = null; render(); }));
+    const ba = $('#btnDocAllOpt'); if (ba) ba.addEventListener('click', () => { st.list.forEach(d => { if (d.status !== 'na') d.selected = true; }); st.gen = null; render(); });
+    const bg = $('#btnDocGen'); if (bg) bg.addEventListener('click', () => {
+      st.busy = true; render();
+      setTimeout(() => {
+        try { st.gen = DOCS.generate(cfg, { phase: st.phase, config: st.config, procedure: st.procedure, prefix: st.prefix, rev: st.rev, selected: st.list.filter(d => d.selected).map(d => d.code) }); st.current = Math.min(1, st.gen.files.length - 1); }
+        catch (e) { st.gen = { files: [{ name: 'errore.md', md: 'Errore nella generazione: ' + e.message }], warnings: [] }; }
+        st.busy = false; render();
+      }, 30);
+    });
+    const dp = $('#docPick'); if (dp) dp.addEventListener('change', () => { st.current = +dp.value; $('#docOut').value = st.gen.files[st.current].md; });
+    const dc = $('#btnDocCopy'); if (dc) dc.addEventListener('click', () => copy($('#docOut'), $('#docCopySt')));
+    const dca = $('#btnDocCopyAll'); if (dca) dca.addEventListener('click', () => { const ta = $('#docOut'); ta.value = st.gen.files.map(f => f.md).join('\n\n---\n\n'); copy(ta, $('#docCopySt')); });
+    const dz = $('#btnDocZip'); if (dz) dz.addEventListener('click', () => {
+      try {
+        const blob = new Blob([DOCS.zip(st.gen.files, st.gen.folder)], { type: 'application/zip' }), a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = st.gen.folder + '.zip'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        $('#docCopySt').textContent = 'ZIP creato: ' + st.gen.folder + '.zip';
+      } catch (e) { $('#docCopySt').textContent = 'Download non riuscito: usa Copia.'; }
+    });
+  }
   function relazione() {
     return `<div class="card"><h2>Relazione sintetica</h2><p class="hint">Testo in Markdown pronto da incollare in una relazione o in un'e-mail.</p><div class="row"><button class="primary" id="btnCopyMd" type="button">Copia relazione</button><span id="copyMdSt" class="hint"></span></div><textarea id="mdOut" readonly>${esc(reportMd())}</textarea></div>
       <div class="card"><h2>Documenti di progetto</h2><p>Nella cartella <code>fv-bess-simulator/docs/</code> del repository:</p><ol>
       <li>Relazione di ingegneria di dettaglio (basi di progetto, calcoli, norme, protezioni, sicurezza BESS, MDR)</li><li>Analisi economica del caso di riferimento, scenari e confronto FV / FV + BESS</li>
-      <li>Contributi e incentivi italiani ed europei, stato a ottobre 2026, cumulabilità</li><li>Valutazione del CAPEX per voci, benchmark e contingenze</li></ol></div>`;
+      <li>Contributi e incentivi italiani ed europei, stato a ottobre 2026, cumulabilità</li><li>Valutazione del CAPEX per voci, benchmark e contingenze</li></ol><p>Gli elaborati di progetto (PFTE/definitivo o esecutivo) si generano nella scheda <b>Elaborati</b>.</p></div>`;
   }
 
   function bindPanel() {
@@ -438,6 +503,7 @@
     }));
     const bs = $('#btnSens'); if (bs) bs.addEventListener('click', () => { bs.textContent = 'Calcolo in corso…'; bs.disabled = true; setTimeout(() => { SENS = F.sensitivity(cfg); render(); }, 30); });
     const bc = $('#btnCopyMd'); if (bc) bc.addEventListener('click', () => copy($('#mdOut'), $('#copyMdSt')));
+    if (tab === 'elaborati') bindDocs(p);
   }
   function copy(area, st) {
     const txt = area.value;

@@ -342,7 +342,7 @@
     const eng = engineering(cfg, w, pvm, capex);
     const poaYear = sum(pvm.poa);
     const k = {
-      specificYield: y1.pv / kwp, poa: poaYear, pr: y1.pv / kwp / Math.max(poaYear, 1),
+      specificYield: kwp > 0 ? y1.pv / kwp : 0, poa: poaYear, pr: kwp > 0 ? y1.pv / kwp / Math.max(poaYear, 1) : 0,
       selfConsumptionRate: (y1.pvDirect + y1.pvToBess) / Math.max(y1.pv, 1),
       selfSufficiency: (y1.pvDirect + y1.bessToLoad) / Math.max(y1.load, 1),
       co2: (y1.load - y1.imp) / 1000 * D.CO2_GRID, cycles: y1.efc
@@ -520,16 +520,17 @@
     const nMin = Math.ceil(inv.mpptMin / vmpHot), nMinFull = Math.ceil(inv.mpptFullMin / vmpHot);
     const Ns = Math.min(nMaxV, nMaxMppt);
     const stringKwp = Ns * mod.pmax / 1000;
-    let nInv = Math.max(1, Math.round(cfg.pv.kwp / (cfg.pv.dcac * inv.pac)));
-    let strings = Math.round(cfg.pv.kwp / stringKwp);
-    const spInv = Math.ceil(strings / nInv), spMppt = Math.ceil(spInv / inv.nMppt);
+    const hasPv = cfg.pv.kwp > 0; // configurazione "solo BESS": nessun generatore FV
+    const nInv = hasPv ? Math.max(1, Math.round(cfg.pv.kwp / (cfg.pv.dcac * inv.pac))) : 0;
+    const strings = hasPv ? Math.round(cfg.pv.kwp / stringKwp) : 0;
+    const spInv = nInv ? Math.ceil(strings / nInv) : 0, spMppt = Math.ceil(spInv / inv.nMppt);
     const iMppt = spMppt * mod.imp, iscMppt = spMppt * mod.isc * 1.25 * (1 + mod.alphaIsc / 100 * (tCellMax - 25));
     const kwpReal = strings * stringKwp, kwac = nInv * inv.pac, nMod = strings * Ns;
     const modArea = nMod * mod.length * mod.width;
     const ground = cfg.pv.mount === 'ground_fixed' || cfg.pv.mount === 'tracker';
     const landHa = ground ? modArea / cfg.pv.gcr * 1.15 / 10000 : 0;
     const roofM2 = !ground ? modArea / (cfg.pv.mount === 'roof_ew' ? 0.85 : 0.60) : 0;
-    const checks = [
+    const checks = !hasPv ? [] : [
       { id: 'S1', what: 'Tensione a vuoto alla Tmin ≤ Vdc max inverter', value: (Ns * vocCold).toFixed(0) + ' V', limit: '≤ ' + inv.vdcMax + ' V', ok: Ns * vocCold <= inv.vdcMax },
       { id: 'S2', what: 'Vmp alla Tmin ≤ limite superiore MPPT', value: (Ns * vmpCold).toFixed(0) + ' V', limit: '≤ ' + inv.mpptMax + ' V', ok: Ns * vmpCold <= inv.mpptMax },
       { id: 'S3', what: 'Vmp alla Tcella max ≥ limite inferiore MPPT a piena potenza', value: (Ns * vmpHot).toFixed(0) + ' V', limit: '≥ ' + inv.mpptFullMin + ' V', ok: Ns * vmpHot >= inv.mpptFullMin },
@@ -550,11 +551,11 @@
     }
     // trasformatori MT/BT
     const reqKva = kwac * 1.05 / 0.95;
-    const nTr = Math.max(1, Math.ceil(reqKva / 3150)), trKva = STD_TR.find(s => s >= reqKva / nTr) || 3150;
+    const nTr = hasPv ? Math.max(1, Math.ceil(reqKva / 3150)) : 0, trKva = hasPv ? (STD_TR.find(s => s >= reqKva / nTr) || 3150) : 0;
     const b = cfg.bess, bessOn = b.enabled;
     const unit = D.BESS_UNITS[b.unit] || D.BESS_UNITS.container5;
     const nUnits = bessOn ? Math.ceil(b.kwh / unit.kwh) : 0;
-    const bessTrKva = bessOn ? (STD_TR.find(s => s >= b.kw / 0.95) || 3150) : 0, nBessTr = bessOn ? Math.max(1, Math.ceil(b.kw / 0.95 / 3150)) : 0;
+    const nBessTr = bessOn ? Math.max(1, Math.ceil(b.kw / 0.95 / 3150)) : 0, bessTrKva = bessOn ? (STD_TR.find(s => s >= b.kw / 0.95 / nBessTr) || 3150) : 0;
     // linea MT verso la cabina utente
     const Vmv = cfg.grid.voltageKv * 1000, Imv = (kwac + (bessOn ? b.kw : 0)) * 1000 / (Math.sqrt(3) * Vmv * 0.95), Lmv = ground ? 400 : 150;
     // sezione MT: portata (80 %), caduta ≤ 0,5 % e tenuta al cortocircuito di rete S ≥ Icc·√t / K (K = 92 Al/XLPE)
@@ -574,7 +575,7 @@
       { code: '51N/67N', fn: 'Guasto a terra (SPG)', setting: 'secondo regolamento DSO', time: '0,17–0,45 s' }
     ];
     return {
-      module: mod, inverter: inv, tMin, tAmbMax, tCellMax, vocCold, vmpCold, vmpHot, Ns, nMin, nMinFull, nMaxV, nMaxMppt,
+      hasPv, module: mod, inverter: inv, tMin, tAmbMax, tCellMax, vocCold, vmpCold, vmpHot, Ns, nMin, nMinFull, nMaxV, nMaxMppt,
       strings, nInv, spInv, spMppt, iMppt, iscMppt, kwpReal, kwac, nMod, modArea, landHa, roofM2, checks,
       dcCable: { S: dcCable.S, dv: dcCable.dv, L: Lstr, type: 'H1Z2Z2-K 1,5 kV DC, rame' },
       acCable: acCable ? Object.assign(acCable, { L: Lac, type: 'ARG16R16 / ARE4R 0,6/1 kV, alluminio' }) : null,

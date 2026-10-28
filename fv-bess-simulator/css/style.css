@@ -128,3 +128,10 @@ textarea { width: 100%; min-height: 140px; font: .8rem var(--f-mono); border: 1p
 .chart .t-low { fill: var(--bad); opacity: .75; } .chart .t-high { fill: var(--good); opacity: .8; }
 .busy { opacity: .55; transition: opacity .2s; }
 @media (prefers-reduced-motion: reduce) { .busy { transition: none; } }
+
+/* scheda elaborati */
+fieldset.choice { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 14px; margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+fieldset.choice legend { font: 600 .78rem var(--f-display); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 0 6px; }
+label.opt { display: block; cursor: pointer; }
+label.opt input { accent-color: var(--accent); margin-right: 6px; }
+button:disabled { opacity: .5; cursor: not-allowed; }
