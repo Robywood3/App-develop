@@ -3,7 +3,10 @@
 //   node tools/genera-elaborati.js                                   mostra fasi e configurazioni (scelta obbligatoria)
 //   node tools/genera-elaborati.js --fase pfte --config FB --elenco  mostra gli elaborati applicabili, senza generare
 //   node tools/genera-elaborati.js --fase pfte --config FB [--procedura pas] [--includi R08,R13] [--escludi G04]
-//                                  [--caso caso.json] [--out cartella] [--prefisso FVB] [--rev A]
+//                                  [--formati docx,dxf,pdf,md] [--caso caso.json] [--out cartella] [--prefisso FVB] [--rev A]
+//
+// Formati: relazioni in Word (.docx), elaborati grafici in CAD (.dxf), tutto in PDF; .md su richiesta.
+// Default: docx,dxf,pdf. I file vanno in sottocartelle Word/, CAD/, PDF/, Markdown/.
 //
 // --caso: configurazione JSON copiata dal simulatore (pulsante "Copia configurazione"); senza, usa il caso di esempio.
 const fs = require('fs'), path = require('path');
@@ -36,7 +39,9 @@ if (a.elenco) {
 const cfg = a.caso ? JSON.parse(fs.readFileSync(a.caso, 'utf8')) : F.defaultConfig();
 const res = E.generate(cfg, Object.assign({}, opts, { selected: list.filter(d => d.selected).map(d => d.code) }));
 const out = path.resolve(a.out || path.join(__dirname, '..', 'elaborati'), res.folder);
-fs.mkdirSync(out, { recursive: true });
-for (const f of res.files) fs.writeFileSync(path.join(out, f.name), f.md);
+const formats = (typeof a.formati === 'string' ? a.formati : 'docx,dxf,pdf').split(',').map(s => s.trim().toLowerCase()).filter(f => E.FORMATS[f]);
+if (!formats.length) { console.error('Formati validi: ' + Object.keys(E.FORMATS).join(', ')); process.exit(1); }
+const FOLDER = { docx: 'Word', dxf: 'CAD', pdf: 'PDF', md: 'Markdown' }; let n = 0;
+for (const f of res.files) for (const k of formats) { const o = E.exportFile(f, k); if (!o) continue; const dir = path.join(out, FOLDER[k]); fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, o.name), o.data); n++; }
 res.warnings.forEach(w => console.log('Avviso: ' + w));
-console.log(`${res.files.length - 1} elaborati + indice scritti in ${out}`);
+console.log(`${res.files.length - 1} elaborati + indice: ${n} file (${formats.join(', ')}) in ${out}`);

@@ -410,7 +410,7 @@
   }
   // ---------- elaborati di progetto: 1) scelta  2) elenco  3) generazione ed estrazione ----------
   const DOCS = window.FVB_DOCS;
-  const docState = { phase: null, config: null, procedure: 'pas', prefix: 'FVB', rev: 'A', list: null, gen: null, current: 1, busy: false };
+  const docState = { phase: null, config: null, procedure: 'pas', prefix: 'FVB', rev: 'A', list: null, gen: null, current: 1, busy: false, formats: { docx: true, dxf: true, pdf: true, md: false } };
   // download dei file: nel visualizzatore claude.ai tramite la capability "downloads", altrove con un link al blob
   let dlCap = null;
   try { if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { dlCap = d; if (d && tab === 'elaborati' && docState.gen) render(); }, () => {}); } catch (e) { /* non disponibile */ }
@@ -443,16 +443,20 @@
         <p class="hint">● richiesti per la configurazione (puoi escluderli), ○ da includere se pertinenti al sito o alla procedura; quelli proposti sono già spuntati.</p>
         <div class="tbl-wrap"><table><thead><tr><th></th><th>Codice</th><th>Elaborato</th><th>Applicabilità</th></tr></thead><tbody>${groups.map(g => `<tr><td colspan="4"><b>${esc(g)}</b></td></tr>` + st.list.filter(d => d.group === g).map(d =>
           `<tr><td><input type="checkbox" data-doc="${d.code}" ${d.selected && d.status !== 'na' ? 'checked' : ''} ${d.status === 'na' ? 'disabled' : ''} aria-label="Includi ${d.code}"></td><td class="num">${d.code}</td><td>${esc(d.title)}</td><td>${mark[d.status]}</td></tr>`).join('')).join('')}</tbody></table></div>
-        <div class="row" style="margin-top:12px"><button class="primary" id="btnDocGen" type="button"${nSel && !st.busy ? '' : ' disabled'}>${st.busy ? 'Generazione in corso…' : `Genera ${nSel} elaborati in Markdown`}</button><button type="button" id="btnDocAllOpt">Includi tutti i pertinenti</button></div></div>`;
+        <div class="row" style="margin-top:12px"><button class="primary" id="btnDocGen" type="button"${nSel && !st.busy ? '' : ' disabled'}>${st.busy ? 'Generazione in corso…' : `Genera ${nSel} elaborati`}</button><button type="button" id="btnDocAllOpt">Includi tutti i pertinenti</button></div></div>`;
     }
     if (st.gen) {
       const g = st.gen, f = g.files[st.current] || g.files[0], inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })(), canSave = !inFrame || !!dlCap;
-      h += `<div class="card"><h2>3. Estrai i documenti <small class="hint">${g.files.length - 1} elaborati + indice</small></h2>
+      const nDraw = g.files.filter(z => z.kind === 'drawing').length, ext = { docx: 'Word', dxf: 'CAD', pdf: 'PDF', md: 'Markdown' };
+      h += `<div class="card"><h2>3. Estrai i documenti <small class="hint">${g.files.length - 1 - nDraw} relazioni, ${nDraw} tavole + indice</small></h2>
         ${g.warnings.map(w => `<p class="note">${esc(w)}</p>`).join('')}
-        <div class="row"><label for="docPick">Documento</label><select id="docPick">${g.files.map((x, i) => `<option value="${i}"${i === st.current ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
-        <button type="button" id="btnDocCopy">Copia documento</button><button type="button" id="btnDocCopyAll">Copia tutti in un unico .md</button>${canSave ? '<button type="button" id="btnDocMd">Scarica .md</button><button class="primary" type="button" id="btnDocZip">Scarica ZIP</button>' : ''}<span class="hint" id="docCopySt"></span></div>
-        <textarea id="docOut" readonly style="min-height:420px">${esc(f.md)}</textarea>
-        <p class="hint">${canSave ? '' : 'In questa vista i download non sono disponibili: usa i pulsanti di copia, oppure apri standalone/Simulatore_FV_BESS.html per scaricare lo ZIP. '}Da riga di comando: <code>node tools/genera-elaborati.js --fase ${st.phase} --config ${st.config} --procedura ${st.procedure}</code>.</p></div>`;
+        <fieldset class="choice"><legend>Formati da estrarre</legend><div class="row">${Object.keys(DOCS.FORMATS).map(k => `<label class="opt"><input type="checkbox" data-fmt="${k}"${st.formats[k] ? ' checked' : ''}> ${esc(DOCS.FORMATS[k])}</label>`).join('')}</div></fieldset>
+        <div class="row" style="margin-top:10px">${canSave ? `<button class="primary" type="button" id="btnDocZip">Scarica ZIP (${Object.keys(st.formats).filter(k => st.formats[k]).map(k => ext[k]).join(', ') || 'nessun formato'})</button>` : ''}<span class="hint" id="docCopySt"></span></div>
+        <div class="row" style="margin-top:14px"><label for="docPick">Documento</label><select id="docPick">${g.files.map((x, i) => `<option value="${i}"${i === st.current ? ' selected' : ''}>${esc(x.base)} ${x.kind === 'drawing' ? '(tavola)' : ''}</option>`).join('')}</select>
+        ${canSave ? DOCS.formatsOf(f).map(k => `<button type="button" data-dl="${k}">Scarica .${k}</button>`).join('') : ''}<button type="button" id="btnDocCopy">Copia testo</button></div>
+        ${f.kind === 'drawing' ? `<div class="sheet-prev">${window.FVB_EXPORT.svg(f.drawing)}</div><p class="hint">Anteprima della tavola ${esc(f.drawing.sheet)}, scala ${f.drawing.unit === 'm' ? '1:' + f.drawing.scale : '–'}. Il DXF (R12, layer per categoria) si apre con AutoCAD, BricsCAD, DraftSight, LibreCAD, QCAD; le planimetrie sono in metri reali.</p>` : ''}
+        <textarea id="docOut" readonly style="min-height:${f.kind === 'drawing' ? 160 : 420}px">${esc(f.md)}</textarea>
+        <p class="hint">${canSave ? '' : 'In questa vista i download non sono disponibili: usa Copia testo, oppure apri standalone/Simulatore_FV_BESS.html. '}Da riga di comando: <code>node tools/genera-elaborati.js --fase ${st.phase} --config ${st.config} --procedura ${st.procedure} --formati ${Object.keys(st.formats).filter(k => st.formats[k]).join(',')}</code>.</p></div>`;
     }
     return h;
   }
@@ -474,17 +478,21 @@
         st.busy = false; render();
       }, 30);
     });
-    const dp = $('#docPick'); if (dp) dp.addEventListener('change', () => { st.current = +dp.value; $('#docOut').value = st.gen.files[st.current].md; });
+    const dp = $('#docPick'); if (dp) dp.addEventListener('change', () => { st.current = +dp.value; render(); });
     const dc = $('#btnDocCopy'); if (dc) dc.addEventListener('click', () => copy($('#docOut'), $('#docCopySt')));
-    const dca = $('#btnDocCopyAll'); if (dca) dca.addEventListener('click', () => { const ta = $('#docOut'); ta.value = st.gen.files.map(f => f.md).join('\n\n---\n\n'); copy(ta, $('#docCopySt')); });
-    const dz = $('#btnDocZip'); if (dz) dz.addEventListener('click', () => offerFile(st.gen.folder + '.zip', new Blob([DOCS.zip(st.gen.files, st.gen.folder)], { type: 'application/zip' }), $('#docCopySt')));
-    const dm = $('#btnDocMd'); if (dm) dm.addEventListener('click', () => { const f = st.gen.files[st.current]; offerFile(f.name, new Blob([f.md], { type: 'text/markdown' }), $('#docCopySt')); });
+    p.querySelectorAll('[data-fmt]').forEach(c => c.addEventListener('change', () => { st.formats[c.dataset.fmt] = c.checked; render(); }));
+    const dz = $('#btnDocZip'); if (dz) dz.addEventListener('click', () => {
+      const fm = Object.keys(st.formats).filter(k => st.formats[k]); if (!fm.length) { $('#docCopySt').textContent = 'Seleziona almeno un formato.'; return; }
+      dz.disabled = true; $('#docCopySt').textContent = 'Preparazione dello ZIP…';
+      setTimeout(() => { try { offerFile(st.gen.folder + '.zip', new Blob([DOCS.zip(st.gen, fm)], { type: 'application/zip' }), $('#docCopySt')); } catch (e) { $('#docCopySt').textContent = 'Errore: ' + e.message; } dz.disabled = false; }, 30);
+    });
+    p.querySelectorAll('[data-dl]').forEach(bt => bt.addEventListener('click', () => { const o = DOCS.exportFile(st.gen.files[st.current], bt.dataset.dl); if (o) offerFile(o.name, new Blob([o.data], { type: o.mime }), $('#docCopySt')); }));
   }
   function relazione() {
-    return `<div class="card"><h2>Relazione sintetica</h2><p class="hint">Testo in Markdown pronto da incollare in una relazione o in un'e-mail.</p><div class="row"><button class="primary" id="btnCopyMd" type="button">Copia relazione</button><span id="copyMdSt" class="hint"></span></div><textarea id="mdOut" readonly>${esc(reportMd())}</textarea></div>
+    return `<div class="card"><h2>Relazione sintetica</h2><p class="hint">Copiala come testo o scaricala in Word o PDF.</p><div class="row"><button class="primary" id="btnCopyMd" type="button">Copia relazione</button><button type="button" data-rep="docx">Scarica Word</button><button type="button" data-rep="pdf">Scarica PDF</button><span id="copyMdSt" class="hint"></span></div><textarea id="mdOut" readonly>${esc(reportMd())}</textarea></div>
       <div class="card"><h2>Documenti di progetto</h2><p>Nella cartella <code>fv-bess-simulator/docs/</code> del repository:</p><ol>
       <li>Relazione di ingegneria di dettaglio (basi di progetto, calcoli, norme, protezioni, sicurezza BESS, MDR)</li><li>Analisi economica del caso di riferimento, scenari e confronto FV / FV + BESS</li>
-      <li>Contributi e incentivi italiani ed europei, stato a ottobre 2026, cumulabilità</li><li>Valutazione del CAPEX per voci, benchmark e contingenze</li></ol><p>Gli elaborati di progetto (PFTE/definitivo o esecutivo) si generano nella scheda <b>Elaborati</b>.</p></div>`;
+      <li>Contributi e incentivi italiani ed europei, stato a ottobre 2026, cumulabilità</li><li>Valutazione del CAPEX per voci, benchmark e contingenze</li></ol><p>Le versioni Word e PDF sono in <code>docs/word/</code> e <code>docs/pdf/</code>.</p><p>Gli elaborati di progetto (PFTE/definitivo o esecutivo) si generano nella scheda <b>Elaborati</b>.</p></div>`;
   }
 
   function bindPanel() {
@@ -511,6 +519,11 @@
     const bs = $('#btnSens'); if (bs) bs.addEventListener('click', () => { bs.textContent = 'Calcolo in corso…'; bs.disabled = true; setTimeout(() => { SENS = F.sensitivity(cfg); render(); }, 30); });
     const bc = $('#btnCopyMd'); if (bc) bc.addEventListener('click', () => copy($('#mdOut'), $('#copyMdSt')));
     if (tab === 'elaborati') bindDocs(p);
+    p.querySelectorAll('[data-rep]').forEach(bt => bt.addEventListener('click', () => {
+      const XP = window.FVB_EXPORT, md = reportMd(), meta = { title: cfg.project.name, left: cfg.project.name + ' · Relazione sintetica', right: new Date().toLocaleDateString('it-IT') };
+      const data = bt.dataset.rep === 'docx' ? XP.docx(md, meta) : XP.pdfReport(md, meta);
+      offerFile('Relazione_sintetica.' + bt.dataset.rep, new Blob([data], { type: bt.dataset.rep === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf' }), $('#copyMdSt'));
+    }));
   }
   function copy(area, st) {
     const txt = area.value;

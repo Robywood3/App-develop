@@ -5,9 +5,9 @@
  * I documenti sono bozze compilate con i dati del simulatore; le parti che richiedono dati di sito sono marcate [DA COMPLETARE].
  */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./data.js'));
-  else root.FVB_DOCS = factory(root.FVB, root.FVB_DATA);
-})(typeof self !== 'undefined' ? self : this, function (F, D) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./data.js'), require('./export.js'), require('./tavole.js'));
+  else root.FVB_DOCS = factory(root.FVB, root.FVB_DATA, root.FVB_EXPORT, root.FVB_TAVOLE);
+})(typeof self !== 'undefined' ? self : this, function (F, D, XP, TAV) {
   'use strict';
 
   const PHASES = {
@@ -532,34 +532,36 @@
     const v = variantConfig(cfgIn, opts.config); warnings.push(...v.warnings);
     const R = F.simulate(v.cfg);
     const x = ctxOf(v.cfg, R, Object.assign({}, opts, { selected: sel, excluded: list.filter(d => !sel.includes(d)) }));
-    const files = sel.map(d => ({ code: d.code, title: d.title, name: `${d.code}_${slug(d.title)}.md`, md: render(x, d) }));
+    const files = sel.map(d => {
+      const f = { code: d.code, title: d.title, base: `${d.code}_${slug(d.title)}`, name: `${d.code}_${slug(d.title)}.md`, md: render(x, d), kind: /^[TD]/.test(d.code) ? 'drawing' : 'report' };
+      if (f.kind === 'drawing' && TAV) { try { f.drawing = TAV.drawing(d.code, x, d); } catch (err) { warnings.push(`Tavola ${d.code} non generata: ${err.message}`); } if (!f.drawing) f.kind = 'report'; }
+      f.meta = { title: `${d.code} – ${d.title}`, left: `${x.cfg.project.name} · ${x.prefix}-${PHASES[x.phase].short}-${d.code}`, right: `Rev. ${x.rev} – ${x.date.split('-').reverse().join('/')}` };
+      return f;
+    });
     const idx = `# Elenco elaborati – ${x.cfg.project.name}\n\n` + kv([['Fase', phaseLabel(x)], ['Configurazione', CONFIGS[opts.config]], ['Procedura', PROCEDURES[opts.procedure] || '–'], ['Data', x.date], ['Elaborati generati', files.length]]) +
-      '\n' + tbl(['Codice', 'Elaborato', 'File'], files.map(f => [`${x.prefix}-${PHASES[opts.phase].short}-${f.code}`, f.title, `[${f.name}](${f.name})`])) +
+      '\n' + tbl(['Codice', 'Elaborato', 'Tipo', 'File'], files.map(f => [`${x.prefix}-${PHASES[opts.phase].short}-${f.code}`, f.title, f.kind === 'drawing' ? 'Tavola (DXF, PDF ' + f.drawing.sheet + ' scala ' + (f.drawing.unit === 'm' ? '1:' + f.drawing.scale : '–') + ')' : 'Relazione (DOCX, PDF)', f.base])) +
       (warnings.length ? '\n## Avvisi\n\n' + ul(warnings) : '') + '\n> Bozze generate dal simulatore FV + BESS: da completare nelle parti [DA COMPLETARE] e da verificare da un tecnico abilitato.\n';
-    files.unshift({ code: '00', title: 'Indice', name: '00_Indice.md', md: idx });
+    files.unshift({ code: '00', title: 'Indice', base: '00_Indice', name: '00_Indice.md', md: idx, kind: 'report', meta: { title: 'Elenco elaborati', left: x.cfg.project.name, right: `Rev. ${x.rev} – ${x.date.split('-').reverse().join('/')}` } });
     return { files, warnings, folder: `Elaborati_${PHASES[opts.phase].short}_${opts.config}_${x.date}` };
   }
 
-  // ---------- ZIP (senza compressione) ----------
-  const CRC = (() => { const t = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[i] = c >>> 0; } return t; })();
-  function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
-  function utf8(s) { return typeof TextEncoder !== 'undefined' ? new TextEncoder().encode(s) : Uint8Array.from(Buffer.from(s, 'utf8')); }
-  function zip(files, folder) {
-    const parts = [], central = []; let off = 0;
-    const u16 = v => [v & 255, (v >>> 8) & 255], u32 = v => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
-    for (const f of files) {
-      const name = utf8((folder ? folder + '/' : '') + f.name), data = utf8(f.md), crc = crc32(data);
-      const head = [].concat(u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(0), u16(0x21), u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0));
-      parts.push(Uint8Array.from(head), name, data);
-      central.push(Uint8Array.from([].concat(u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0x21), u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(off))), name);
-      off += head.length + name.length + data.length;
-    }
-    const csize = central.reduce((a, p) => a + p.length, 0);
-    const end = Uint8Array.from([].concat(u32(0x06054b50), u16(0), u16(0), u16(files.length), u16(files.length), u32(csize), u32(off), u16(0)));
-    const all = parts.concat(central, [end]), out = new Uint8Array(all.reduce((a, p) => a + p.length, 0)); let p = 0;
-    for (const a of all) { out.set(a, p); p += a.length; }
-    return out;
+  // ---------- esportazione nei formati richiesti ----------
+  const FORMATS = { docx: 'Word (.docx) per le relazioni', dxf: 'CAD (.dxf) per gli elaborati grafici', pdf: 'PDF per tutti', md: 'Markdown (.md)' };
+  const FOLDER = { docx: 'Word', dxf: 'CAD', pdf: 'PDF', md: 'Markdown' };
+  // formati disponibili per un file: relazioni docx/pdf/md, tavole dxf/pdf/md (scheda)
+  const formatsOf = f => f.kind === 'drawing' ? ['dxf', 'pdf', 'md'] : ['docx', 'pdf', 'md'];
+  function exportFile(f, fmt) {
+    if (fmt === 'md') return { name: f.base + '.md', data: XP.utf8(f.md), mime: 'text/markdown' };
+    if (fmt === 'docx' && f.kind !== 'drawing') return { name: f.base + '.docx', data: XP.docx(f.md, f.meta), mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+    if (fmt === 'dxf' && f.kind === 'drawing') return { name: f.base + '.dxf', data: XP.dxf(f.drawing), mime: 'application/dxf' };
+    if (fmt === 'pdf') return { name: f.base + '.pdf', data: f.kind === 'drawing' ? XP.pdfDrawing(f.drawing) : XP.pdfReport(f.md, f.meta), mime: 'application/pdf' };
+    return null;
+  }
+  function zip(gen, formats) {
+    const fm = formats && formats.length ? formats : ['docx', 'dxf', 'pdf'], entries = [];
+    for (const f of gen.files) for (const k of fm) { const o = exportFile(f, k); if (o) entries.push({ name: `${gen.folder}/${FOLDER[k]}/${o.name}`, data: o.data }); }
+    return XP.zip(entries);
   }
 
-  return { PHASES, CONFIGS, PROCEDURES, CATALOG, prepare, generate, variantConfig, zip, crc32 };
+  return { PHASES, CONFIGS, PROCEDURES, CATALOG, FORMATS, prepare, generate, variantConfig, exportFile, formatsOf, zip };
 });

@@ -135,3 +135,6 @@ fieldset.choice legend { font: 600 .78rem var(--f-display); text-transform: uppe
 label.opt { display: block; cursor: pointer; }
 label.opt input { accent-color: var(--accent); margin-right: 6px; }
 button:disabled { opacity: .5; cursor: not-allowed; }
+
+.sheet-prev { margin-top: 12px; border: 1px solid var(--line); border-radius: var(--r); background: #fff; overflow: auto; }
+.sheet-prev svg { display: block; width: 100%; height: auto; min-width: 640px; }

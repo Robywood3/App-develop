@@ -23,8 +23,8 @@ Il caso di esempio si carica all'apertura. Le modifiche restano salvate nel brow
 | Incentivi | Iper-ammortamento 2026, ZES, Sabatini, FESR, FER X, servizi di flessibilità e altri strumenti, con parametri modificabili e controllo del cumulo |
 | Sensitività | Tornado del VAN su CAPEX, PUN, escalation, producibilità, OPEX, WACC e oneri |
 | Ingegneria | Dimensionamento delle stringhe con 7 verifiche, cavi DC/AC/MT, trasformatori, BESS, tarature SPG/SPI (CEI 0-16), elenco elaborati |
-| Elaborati | Generazione in Markdown degli elaborati di progetto in tre passi: scelta di fase e configurazione → elenco applicabile → generazione ed estrazione (copia o ZIP) |
-| Relazione | Testo Markdown dei risultati, da copiare |
+| Elaborati | Elaborati di progetto in tre passi (scelta di fase e configurazione → elenco applicabile → generazione): relazioni in Word e PDF, tavole in CAD (DXF) e PDF, ZIP per cartelle |
+| Relazione | Relazione sintetica dei risultati: copia, Word o PDF |
 
 Dati di ingresso principali:
 
@@ -49,23 +49,46 @@ Dati di ingresso principali:
 
 ## Elaborati di progetto
 
-La scheda **Elaborati** produce le bozze dei documenti dell'elenco standard FV / FV + BESS / solo BESS (64 elaborati, tabella in `js/elaborati.js`).
+La scheda **Elaborati** produce gli elaborati dell'elenco standard FV / FV + BESS / solo BESS (64 elaborati, tabella in `js/elaborati.js`).
 
 1. **Scegli** la fase (PFTE o progetto definitivo, oppure progetto esecutivo), la configurazione (solo FV, FV + BESS, solo BESS), la procedura autorizzativa, il prefisso dei codici e la revisione. Finché la fase non è scelta l'elenco non si prepara.
 2. **Prepara** l'elenco. Gli elaborati ● sono già selezionati e si possono escludere; quelli ○ ("se pertinente") si aggiungono a mano. Alcuni sono proposti in base alla procedura: screening VIA per il PAUR, relazione paesaggistica per AU e PAUR, VPIA per le opere pubbliche, PEF. Quelli – non sono generabili.
-3. **Genera ed estrai.** Ogni elaborato diventa un file `.md` con cartiglio, scopo, riferimenti normativi e contenuti compilati con i dati del simulatore: tabelle, calcoli, schema unifilare e cronoprogramma in Mermaid. I dati che mancano sono marcati **[DA COMPLETARE]**. Si copia un documento o tutti insieme, oppure si scarica lo ZIP con l'indice (nel visualizzatore claude.ai i download sono bloccati: usa la copia o il file `standalone`).
+3. **Genera ed estrai** nei formati scelti, con anteprima delle tavole:
 
-Gli elaborati grafici (T, D) sono schede con i contenuti e i dati da riportare in tavola: il disegno va fatto in CAD. Per la configurazione solo BESS i documenti includono i punti rafforzati dell'elenco: rischio incendio, distanze, accessibilità VVF, acustica di HVAC e PCS, acque di spegnimento, augmentation e fine vita.
+| Tipo di elaborato | Formati | Contenuto |
+|---|---|---|
+| Relazioni, calcoli, documenti economici e contrattuali (G, R, E, X, C) | **Word .docx**, **PDF** A4, Markdown | Cartiglio, scopo, riferimenti normativi, tabelle e calcoli dal simulatore, campi **[DA COMPLETARE]** evidenziati, intestazione e piè di pagina con numero di pagina |
+| Elaborati grafici (T, D) | **CAD .dxf** (R12), **PDF** vettoriale A1/A0/A3, scheda Markdown | Disegno con cornice, cartiglio, legenda, note e scala; planimetrie in metri reali |
+
+Si scarica un singolo file per formato, oppure lo ZIP con le cartelle `Word/`, `CAD/`, `PDF/` e `Markdown/`. Nel visualizzatore claude.ai il salvataggio passa dalla conferma del visualizzatore.
+
+**Tavole CAD.** I DXF sono in formato R12 (AC1009, ANSI_1252), con layer per categoria (MODULI, INVERTER, CABINE, BESS, RECINZIONE, VIABILITA, CAVI_MT, CAVI_BT, TERRA, TVCC, QUOTE, CARTIGLIO…), tipi di linea e colori. Si aprono con AutoCAD, BricsCAD, DraftSight, LibreCAD, QCAD e LibreOffice Draw.
+- **Planimetrie** (T02, T08, T09, T10, D01, D04, D08), in metri reali, con scala scelta in automatico: file di tavole 2P con il passo dal GCR, inverter e gruppi di stringhe, cabine, area BESS, recinzione, viabilità, cavidotto MT della lunghezza calcolata, cabina utente.
+- **Sezioni e particolari** in scala fissa:
+  - T03 sezione tra le file 1:50 con ombra al solstizio;
+  - T07 e D05 strutture e basamenti 1:20;
+  - T06 tipologici 1:50;
+  - D07 cabina di consegna 1:50;
+  - sezioni di scavo e di viabilità nella colonna laterale.
+- **Schemi** in mm:
+  - T05 e D02 unifilare con DG/SPG, DDI/SPI, linea MT, trasformatori, inverter, PCS e BESS, CCI;
+  - D03 schema funzionale;
+  - D06 architettura SCADA.
+- T01 è il foglio di inquadramento con i riquadri per le basi cartografiche.
+
+La geometria è di impostazione: il layout definitivo va sviluppato su rilievo, ortofoto e catasto.
 
 Da riga di comando, con lo stesso obbligo di scelta:
 
 ```bash
 node tools/genera-elaborati.js                                        # mostra fasi e configurazioni
 node tools/genera-elaborati.js --fase pfte --config FB --elenco       # elenco applicabile, senza generare
-node tools/genera-elaborati.js --fase esecutivo --config B --procedura au --includi D01 --caso caso.json
+node tools/genera-elaborati.js --fase esecutivo --config B --procedura au --includi D01 --formati docx,dxf,pdf --caso caso.json
 ```
 
-`--caso` legge il JSON copiato con **Copia configurazione**. I file vanno in `elaborati/<fase>_<configurazione>_<data>/` (cartella esclusa da git).
+`--caso` legge il JSON copiato con **Copia configurazione**. I file vanno in `elaborati/<fase>_<configurazione>_<data>/{Word,CAD,PDF,Markdown}/` (cartella esclusa da git).
+
+I documenti di progetto in `docs/` sono disponibili anche in Word e PDF (`docs/word/`, `docs/pdf/`, rigenerabili con `npm run docs`).
 
 ## Modello di calcolo
 
@@ -97,12 +120,15 @@ fv-bess-simulator/
 ├── js/data.js               siti, componenti, default, catalogo incentivi
 ├── js/engine.js             motore di calcolo (browser e Node)
 ├── js/charts.js             grafici SVG
-├── js/elaborati.js          elenco elaborati e generazione dei documenti .md
+├── js/elaborati.js          elenco elaborati, contenuti e formati di uscita
+├── js/export.js             Word (.docx), PDF, CAD (.dxf), SVG e ZIP senza dipendenze
+├── js/tavole.js             geometria degli elaborati grafici
 ├── js/ui.js                 interfaccia
 ├── tools/build-single.js    genera il file unico
 ├── tools/report-cases.js    calcola i casi di studio → docs/allegati/A1
 ├── tools/capex-montecarlo.js analisi di rischio del CAPEX
 ├── tools/genera-elaborati.js generazione degli elaborati da riga di comando
+├── tools/export-docs.js     docs/*.md → docs/word/*.docx e docs/pdf/*.pdf
 ├── tests/                   test del motore e degli elaborati (npm test)
 └── docs/                    documenti di progetto
 ```
@@ -113,6 +139,7 @@ fv-bess-simulator/
 npm test                         # test del motore e degli elaborati (Node ≥ 18)
 npm run build                    # rigenera standalone/Simulatore_FV_BESS.html
 npm run report                   # rigenera docs/allegati/A1_Risultati_casi.md
+npm run docs                     # rigenera i documenti in Word e PDF
 node tools/capex-montecarlo.js   # percentili del CAPEX
 ```
 

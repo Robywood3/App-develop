@@ -1,0 +1,920 @@
+%PDF-1.4
+%âãÏÓ
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Pages /Kids [7 0 R 9 0 R 11 0 R 13 0 R 15 0 R] /Count 5 >>
+endobj
+6 0 obj
+<< /Length 10125 >>
+stream
+BT /F2 17 Tf 0.075 0.157 0.227 rg 56 742.34 Td (Valutazione del CAPEX – Impianto FV industriale con BESS) Tj ET
+0.89 0.918 0.925 rg 56 717.39 483.28 15.4 re f
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 721.47 Td (Documento) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 143.58 721.47 Td (Revisione) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 209.89 721.47 Td (Data) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 279.49 721.47 Td (Stato) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 717.39 483.28 15.4 re S
+140.58 732.79 m 140.58 717.39 l S
+206.89 732.79 m 206.89 717.39 l S
+276.49 732.79 m 276.49 717.39 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 706.07 Td (FVB-CST-001) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 143.58 706.07 Td (A) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 209.89 706.07 Td (28/10/2026) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 279.49 706.07 Td (Emesso per commenti – stima di classe AACE 4) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 701.99 483.28 15.4 re S
+140.58 717.39 m 140.58 701.99 l S
+206.89 717.39 m 206.89 701.99 l S
+276.49 717.39 m 276.49 701.99 l S
+BT /F2 8.6 Tf 0.34 0.4 0.44 rg 68 681.94 Td (Avvertenza.) Tj ET
+BT /F1 8.6 Tf 0.34 0.4 0.44 rg 116.27 681.94 Td ( Stima parametrica per voci, basata sui benchmark di mercato raccolti in A2 \(ottobre 2026\). Molte voci sono) Tj ET
+BT /F1 8.6 Tf 0.34 0.4 0.44 rg 68 670.44 Td (stime motivate e non quotazioni: la stima va portata alla classe 3 con offerte di fornitori ed EPC prima della decisione di) Tj ET
+BT /F1 8.6 Tf 0.34 0.4 0.44 rg 68 658.94 Td (investimento. Prezzi in euro correnti 2026, IVA esclusa.) Tj ET
+0.72 0.42 0.06 RG 2 w 59 693.99 m 59 657.49 l S
+0.63 0.66 0.68 RG 0.5 w 56 646.49 m 539.28 646.49 l S
+BT /F2 12.5 Tf 0.075 0.157 0.227 rg 56 620.12 Td (1. Sintesi) Tj ET
+0.72 0.42 0.06 RG 0.8 w 56 616.24 m 539.28 616.24 l S
+0.89 0.918 0.925 rg 56 590.84 483.28 15.4 re f
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 594.92 Td (Grandezza) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 241.49 594.92 Td (Caso A \(3 MWp a terra + BESS 2 MWh / 1 MW, Milano\)) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 590.84 483.28 15.4 re S
+238.49 606.24 m 238.49 590.84 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 579.52 Td (CAPEX deterministico) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 241.49 579.52 Td (2.409 k€) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 271.07 579.52 Td ( \(di cui contingenze 175 k€ e costi del committente 44 k€\)) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 575.44 483.28 15.4 re S
+238.49 590.84 m 238.49 575.44 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 564.12 Td (FV) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 241.49 564.12 Td (1.848 k€ = ) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 279.31 564.12 Td (616 €/kWp) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 560.04 483.28 15.4 re S
+238.49 575.44 m 238.49 560.04 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 548.72 Td (BESS) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 241.49 548.72 Td (561 k€ = ) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 272.97 548.72 Td (281 €/kWh) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 310.14 548.72 Td ( \(561 €/kW\)) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 544.64 483.28 15.4 re S
+238.49 560.04 m 238.49 544.64 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 533.32 Td (Intervallo Monte Carlo \(P10 – P50 – P90\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 241.49 533.32 Td (2.288 – 2.430 – 2.581 k€) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 529.24 483.28 15.4 re S
+238.49 544.64 m 238.49 529.24 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 517.92 Td (FV €/kWp \(P10 – P50 – P90\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 241.49 517.92 Td (582 – 623 – 669) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 513.84 483.28 15.4 re S
+238.49 529.24 m 238.49 513.84 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 502.52 Td (BESS €/kWh \(P10 – P50 – P90\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 241.49 502.52 Td (254 – 279 – 306) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 498.44 483.28 15.4 re S
+238.49 513.84 m 238.49 498.44 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 487.12 Td (Classe di stima) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 241.49 487.12 Td (AACE 18R-97 classe 4 \(accuratezza attesa -20 % / +30 %\)) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 483.04 483.28 15.4 re S
+238.49 498.44 m 238.49 483.04 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 471.72 Td (Contingenza consigliata) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 241.49 471.72 Td (12–13 %) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 271.49 471.72 Td ( dei costi diretti per un budget P80 \(oggi nel simulatore: 8 %\)) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 467.64 483.28 15.4 re S
+238.49 483.04 m 238.49 467.64 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 456.32 Td (Validità) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 241.49 456.32 Td (3 mesi; da aggiornare con gli indici dei moduli e delle celle LFP) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 452.24 483.28 15.4 re S
+238.49 467.64 m 238.49 452.24 l S
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 56 432.99 Td (Messaggi principali:) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 415.24 Td (•) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 414.99 Td (Il CAPEX FV \(616 €/kWp a terra fisso, 534–578 €/kWp su copertura, 671 €/kWp con tracker\) è in linea con i) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 401.99 Td (totali EPC italiani 2026 \(0,62 €/Wp a terra fisso, 0,65 €/Wp su tetto C&I 0,5–2 MWp, 0,69 €/Wp tracker, A2) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 388.99 Td (§1.2\).) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 374.74 Td (•) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 374.49 Td (Moduli e montaggi pesano un terzo del CAPEX FV. Il prezzo dei moduli è salito nel 2026 \(0,108 -> 0,15 €/Wp) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 361.49 Td (per l'alta efficienza tra gennaio e maggio\): è la voce di mercato più volatile.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 347.24 Td (•) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 346.99 Td (Il BESS C&I costa circa il doppio del BESS utility \(281 contro ~110–150 €/kWh dei riferimenti MACSE e) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 333.99 Td (BNEF\) per le economie di scala, i PCS piccoli e l'integrazione nella cabina d'utente.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 319.74 Td (•) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 319.49 Td (La contingenza dell'8 % copre il P50 ma non il P80: per il budget di approvazione si consiglia il 12–13 %.) Tj ET
+0.63 0.66 0.68 RG 0.5 w 56 307.24 m 539.28 307.24 l S
+BT /F2 12.5 Tf 0.075 0.157 0.227 rg 56 280.87 Td (2. Metodo) Tj ET
+0.72 0.42 0.06 RG 0.8 w 56 276.99 m 539.28 276.99 l S
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 259.99 Td (1.) Tj ET
+BT /F2 9.5 Tf 0.075 0.157 0.227 rg 76 259.74 Td (Struttura per voci \(WBS di costo\).) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 228.02 259.74 Td ( 11 voci FV e 7 voci BESS, ciascuna con un'unità di misura che segue il) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 246.74 Td (driver di costo: €/kWp per le voci proporzionali alla potenza DC, €/kWh per l'energia del BESS \(celle,) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 233.74 Td (container, installazione\), €/kW per la conversione \(PCS, trasformatori\), € a corpo per le voci fisse) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 220.74 Td (\(EMS/SCADA\).) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 206.49 Td (2.) Tj ET
+BT /F2 9.5 Tf 0.075 0.157 0.227 rg 76 206.24 Td (Valori unitari) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 134.07 206.24 Td ( dai benchmark 2025–2026 \(A2 §1–2\), con un valore tipico e un intervallo min–max per voce.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 191.99 Td (3.) Tj ET
+BT /F2 9.5 Tf 0.075 0.157 0.227 rg 76 191.74 Td (Voci dipendenti dalla tipologia di installazione) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 284 191.74 Td ( \(strutture, opere civili, sicurezza, sviluppo, montaggi\): valori) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 178.74 Td (diversi per a terra fisso, tracker, falda, est-ovest su tetto piano \(tabella ) Tj ET
+BT /F3 9.5 Tf 0.075 0.157 0.227 rg 372.21 178.74 Td (MOUNT_CAPEX) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 434.91 178.74 Td ( in ) Tj ET
+BT /F3 9.5 Tf 0.075 0.157 0.227 rg 447.58 178.74 Td (js/data.js) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 504.58 178.74 Td (\).) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 164.49 Td (4.) Tj ET
+BT /F2 9.5 Tf 0.075 0.157 0.227 rg 76 164.24 Td (Contingenze) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 133 164.24 Td ( \(8 %\) e ) Tj ET
+BT /F2 9.5 Tf 0.075 0.157 0.227 rg 168.9 164.24 Td (costi del committente) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 266.56 164.24 Td ( \(2 %: project management interno, assicurazione CAR, legali\)) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 151.24 Td (sui costi diretti.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 136.99 Td (5.) Tj ET
+BT /F2 9.5 Tf 0.075 0.157 0.227 rg 76 136.74 Td (Analisi di rischio Monte Carlo) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 209.56 136.74 Td ( \() Tj ET
+BT /F3 9.5 Tf 0.075 0.157 0.227 rg 215.36 136.74 Td (node tools/capex-montecarlo.js) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 386.37 136.74 Td (, 20.000 iterazioni\): distribuzioni) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 123.74 Td (triangolari min/tipico/max per voce; moduli, DC block e PCS correlati da un fattore di mercato comune \(0,7\)) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 110.74 Td (per rappresentare l'andamento congiunto di polisilicio, celle e semiconduttori.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 96.49 Td (6.) Tj ET
+BT /F2 9.5 Tf 0.075 0.157 0.227 rg 76 96.24 Td (Esclusioni) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 123.52 96.24 Td (: IVA, oneri finanziari in costruzione, acquisto del terreno, rinforzi di rete a carico dell'utente oltre il) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 83.24 Td (preventivo TICA, bonifiche, demolizioni, adeguamento strutturale delle coperture, compensazioni ambientali,) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 70.24 Td (costi di sviluppo pregressi.) Tj ET
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 56 801.89 Td (Simulatore FV + BESS · FVB-CST-001) Tj ET
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 516.77 801.89 Td (Rev. A) Tj ET
+0.63 0.66 0.68 RG 0.5 w 56 795.89 m 539.28 795.89 l S
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 56 34 Td (Bozza generata dal simulatore FV + BESS) Tj ET
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 503.42 34 Td (Pag. 1 di 5) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 5 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 15999 >>
+stream
+0.63 0.66 0.68 RG 0.5 w 56 766.89 m 539.28 766.89 l S
+BT /F2 12.5 Tf 0.075 0.157 0.227 rg 56 740.52 Td (3. CAPEX per voce – caso A) Tj ET
+0.72 0.42 0.06 RG 0.8 w 56 736.64 m 539.28 736.64 l S
+BT /F2 10.5 Tf 0.34 0.4 0.44 rg 56 711.57 Td (3.1 Fotovoltaico \(3.000 kWp, a terra struttura fissa\)) Tj ET
+0.89 0.918 0.925 rg 56 687.59 483.28 15.4 re f
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 691.67 Td (Voce) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 302.62 691.67 Td (Unitario) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 344.33 691.67 Td (Min – max benchmark) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 438.65 691.67 Td (Totale €) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 478.85 691.67 Td (Quota sul totale) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 687.59 483.28 15.4 re S
+287.99 702.99 m 287.99 687.59 l S
+334.33 702.99 m 334.33 687.59 l S
+426.73 702.99 m 426.73 687.59 l S
+470.37 702.99 m 470.37 687.59 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 676.27 Td (Moduli fotovoltaici TOPCon bifacciali, franco cantiere) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 295 676.27 Td (130 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 389.93 676.27 Td (120 – 160) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 439.91 676.27 Td (390.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 512.62 676.27 Td (16,2 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 672.19 483.28 15.4 re S
+287.99 687.59 m 287.99 672.19 l S
+334.33 687.59 m 334.33 672.19 l S
+426.73 687.59 m 426.73 672.19 l S
+470.37 687.59 m 470.37 672.19 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 660.87 Td (Inverter di stringa 350 kW) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.23 660.87 Td (35 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 398.38 660.87 Td (24 – 50) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 439.91 660.87 Td (105.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 660.87 Td (4,4 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 656.79 483.28 15.4 re S
+287.99 672.19 m 287.99 656.79 l S
+334.33 672.19 m 334.33 656.79 l S
+426.73 672.19 m 426.73 656.79 l S
+470.37 672.19 m 470.37 656.79 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 645.47 Td (Strutture fisse infisse o a vite) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.23 645.47 Td (50 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 398.38 645.47 Td (40 – 70) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 439.91 645.47 Td (150.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 645.47 Td (6,2 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 641.39 483.28 15.4 re S
+287.99 656.79 m 287.99 641.39 l S
+334.33 656.79 m 334.33 641.39 l S
+426.73 656.79 m 426.73 641.39 l S
+470.37 656.79 m 470.37 641.39 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 630.07 Td (BOS elettrico DC/AC \(cavi, quadri, cavidotti, terra, SPD\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.23 630.07 Td (60 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 398.38 630.07 Td (40 – 90) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 439.91 630.07 Td (180.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 630.07 Td (7,5 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 625.99 483.28 15.4 re S
+287.99 641.39 m 287.99 625.99 l S
+334.33 641.39 m 334.33 625.99 l S
+426.73 641.39 m 426.73 625.99 l S
+470.37 641.39 m 470.37 625.99 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 614.67 Td (Cabina di trasformazione, trasformatore 3.150 kVA, quadri MT) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.23 614.67 Td (50 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 398.38 614.67 Td (40 – 70) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 439.91 614.67 Td (150.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 614.67 Td (6,2 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 610.59 483.28 15.4 re S
+287.99 625.99 m 287.99 610.59 l S
+334.33 625.99 m 334.33 610.59 l S
+426.73 625.99 m 426.73 610.59 l S
+470.37 625.99 m 470.37 610.59 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 599.27 Td (Connessione \(TICA\) e adeguamento della cabina utente) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.23 599.27 Td (30 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 398.38 599.27 Td (10 – 80) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 444.13 599.27 Td (90.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 599.27 Td (3,7 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 595.19 483.28 15.4 re S
+287.99 610.59 m 287.99 595.19 l S
+334.33 610.59 m 334.33 595.19 l S
+426.73 610.59 m 426.73 595.19 l S
+470.37 610.59 m 470.37 595.19 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 583.87 Td (Opere civili, viabilità, drenaggi) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.23 583.87 Td (35 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 398.38 583.87 Td (20 – 60) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 439.91 583.87 Td (105.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 583.87 Td (4,4 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 579.79 483.28 15.4 re S
+287.99 595.19 m 287.99 579.79 l S
+334.33 595.19 m 334.33 579.79 l S
+426.73 595.19 m 426.73 579.79 l S
+470.37 595.19 m 470.37 579.79 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 568.47 Td (Recinzione, videosorveglianza, antintrusione) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.23 568.47 Td (20 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 398.38 568.47 Td (10 – 35) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 444.13 568.47 Td (60.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 568.47 Td (2,5 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 564.39 483.28 15.4 re S
+287.99 579.79 m 287.99 564.39 l S
+334.33 579.79 m 334.33 564.39 l S
+426.73 579.79 m 426.73 564.39 l S
+470.37 579.79 m 470.37 564.39 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 553.07 Td (Montaggi meccanici ed elettrici) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.23 553.07 Td (80 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 394.15 553.07 Td (50 – 120) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 439.91 553.07 Td (240.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 512.62 553.07 Td (10,0 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 548.99 483.28 15.4 re S
+287.99 564.39 m 287.99 548.99 l S
+334.33 564.39 m 334.33 548.99 l S
+426.73 564.39 m 426.73 548.99 l S
+470.37 564.39 m 470.37 548.99 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 537.67 Td (Ingegneria, direzione lavori, coordinamento sicurezza, collaudi) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.23 537.67 Td (30 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 398.38 537.67 Td (20 – 50) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 444.13 537.67 Td (90.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 537.67 Td (3,7 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 533.59 483.28 15.4 re S
+287.99 548.99 m 287.99 533.59 l S
+334.33 548.99 m 334.33 533.59 l S
+426.73 548.99 m 426.73 533.59 l S
+470.37 548.99 m 470.37 533.59 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 522.27 Td (Sviluppo, autorizzazioni, pratiche GSE e distributore) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.23 522.27 Td (40 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 394.15 522.27 Td (20 – 100) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 439.91 522.27 Td (120.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 522.27 Td (5,0 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 518.19 483.28 15.4 re S
+287.99 533.59 m 287.99 518.19 l S
+334.33 533.59 m 334.33 518.19 l S
+426.73 533.59 m 426.73 518.19 l S
+470.37 533.59 m 470.37 518.19 l S
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 506.87 Td (Costi diretti FV) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 294.16 506.87 Td (560 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 389.93 506.87 Td (394 – 885) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 433.57 506.87 Td (1.680.000) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 502.79 483.28 15.4 re S
+287.99 518.19 m 287.99 502.79 l S
+334.33 518.19 m 334.33 502.79 l S
+426.73 518.19 m 426.73 502.79 l S
+470.37 518.19 m 470.37 502.79 l S
+BT /F2 10.5 Tf 0.34 0.4 0.44 rg 56 475.72 Td (3.2 Sistema di accumulo \(2.000 kWh / 1.000 kW, 8 cabinet AC\)) Tj ET
+0.89 0.918 0.925 rg 56 451.74 483.28 15.4 re f
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 455.82 Td (Voce) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 316.78 455.82 Td (Unitario) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 354.45 455.82 Td (Min – max benchmark) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 441.67 455.82 Td (Totale €) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 478.85 455.82 Td (Quota sul totale) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 451.74 483.28 15.4 re S
+304.18 467.14 m 304.18 451.74 l S
+348.49 467.14 m 348.49 451.74 l S
+436.85 467.14 m 436.85 451.74 l S
+473.39 467.14 m 473.39 451.74 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 440.42 Td (DC block: celle LFP, moduli, rack, BMS, involucro, HVAC, antincendio) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 309.16 440.42 Td (110 €/kWh) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 404.28 440.42 Td (75 – 150) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 442.92 440.42 Td (220.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 440.42 Td (9,1 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 436.34 483.28 15.4 re S
+304.18 451.74 m 304.18 436.34 l S
+348.49 451.74 m 348.49 436.34 l S
+436.85 451.74 m 436.85 436.34 l S
+473.39 451.74 m 473.39 436.34 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 425.02 Td (PCS bidirezionali) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 317.61 425.02 Td (60 €/kW) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 408.5 425.02 Td (40 – 90) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 447.14 425.02 Td (60.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 425.02 Td (2,5 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 420.94 483.28 15.4 re S
+304.18 436.34 m 304.18 420.94 l S
+348.49 436.34 m 348.49 420.94 l S
+436.85 436.34 m 436.85 420.94 l S
+473.39 436.34 m 473.39 420.94 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 409.62 Td (BoP elettrico: trasformatore 1.250 kVA, quadri MT, cavi, protezioni) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 317.61 409.62 Td (70 €/kW) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 404.28 409.62 Td (40 – 120) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 447.14 409.62 Td (70.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 409.62 Td (2,9 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 405.54 483.28 15.4 re S
+304.18 420.94 m 304.18 405.54 l S
+348.49 420.94 m 348.49 405.54 l S
+436.85 420.94 m 436.85 405.54 l S
+473.39 420.94 m 473.39 405.54 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 394.22 Td (EMS, SCADA, integrazione con il CCI) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 315.91 394.22 Td (40.000 €) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 378.92 394.22 Td (20.000 – 80.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 447.14 394.22 Td (40.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 394.22 Td (1,7 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 390.14 483.28 15.4 re S
+304.18 405.54 m 304.18 390.14 l S
+348.49 405.54 m 348.49 390.14 l S
+436.85 405.54 m 436.85 390.14 l S
+473.39 405.54 m 473.39 390.14 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 378.82 Td (Installazione, basamenti, trasporti, messa in servizio) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 313.39 378.82 Td (40 €/kWh) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 408.5 378.82 Td (25 – 70) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 447.14 378.82 Td (80.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 378.82 Td (3,3 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 374.74 483.28 15.4 re S
+304.18 390.14 m 304.18 374.74 l S
+348.49 390.14 m 348.49 374.74 l S
+436.85 390.14 m 436.85 374.74 l S
+473.39 390.14 m 473.39 374.74 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 363.42 Td (Prevenzione incendi e distanze di sicurezza) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 317.61 363.42 Td (5 €/kWh) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 412.73 363.42 Td (3 – 10) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 447.14 363.42 Td (10.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 363.42 Td (0,4 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 359.34 483.28 15.4 re S
+304.18 374.74 m 304.18 359.34 l S
+348.49 374.74 m 348.49 359.34 l S
+436.85 374.74 m 436.85 359.34 l S
+473.39 374.74 m 473.39 359.34 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 348.02 Td (Ingegneria, permessi, aggiornamento della connessione) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 313.39 348.02 Td (15 €/kWh) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 408.5 348.02 Td (10 – 30) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 447.14 348.02 Td (30.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 348.02 Td (1,2 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 343.94 483.28 15.4 re S
+304.18 359.34 m 304.18 343.94 l S
+348.49 359.34 m 348.49 343.94 l S
+436.85 359.34 m 436.85 343.94 l S
+473.39 359.34 m 473.39 343.94 l S
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 332.62 Td (Costi diretti BESS) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 308.32 332.62 Td (255 €/kWh) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 442.92 332.62 Td (510.000) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 328.54 483.28 15.4 re S
+304.18 343.94 m 304.18 328.54 l S
+348.49 343.94 m 348.49 328.54 l S
+436.85 343.94 m 436.85 328.54 l S
+473.39 343.94 m 473.39 328.54 l S
+BT /F2 10.5 Tf 0.34 0.4 0.44 rg 56 301.47 Td (3.3 Riepilogo) Tj ET
+0.89 0.918 0.925 rg 56 277.49 483.28 15.4 re f
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 281.57 Td (Voce) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 365.03 281.57 Td (€) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 430.82 281.57 Td (€/kWp FV) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 514.32 281.57 Td (Quota) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 277.49 483.28 15.4 re S
+277.42 292.89 m 277.42 277.49 l S
+372.26 292.89 m 372.26 277.49 l S
+468.03 292.89 m 468.03 277.49 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 266.17 Td (Costi diretti FV) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 335.45 266.17 Td (1.680.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 452.35 266.17 Td (560) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 512.62 266.17 Td (69,7 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 262.09 483.28 15.4 re S
+277.42 277.49 m 277.42 262.09 l S
+372.26 277.49 m 372.26 262.09 l S
+468.03 277.49 m 468.03 262.09 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 250.77 Td (Costi diretti BESS) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 341.79 250.77 Td (510.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 512.62 250.77 Td (21,2 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 246.69 483.28 15.4 re S
+277.42 262.09 m 277.42 246.69 l S
+372.26 262.09 m 372.26 246.69 l S
+468.03 262.09 m 468.03 246.69 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 235.37 Td (Contingenze 8 %) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 341.79 235.37 Td (175.200) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 235.37 Td (7,3 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 231.29 483.28 15.4 re S
+277.42 246.69 m 277.42 231.29 l S
+372.26 246.69 m 372.26 231.29 l S
+468.03 246.69 m 468.03 231.29 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 219.97 Td (Costi del committente 2 %) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 346.02 219.97 Td (43.800) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 516.85 219.97 Td (1,8 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 215.89 483.28 15.4 re S
+277.42 231.29 m 277.42 215.89 l S
+372.26 231.29 m 372.26 215.89 l S
+468.03 231.29 m 468.03 215.89 l S
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 204.57 Td (Totale CAPEX) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 335.45 204.57 Td (2.409.000) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 514.73 204.57 Td (100 %) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 200.49 483.28 15.4 re S
+277.42 215.89 m 277.42 200.49 l S
+372.26 215.89 m 372.26 200.49 l S
+468.03 215.89 m 468.03 200.49 l S
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 56 181.24 Td (Ripartizione per natura: forniture principali \(moduli, inverter, strutture, cabina e trasformatori, DC block, PCS, BoP) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 56 168.24 Td (BESS, EMS\) 49 %; lavori \(montaggi, opere civili, sicurezza, installazione BESS\) 21 %; BOS e connessione 11 %;) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 56 155.24 Td (servizi tecnici e sviluppo 10 %; contingenze e costi del committente 9 %.) Tj ET
+0.63 0.66 0.68 RG 0.5 w 56 143.49 m 539.28 143.49 l S
+BT /F2 12.5 Tf 0.075 0.157 0.227 rg 56 117.12 Td (4. Analisi di rischio) Tj ET
+0.72 0.42 0.06 RG 0.8 w 56 113.24 m 539.28 113.24 l S
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 56 801.89 Td (Simulatore FV + BESS · FVB-CST-001) Tj ET
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 516.77 801.89 Td (Rev. A) Tj ET
+0.63 0.66 0.68 RG 0.5 w 56 795.89 m 539.28 795.89 l S
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 56 34 Td (Bozza generata dal simulatore FV + BESS) Tj ET
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 503.42 34 Td (Pag. 2 di 5) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 5 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 13656 >>
+stream
+BT /F2 10.5 Tf 0.34 0.4 0.44 rg 56 752.82 Td (4.1 Risultati Monte Carlo) Tj ET
+0.89 0.918 0.925 rg 56 728.84 483.28 15.4 re f
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 732.92 Td (Percentile) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 252.81 732.92 Td (Totale) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 356.18 732.92 Td (FV €/kWp) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 491.09 732.92 Td (BESS €/kWh) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 728.84 483.28 15.4 re S
+177.12 744.24 m 177.12 728.84 l S
+278.19 744.24 m 278.19 728.84 l S
+393.38 744.24 m 393.38 728.84 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 717.52 Td (P10) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 246.04 717.52 Td (2.288 k€) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 377.71 717.52 Td (582) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 523.6 717.52 Td (254) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 713.44 483.28 15.4 re S
+177.12 728.84 m 177.12 713.44 l S
+278.19 728.84 m 278.19 713.44 l S
+393.38 728.84 m 393.38 713.44 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 702.12 Td (P50) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 246.04 702.12 Td (2.430 k€) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 377.71 702.12 Td (623) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 523.6 702.12 Td (279) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 698.04 483.28 15.4 re S
+177.12 713.44 m 177.12 698.04 l S
+278.19 713.44 m 278.19 698.04 l S
+393.38 713.44 m 393.38 698.04 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 686.72 Td (P80) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 246.04 686.72 Td (2.529 k€) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 386.16 686.72 Td (–) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 532.05 686.72 Td (–) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 682.64 483.28 15.4 re S
+177.12 698.04 m 177.12 682.64 l S
+278.19 698.04 m 278.19 682.64 l S
+393.38 698.04 m 393.38 682.64 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 671.32 Td (P90) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 246.04 671.32 Td (2.581 k€) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 377.71 671.32 Td (669) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 523.6 671.32 Td (306) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 667.24 483.28 15.4 re S
+177.12 682.64 m 177.12 667.24 l S
+278.19 682.64 m 278.19 667.24 l S
+393.38 682.64 m 393.38 667.24 l S
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 648.24 Td (•) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 647.99 Td (Il P50 \(2.430 k€\) supera il deterministico senza contingenze \(2.234 k€\) dell'8,8 %, perché le distribuzioni) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 634.99 Td (sono asimmetriche verso l'alto \(connessione, sviluppo, BoP BESS\).) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 620.74 Td (•) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 620.49 Td (Il P80 richiede una contingenza del ) Tj ET
+BT /F2 9.5 Tf 0.075 0.157 0.227 rg 226.5 620.49 Td (13,2 %) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 256.07 620.49 Td ( sui costi diretti. Il valore dell'8 % usato nel simulatore è adatto al) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 607.49 Td (P50; per il budget autorizzato si consiglia di portarlo al 12–13 % finché non si hanno offerte.) Tj ET
+BT /F2 10.5 Tf 0.34 0.4 0.44 rg 56 581.17 Td (4.2 Registro dei rischi di costo) Tj ET
+0.89 0.918 0.925 rg 56 557.19 483.28 15.4 re f
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 561.27 Td (Rischio) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 181.58 561.27 Td (Voci colpite) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 297.13 561.27 Td (Effetto stimato) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 419.7 561.27 Td (Mitigazione) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 557.19 483.28 15.4 re S
+178.58 572.59 m 178.58 557.19 l S
+294.13 572.59 m 294.13 557.19 l S
+416.7 572.59 m 416.7 557.19 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 545.87 Td (Prezzo dei moduli \(polisilicio,) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 536.47 Td (dazi, fine dei rimborsi IVA) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 527.07 Td (all'export cinese, domanda UE\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 181.58 545.87 Td (Moduli) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 297.13 545.87 Td (±0,02–0,04 €/Wp = ±60–120 k€) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 545.87 Td (Prezzo bloccato in offerta con) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 536.47 Td (validità >= 90 giorni; acquisto) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 527.07 Td (anticipato) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 522.99 483.28 34.2 re S
+178.58 557.19 m 178.58 522.99 l S
+294.13 557.19 m 294.13 522.99 l S
+416.7 557.19 m 416.7 522.99 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 511.67 Td (Moduli ENEA categoria B/C per) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 502.27 Td (l'iper-ammortamento) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 181.58 511.67 Td (Moduli) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 297.13 511.67 Td (+0,05–0,15 €/Wp \(offerta ristretta\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 511.67 Td (Confronto tra beneficio fiscale e) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 502.27 Td (sovrapprezzo \(doc. 02 §4\)) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 498.19 483.28 24.8 re S
+178.58 522.99 m 178.58 498.19 l S
+294.13 522.99 m 294.13 498.19 l S
+416.7 522.99 m 416.7 498.19 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 486.87 Td (Regolamento UE 2024/3015 sul) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 477.47 Td (lavoro forzato \(applicabile da) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 468.07 Td (dicembre 2027\) e criteri di) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 458.67 Td (resilienza NZIA) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 181.58 486.87 Td (Moduli, celle) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 297.13 486.87 Td (Possibile sovrapprezzo per filiere) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 297.13 477.47 Td (tracciate) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 486.87 Td (Tracciabilità della filiera nei) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 477.47 Td (contratti) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 454.59 483.28 43.6 re S
+178.58 498.19 m 178.58 454.59 l S
+294.13 498.19 m 294.13 454.59 l S
+416.7 498.19 m 416.7 454.59 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 443.27 Td (Prezzo delle celle LFP \(+22 % tra) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 433.87 Td (ottobre 2025 e aprile 2026\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 181.58 443.27 Td (DC block) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 297.13 443.27 Td (±15–25 €/kWh = ±30–50 k€) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 443.27 Td (Formula di indicizzazione o) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 433.87 Td (prezzo fisso; augmentation) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 424.47 Td (contrattualizzata) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 420.39 483.28 34.2 re S
+178.58 454.59 m 178.58 420.39 l S
+294.13 454.59 m 294.13 420.39 l S
+416.7 454.59 m 416.7 420.39 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 409.07 Td (Preventivo di connessione e) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 399.67 Td (opere sulla cabina utente) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 181.58 409.07 Td (Connessione) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 297.13 409.07 Td (da 10 a 80 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 409.07 Td (TICA anticipato; sopralluogo in) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 399.67 Td (cabina) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 395.59 483.28 24.8 re S
+178.58 420.39 m 178.58 395.59 l S
+294.13 420.39 m 294.13 395.59 l S
+416.7 420.39 m 416.7 395.59 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 384.27 Td (Prescrizioni dei Vigili del Fuoco) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 374.87 Td (sul BESS \(distanze, muri REI,) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 365.47 Td (estinzione\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 181.58 384.27 Td (Prevenzione incendi, opere civili) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 297.13 384.27 Td (+5–20 €/kWh) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 384.27 Td (Valutazione del rischio incendio) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 374.87 Td (in fase di progetto \(doc. 01 §8\)) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 361.39 483.28 34.2 re S
+178.58 395.59 m 178.58 361.39 l S
+294.13 395.59 m 294.13 361.39 l S
+416.7 395.59 m 416.7 361.39 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 350.07 Td (Terreno \(portanza, falda,) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 340.67 Td (invarianza idraulica\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 181.58 350.07 Td (Strutture, opere civili) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 297.13 350.07 Td (+10–30 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 350.07 Td (Indagini geotecniche e prove di) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 340.67 Td (estrazione dei pali) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 336.59 483.28 24.8 re S
+178.58 361.39 m 178.58 336.59 l S
+294.13 361.39 m 294.13 336.59 l S
+416.7 361.39 m 416.7 336.59 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 325.27 Td (Rame e alluminio) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 181.58 325.27 Td (BOS, cavi) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 297.13 325.27 Td (±5 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 325.27 Td (Clausole di indicizzazione LME) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 321.19 483.28 15.4 re S
+178.58 336.59 m 178.58 321.19 l S
+294.13 336.59 m 294.13 321.19 l S
+416.7 336.59 m 416.7 321.19 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 309.87 Td (Cambio EUR/USD) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 181.58 309.87 Td (Inverter, PCS, BESS) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 297.13 309.87 Td (±3–5 % sulle forniture in dollari) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 309.87 Td (Contratti in euro) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 305.79 483.28 15.4 re S
+178.58 321.19 m 178.58 305.79 l S
+294.13 321.19 m 294.13 305.79 l S
+416.7 321.19 m 416.7 305.79 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 294.47 Td (Costo della manodopera e) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 285.07 Td (disponibilità di montatori) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 181.58 294.47 Td (Montaggi) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 297.13 294.47 Td (±10 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 294.47 Td (Pianificazione fuori dai picchi di) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 419.7 285.07 Td (cantiere) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 280.99 483.28 24.8 re S
+178.58 305.79 m 178.58 280.99 l S
+294.13 305.79 m 294.13 280.99 l S
+416.7 305.79 m 416.7 280.99 l S
+0.63 0.66 0.68 RG 0.5 w 56 267.99 m 539.28 267.99 l S
+BT /F2 12.5 Tf 0.075 0.157 0.227 rg 56 241.62 Td (5. Effetto della tipologia e della taglia) Tj ET
+0.72 0.42 0.06 RG 0.8 w 56 237.74 m 539.28 237.74 l S
+BT /F2 10.5 Tf 0.34 0.4 0.44 rg 56 212.67 Td (5.1 Tipologia di installazione \(3 MWp, solo FV, Milano\)) Tj ET
+0.89 0.918 0.925 rg 56 188.69 483.28 15.4 re f
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 192.77 Td (Tipologia) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 297.67 192.77 Td (CAPEX FV) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 401.65 192.77 Td (Producibilità) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 515.17 192.77 Td (LCOE) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 188.69 483.28 15.4 re S
+255.55 204.09 m 255.55 188.69 l S
+338.68 204.09 m 338.68 188.69 l S
+450.68 204.09 m 450.68 188.69 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 177.37 Td (A terra, struttura fissa 25°) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.35 177.37 Td (616 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 394.04 177.37 Td (1.310 kWh/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 495.31 177.37 Td (59,8 €/MWh) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 173.29 483.28 15.4 re S
+255.55 188.69 m 255.55 173.29 l S
+338.68 188.69 m 338.68 173.29 l S
+450.68 188.69 m 450.68 173.29 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 161.97 Td (A terra, tracker monoassiale) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.35 161.97 Td (671 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 394.04 161.97 Td (1.542 kWh/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 495.31 161.97 Td (54,2 €/MWh) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 157.89 483.28 15.4 re S
+255.55 173.29 m 255.55 157.89 l S
+338.68 173.29 m 338.68 157.89 l S
+450.68 173.29 m 450.68 157.89 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 146.57 Td (Copertura a falda 15°) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.35 146.57 Td (534 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 394.04 146.57 Td (1.237 kWh/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 495.31 146.57 Td (53,6 €/MWh) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 142.49 483.28 15.4 re S
+255.55 157.89 m 255.55 142.49 l S
+338.68 157.89 m 338.68 142.49 l S
+450.68 157.89 m 450.68 142.49 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 131.17 Td (Copertura piana est-ovest 10°) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 299.35 131.17 Td (578 €/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 394.04 131.17 Td (1.151 kWh/kWp) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 495.31 131.17 Td (61,2 €/MWh) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 127.09 483.28 15.4 re S
+255.55 142.49 m 255.55 127.09 l S
+338.68 142.49 m 338.68 127.09 l S
+450.68 142.49 m 450.68 127.09 l S
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 56 107.84 Td (Il tracker costa il 9 % in più e produce il 18 % in più, quindi ha un LCOE più basso; richiede però più terreno \(GCR) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 56 94.84 Td (minore\) e più manutenzione. Le coperture hanno il CAPEX più basso ma richiedono la verifica statica della) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 56 81.84 Td (copertura \(non inclusa\) e, se in cemento-amianto, la bonifica.) Tj ET
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 56 801.89 Td (Simulatore FV + BESS · FVB-CST-001) Tj ET
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 516.77 801.89 Td (Rev. A) Tj ET
+0.63 0.66 0.68 RG 0.5 w 56 795.89 m 539.28 795.89 l S
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 56 34 Td (Bozza generata dal simulatore FV + BESS) Tj ET
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 503.42 34 Td (Pag. 3 di 5) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 5 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Length 11334 >>
+stream
+BT /F2 10.5 Tf 0.34 0.4 0.44 rg 56 752.82 Td (5.2 Economie di scala \(benchmark A2 §1.2 e §2.1\)) Tj ET
+0.89 0.918 0.925 rg 56 728.84 483.28 15.4 re f
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 732.92 Td (Taglia) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 237.9 732.92 Td (FV chiavi in mano) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 344.59 732.92 Td (BESS chiavi in mano) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 728.84 483.28 15.4 re S
+234.9 744.24 m 234.9 728.84 l S
+341.59 744.24 m 341.59 728.84 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 717.52 Td (100–200 kWp su tetto) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 237.9 717.52 Td (0,68 – 0,79 €/Wp) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 713.44 483.28 15.4 re S
+234.9 728.84 m 234.9 713.44 l S
+341.59 728.84 m 341.59 713.44 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 702.12 Td (250–500 kWp su tetto) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 237.9 702.12 Td (0,61 – 0,72 €/Wp) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 698.04 483.28 15.4 re S
+234.9 713.44 m 234.9 698.04 l S
+341.59 713.44 m 341.59 698.04 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 686.72 Td (0,5–2 MWp su tetto) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 237.9 686.72 Td (0,55 – 0,80 €/Wp \(tipico 0,65\)) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 682.64 483.28 15.4 re S
+234.9 698.04 m 234.9 682.64 l S
+341.59 698.04 m 341.59 682.64 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 671.32 Td (1–10 MWp a terra fisso) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 237.9 671.32 Td (0,52 – 0,80 €/Wp \(tipico 0,62\)) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 667.24 483.28 15.4 re S
+234.9 682.64 m 234.9 667.24 l S
+341.59 682.64 m 341.59 667.24 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 655.92 Td (1–10 MWp a terra tracker) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 237.9 655.92 Td (0,58 – 0,90 €/Wp \(tipico 0,69\)) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 651.84 483.28 15.4 re S
+234.9 667.24 m 234.9 651.84 l S
+341.59 667.24 m 341.59 651.84 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 640.52 Td (BESS C&I 0,5–5 MWh) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 344.59 640.52 Td (280 – 450 €/kWh \(fonti commerciali\); 180 – 400 €/kWh) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 344.59 631.12 Td (\(stima per voci, 2 h\)) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 627.04 483.28 24.8 re S
+234.9 651.84 m 234.9 627.04 l S
+341.59 651.84 m 341.59 627.04 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 615.72 Td (BESS 2 h utility, Europa) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 344.59 615.72 Td (~150 – 240 €/kWh) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 611.64 483.28 15.4 re S
+234.9 627.04 m 234.9 611.64 l S
+341.59 627.04 m 341.59 611.64 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 600.32 Td (BESS 4 h utility \(riferimento MACSE ARERA 2026\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 344.59 600.32 Td (125 – 150,5 €/kWh) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 596.24 483.28 15.4 re S
+234.9 611.64 m 234.9 596.24 l S
+341.59 611.64 m 341.59 596.24 l S
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 56 576.99 Td (Nel simulatore le voci a corpo \(EMS\) e le voci in €/kW producono l'effetto di scala del BESS; per il FV le voci sono) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 56 563.99 Td (lineari: per taglie sotto 1 MWp aumentare cabina, connessione e ingegneria del 30–60 %.) Tj ET
+0.63 0.66 0.68 RG 0.5 w 56 552.24 m 539.28 552.24 l S
+BT /F2 12.5 Tf 0.075 0.157 0.227 rg 56 525.87 Td (6. Distribuzione temporale della spesa) Tj ET
+0.72 0.42 0.06 RG 0.8 w 56 521.99 m 539.28 521.99 l S
+0.89 0.918 0.925 rg 56 496.59 483.28 15.4 re f
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 500.67 Td (Fase) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 245.5 500.67 Td (Durata tipica) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 299.53 500.67 Td (Quota CAPEX) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 355.78 500.67 Td (Milestone di pagamento tipiche \(EPC\)) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 496.59 483.28 15.4 re S
+242.5 511.99 m 242.5 496.59 l S
+295.53 511.99 m 295.53 496.59 l S
+352.78 511.99 m 352.78 496.59 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 485.27 Td (Sviluppo e autorizzazioni \(PAS o edilizia libera,) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 475.87 Td (TICA, VVF\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 245.5 485.27 Td (3–9 mesi) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 336.69 485.27 Td (5 %) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 355.78 485.27 Td (A stato di avanzamento delle pratiche) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 471.79 483.28 24.8 re S
+242.5 496.59 m 242.5 471.79 l S
+295.53 496.59 m 295.53 471.79 l S
+352.78 496.59 m 352.78 471.79 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 460.47 Td (Ingegneria esecutiva e ordini) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 245.5 460.47 Td (1–2 mesi) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 332.46 460.47 Td (10 %) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 355.78 460.47 Td (Anticipo 10 % alla firma dell'EPC) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 456.39 483.28 15.4 re S
+242.5 471.79 m 242.5 456.39 l S
+295.53 471.79 m 295.53 456.39 l S
+352.78 471.79 m 352.78 456.39 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 445.07 Td (Approvvigionamento \(moduli 6–10 settimane,) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 435.67 Td (trasformatori 16–30 settimane, BESS 12–20) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 426.27 Td (settimane\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 245.5 445.07 Td (2–6 mesi) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 332.46 445.07 Td (50 %) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 355.78 445.07 Td (50–60 % alla consegna in cantiere) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 422.19 483.28 34.2 re S
+242.5 456.39 m 242.5 422.19 l S
+295.53 456.39 m 295.53 422.19 l S
+352.78 456.39 m 352.78 422.19 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 410.87 Td (Costruzione e montaggio) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 245.5 410.87 Td (3–5 mesi) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 332.46 410.87 Td (30 %) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 355.78 410.87 Td (SAL mensili) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 406.79 483.28 15.4 re S
+242.5 422.19 m 242.5 406.79 l S
+295.53 422.19 m 295.53 406.79 l S
+352.78 422.19 m 352.78 406.79 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 395.47 Td (Messa in servizio, collaudo, connessione) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 245.5 395.47 Td (1–2 mesi) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 336.69 395.47 Td (5 %) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 355.78 395.47 Td (10 % al collaudo; 5 % trattenuta di garanzia fino al) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 355.78 386.07 Td (test di PR) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 381.99 483.28 24.8 re S
+242.5 406.79 m 242.5 381.99 l S
+295.53 406.79 m 295.53 381.99 l S
+352.78 406.79 m 352.78 381.99 l S
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 56 362.74 Td (Il trasformatore MT e il PCS del BESS sono le forniture a più lungo approvvigionamento: ordinarli subito dopo il) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 56 349.74 Td (preventivo di connessione.) Tj ET
+0.63 0.66 0.68 RG 0.5 w 56 337.99 m 539.28 337.99 l S
+BT /F2 12.5 Tf 0.075 0.157 0.227 rg 56 311.62 Td (7. Costi operativi \(riferimento\)) Tj ET
+0.72 0.42 0.06 RG 0.8 w 56 307.74 m 539.28 307.74 l S
+0.89 0.918 0.925 rg 56 282.34 483.28 15.4 re f
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 286.42 Td (Voce) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 291.3 286.42 Td (Valore) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 458.14 286.42 Td (Totale caso A, anno 1) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 282.34 483.28 15.4 re S
+288.3 297.74 m 288.3 282.34 l S
+401.33 297.74 m 401.33 282.34 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 271.02 Td (O&M FV \(pulizia, sfalcio, manutenzione preventiva e correttiva\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 291.3 271.02 Td (11 €/kWp·a) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 517.69 271.02 Td (33 k€) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 266.94 483.28 15.4 re S
+288.3 282.34 m 288.3 266.94 l S
+401.33 282.34 m 401.33 266.94 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 255.62 Td (Vigilanza \(a terra\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 291.3 255.62 Td (2 €/kWp·a) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 521.92 255.62 Td (6 k€) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 251.54 483.28 15.4 re S
+288.3 266.94 m 288.3 251.54 l S
+401.33 266.94 m 401.33 251.54 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 240.22 Td (O&M BESS \(LTSA, ricambi, HVAC\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 291.3 240.22 Td (4 €/kWh·a) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 521.92 240.22 Td (8 k€) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 236.14 483.28 15.4 re S
+288.3 251.54 m 288.3 236.14 l S
+401.33 251.54 m 401.33 236.14 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 224.82 Td (Assicurazione all risks e RC) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 291.3 224.82 Td (0,30 % del CAPEX) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 521.92 224.82 Td (7 k€) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 220.74 483.28 15.4 re S
+288.3 236.14 m 288.3 220.74 l S
+401.33 236.14 m 401.33 220.74 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 209.42 Td (IMU e tributi) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 291.3 209.42 Td (4,5 k€/a) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 515.58 209.42 Td (4,5 k€) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 205.34 483.28 15.4 re S
+288.3 220.74 m 288.3 205.34 l S
+401.33 220.74 m 401.33 205.34 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 194.02 Td (Monitoraggio, telecontrollo) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 291.3 194.02 Td (3 k€/a) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 521.92 194.02 Td (3 k€) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 189.94 483.28 15.4 re S
+288.3 205.34 m 288.3 189.94 l S
+401.33 205.34 m 401.33 189.94 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 178.62 Td (Gestione e pratiche) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 291.3 178.62 Td (5 k€/a) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 521.92 178.62 Td (5 k€) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 174.54 483.28 15.4 re S
+288.3 189.94 m 288.3 174.54 l S
+401.33 189.94 m 401.33 174.54 l S
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 59 163.22 Td (Totale OPEX ordinario) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 291.3 163.22 Td (~ 22 €/kWp·a) Tj ET
+BT /F2 7.6 Tf 0.075 0.157 0.227 rg 510.71 163.22 Td (~ 67 k€) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 159.14 483.28 15.4 re S
+288.3 174.54 m 288.3 159.14 l S
+401.33 174.54 m 401.33 159.14 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 147.82 Td (Sostituzione inverter \(anno 13\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 291.3 147.82 Td (45 €/kWac a prezzi 2026) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 405.33 147.82 Td (146 k€ nominali \(110 k€ a prezzi 2026\)) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 143.74 483.28 15.4 re S
+288.3 159.14 m 288.3 143.74 l S
+401.33 159.14 m 401.33 143.74 l S
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 132.42 Td (Augmentation BESS \(all'80 % di SOH, anno 15 nel caso A: 426) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 59 123.02 Td (kWh\)) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 291.3 132.42 Td (120 €/kWh di oggi, -3 %/a reale) Tj ET
+BT /F1 7.6 Tf 0.075 0.157 0.227 rg 487.28 132.42 Td (45 k€ nominali) Tj ET
+0.63 0.66 0.68 RG 0.4 w 56 118.94 483.28 24.8 re S
+288.3 143.74 m 288.3 118.94 l S
+401.33 143.74 m 401.33 118.94 l S
+0.63 0.66 0.68 RG 0.5 w 56 105.94 m 539.28 105.94 l S
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 56 801.89 Td (Simulatore FV + BESS · FVB-CST-001) Tj ET
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 516.77 801.89 Td (Rev. A) Tj ET
+0.63 0.66 0.68 RG 0.5 w 56 795.89 m 539.28 795.89 l S
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 56 34 Td (Bozza generata dal simulatore FV + BESS) Tj ET
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 503.42 34 Td (Pag. 4 di 5) Tj ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 5 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 12 0 R >>
+endobj
+14 0 obj
+<< /Length 1898 >>
+stream
+BT /F2 12.5 Tf 0.075 0.157 0.227 rg 56 750.52 Td (8. Come portare la stima alla classe 3) Tj ET
+0.72 0.42 0.06 RG 0.8 w 56 746.64 m 539.28 746.64 l S
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 729.64 Td (1.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 729.39 Td (Layout di dettaglio \(ombre, distanze, viabilità, percorsi cavi\) e computo metrico delle quantità.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 715.14 Td (2.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 714.89 Td (Indagini geotecniche e prove di estrazione dei pali; per le coperture, verifica statica e stato del manto.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 700.64 Td (3.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 700.39 Td (Preventivo di connessione \(TICA\) e sopralluogo in cabina utente.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 686.14 Td (4.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 685.89 Td (Offerte vincolanti: almeno 3 EPC FV \(con e senza moduli ENEA B/C\), 3 fornitori BESS chiavi in mano con) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 672.89 Td (LTSA, trasformatori.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 658.64 Td (5.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 658.39 Td (Parere preventivo VVF sul BESS, se richiesto.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 66 644.14 Td (6.) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 643.89 Td (Aggiornamento del simulatore con i prezzi offerti \(scheda CAPEX\) e ricalcolo della contingenza \(Monte Carlo) Tj ET
+BT /F1 9.5 Tf 0.075 0.157 0.227 rg 76 630.89 Td (con intervalli ridotti a ±10 %\).) Tj ET
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 56 801.89 Td (Simulatore FV + BESS · FVB-CST-001) Tj ET
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 516.77 801.89 Td (Rev. A) Tj ET
+0.63 0.66 0.68 RG 0.5 w 56 795.89 m 539.28 795.89 l S
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 56 34 Td (Bozza generata dal simulatore FV + BESS) Tj ET
+BT /F1 7.5 Tf 0.34 0.4 0.44 rg 503.42 34 Td (Pag. 5 di 5) Tj ET
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 5 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 14 0 R >>
+endobj
+16 0 obj
+<< /Title (Valutazione del CAPEX – Impianto FV industriale con BESS) /Producer (Simulatore FV + BESS) /Creator (Simulatore FV + BESS) >>
+endobj
+17 0 obj
+<< /Type /Catalog /Pages 5 0 R >>
+endobj
+xref
+0 18
+0000000000 65535 f 
+0000000015 00000 n 
+0000000112 00000 n 
+0000000214 00000 n 
+0000000309 00000 n 
+0000000414 00000 n 
+0000000498 00000 n 
+0000010676 00000 n 
+0000010838 00000 n 
+0000026890 00000 n 
+0000027052 00000 n 
+0000040762 00000 n 
+0000040926 00000 n 
+0000052314 00000 n 
+0000052478 00000 n 
+0000054429 00000 n 
+0000054593 00000 n 
+0000054746 00000 n 
+trailer
+<< /Size 18 /Root 17 0 R /Info 16 0 R >>
+startxref
+54796
+%%EOF

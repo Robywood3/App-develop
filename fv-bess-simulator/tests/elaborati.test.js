@@ -38,11 +38,35 @@ test('il quadro economico chiude sul CAPEX del simulatore', () => {
   assert.ok(r.files[1].md.includes('**' + tot + '**'));
 });
 
-test('lo ZIP generato è leggibile', () => {
-  const r = E.generate(F.defaultConfig(), { phase: 'esecutivo', config: 'FV', procedure: 'pas' });
+test('lo ZIP con i formati scelti è leggibile e organizzato per cartelle', () => {
+  const r = E.generate(F.defaultConfig(), { phase: 'esecutivo', config: 'FV', procedure: 'pas', selected: ['X02', 'D01', 'D02'] });
   const p = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'fvb-')), 'e.zip');
-  fs.writeFileSync(p, E.zip(r.files, r.folder));
-  const out = execFileSync('python3', ['-c', 'import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); assert z.testzip() is None; print(len(z.namelist())); print(z.read(z.namelist()[0]).decode()[:20])', p]).toString();
-  assert.equal(out.split('\n')[0], String(r.files.length));
-  assert.ok(out.includes('# Elenco elaborati'));
+  fs.writeFileSync(p, E.zip(r, ['docx', 'dxf', 'pdf', 'md']));
+  const out = execFileSync('python3', ['-c', 'import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); assert z.testzip() is None; print("\\n".join(sorted(z.namelist())))', p]).toString();
+  for (const k of ['Word/X02_', 'CAD/D01_', 'CAD/D02_', 'PDF/D01_', 'PDF/X02_', 'Markdown/00_Indice.md', 'Word/00_Indice.docx']) assert.ok(out.includes(k), k);
+  assert.ok(!/CAD\/X02|Word\/D01/.test(out), 'formati non pertinenti esclusi');
+});
+
+// validatori esterni, se installati: python-docx, ezdxf, pdfinfo
+const has = cmd => { try { execFileSync('python3', ['-c', cmd], { stdio: 'ignore' }); return true; } catch (e) { return false; } };
+test('i file Word, DXF e PDF superano i validatori', { skip: !has('import docx, ezdxf') && 'python-docx o ezdxf non installati' }, () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fvb-')), r = E.generate(F.defaultConfig(), { phase: 'pfte', config: 'FB', procedure: 'pas', selected: ['R02', 'R04', 'E02', 'T02', 'T04', 'T05', 'T07'] });
+  for (const f of r.files) for (const k of E.formatsOf(f)) { const o = E.exportFile(f, k); fs.writeFileSync(path.join(dir, o.name), o.data); }
+  const py = `import glob, docx, sys
+from ezdxf import recover
+d = sys.argv[1]
+for f in glob.glob(d + '/*.docx'): assert len(docx.Document(f).paragraphs) > 3, f
+for f in glob.glob(d + '/*.dxf'):
+    doc, aud = recover.readfile(f); assert not aud.has_errors and len(doc.modelspace()) > 20, f
+print(len(glob.glob(d + '/*.docx')), len(glob.glob(d + '/*.dxf')))`;
+  assert.equal(execFileSync('python3', ['-c', py, dir]).toString().trim(), '4 4');
+  for (const f of fs.readdirSync(dir).filter(n => n.endsWith('.pdf'))) { const b = fs.readFileSync(path.join(dir, f)); assert.ok(b.slice(0, 5).toString() === '%PDF-' && b.slice(-6).toString().includes('%%EOF'), f); }
+  try { execFileSync('pdfinfo', [path.join(dir, fs.readdirSync(dir).find(n => n.startsWith('T02') && n.endsWith('.pdf')))]); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+});
+
+test('il Markdown si converte in blocchi e il testo in WinAnsi', () => {
+  const X = require('../js/export.js');
+  const B = X.parseMd('# Titolo\n\n| a | b |\n|---|---:|\n| 1 | 2 |\n\n- uno\n- due\n\n```mermaid\nflowchart TB\n  A["Rete"] --> B["Cabina"]\n```\n');
+  assert.deepEqual(B.map(b => b.t), ['h', 'table', 'list', 'p', 'list']);
+  assert.equal(X.win('ΔV ≤ 3 % – 12 €'), 'Delta V <= 3 % \u0096 12 \u0080');
 });
