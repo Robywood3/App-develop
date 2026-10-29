@@ -1,0 +1,381 @@
+<title>Simulatore Acciaieria Integrata</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Simulatore di impianto di un'acciaieria integrata per laminati piani e tubi: bilancio di massa ed energia di screening, sinottico a blocchi, dimensioni principali ed elaborati. Stato D.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Simulatore acciaieria integrata – stile della pagina. Stato D.
+   Impostazione dei simulatori KB (stessa famiglia del Gas Power Simulator KB-T-07): cartiglio in alto,
+   sinottico a blocchi come foglio, ispettore e tabelle sotto, elaborati e verifiche in fondo.
+   Colori per fase di corrente: materie prime solide, metallo liquido, semilavorati, gas, gas tecnici, acqua, elettricità. */
+:root {
+  --bg: #E6EAEC; --sheet: #F5F7F7; --panel: #FBFCFC;
+  --ink: #17222B; --muted: #55626C; --rule: #C3CBD0; --rule-strong: #8B98A1;
+  --accent: #B5400C; --accent-ink: #FFFFFF; --accent-soft: #F7E2D6;
+  --solid: #7A5A2E; --metal: #C2410C; --semi: #5B4B8A; --gas: #17222B; --tech: #0F6C74; --water: #1A6AA3; --elec: #2E7D32; --flue: #4F5B66; --by: #8A6D1F;
+  --ok: #1B7341; --bad: #B3261E; --bad-soft: #FBE9E7; --warn: #7A5200; --warn-soft: #FAF0D6;
+  --iso-top: #E3E8EB; --iso-left: #C4CDD3; --iso-right: #A9B5BD;
+  --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11181D; --sheet: #172027; --panel: #1B252D;
+    --ink: #E1E7EB; --muted: #9AA8B2; --rule: #33424C; --rule-strong: #5A6B77;
+    --accent: #F2884B; --accent-ink: #1C1006; --accent-soft: #3B2619;
+    --solid: #D6B07A; --metal: #FB8B4C; --semi: #B4A6E8; --gas: #E1E7EB; --tech: #5CC9D1; --water: #66B6EC; --elec: #7BCF80; --flue: #A9B6C2; --by: #E0C068;
+    --ok: #62C68D; --bad: #F28B82; --bad-soft: #3B1F1D; --warn: #EBC06A; --warn-soft: #362B12;
+    --iso-top: #34414B; --iso-left: #26313A; --iso-right: #1E2830;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11181D; --sheet: #172027; --panel: #1B252D;
+  --ink: #E1E7EB; --muted: #9AA8B2; --rule: #33424C; --rule-strong: #5A6B77;
+  --accent: #F2884B; --accent-ink: #1C1006; --accent-soft: #3B2619;
+  --solid: #D6B07A; --metal: #FB8B4C; --semi: #B4A6E8; --gas: #E1E7EB; --tech: #5CC9D1; --water: #66B6EC; --elec: #7BCF80; --flue: #A9B6C2; --by: #E0C068;
+  --ok: #62C68D; --bad: #F28B82; --bad-soft: #3B1F1D; --warn: #EBC06A; --warn-soft: #362B12;
+  --iso-top: #34414B; --iso-left: #26313A; --iso-right: #1E2830;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.45; margin: 0; overflow-x: hidden; }
+.app { max-width: 1480px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); padding-block: 20px 40px; display: flex; flex-direction: column; gap: 18px; }
+@media (max-width: 600px) { .app { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); } }
+[hidden] { display: none !important; }
+.skip { position: absolute; left: -9999px; top: 0; }
+.skip:focus { left: 16px; top: 8px; z-index: 10; background: var(--panel); padding: 6px 10px; border: 2px solid var(--accent); }
+.vh { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance; }
+h2 { font-size: 20px; letter-spacing: 0.02em; text-transform: uppercase; }
+h3 { font-size: 16px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; }
+code { font-family: var(--mono); font-size: 0.92em; }
+.muted { color: var(--muted); }
+button, .filebtn { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--rule-strong); border-radius: 3px; padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; }
+button:hover, .filebtn:hover { border-color: var(--accent); color: var(--accent); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+button.primary:hover { color: var(--accent-ink); filter: brightness(1.08); }
+button.primary.due { box-shadow: 0 0 0 3px var(--accent-soft); }
+button:disabled { opacity: 0.45; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible, .filebtn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Cartiglio */
+.titleblock { display: grid; grid-template-columns: minmax(260px, 2.2fr) repeat(4, minmax(110px, 1fr)); border: 1.5px solid var(--ink); background: var(--sheet); }
+.titleblock > div { padding: 8px 14px; border-left: 1px solid var(--rule-strong); min-width: 0; }
+.titleblock > div:first-child { border-left: 0; }
+.titleblock .lbl { font-family: var(--display); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.titleblock h1 { font-size: 30px; letter-spacing: 0.03em; text-transform: uppercase; line-height: 1.05; }
+.titleblock .val { font-family: var(--mono); font-size: 14px; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .titleblock { grid-template-columns: 1fr 1fr; }
+  .titleblock > div:first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--rule-strong); }
+  .titleblock > div:nth-child(2), .titleblock > div:nth-child(4) { border-left: 0; }
+  .titleblock > div:nth-child(2), .titleblock > div:nth-child(3) { border-bottom: 1px solid var(--rule-strong); }
+}
+.notice { max-width: 110ch; color: var(--muted); }
+.notice strong { color: var(--ink); font-weight: 600; }
+#boot { border: 1px solid var(--bad); background: var(--bad-soft); padding: 10px 14px; border-radius: 3px; max-width: 110ch; visibility: hidden; animation: bootshow 0s linear 2s forwards; }
+#boot.failed { visibility: visible; animation: none; }
+@keyframes bootshow { to { visibility: visible; } }
+
+/* Comandi */
+.toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 22px; }
+.toolbar .ctl { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.toolbar .ctl-btns { flex-direction: row; gap: 8px; flex-wrap: wrap; }
+.toolbar label { font-family: var(--display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+select { font: inherit; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 2px; padding: 4px 6px; max-width: 100%; }
+#preset { max-width: min(100%, 34em); }
+.stale { border: 1px solid var(--warn); background: var(--warn-soft); padding: 10px 14px; border-radius: 3px; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+.stale .head { font-weight: 600; color: var(--warn); }
+.stale.fresh { border-color: var(--rule-strong); background: var(--panel); }
+.stale.fresh .head { color: var(--ok); }
+.stale .meta { font-family: var(--mono); font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+
+/* Risultati principali */
+.products { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border-top: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); }
+.products > div { padding: 10px 14px 12px; border-left: 1px solid var(--rule); min-width: 0; }
+.products > div:first-child { border-left: 0; }
+.products .lbl { font-family: var(--display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.products .val { font-family: var(--mono); font-size: 24px; font-weight: 500; line-height: 1.2; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.products .unit { font-size: 12px; color: var(--muted); }
+.products .sub { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.products.old .val { color: var(--muted); text-decoration: line-through 1px; }
+@media (max-width: 600px) { .products { grid-template-columns: 1fr 1fr; } .products > div:nth-child(odd) { border-left: 0; } .products > div { border-top: 1px solid var(--rule); } .products .val { font-size: 20px; } }
+#status { border: 1px solid var(--bad); background: var(--bad-soft); padding: 10px 14px; border-radius: 3px; }
+#status .head { font-weight: 600; color: var(--bad); }
+#warnings { border: 1px solid var(--warn); background: var(--warn-soft); padding: 10px 14px; border-radius: 3px; }
+#warnings .head { font-weight: 600; color: var(--warn); }
+#warnings ul { margin: 6px 0 0; padding-left: 18px; }
+#warnings li { max-width: 110ch; }
+
+/* Sinottico */
+figure { margin: 0; }
+.pfd { background: var(--sheet); border: 1px solid var(--rule-strong); }
+.pfd-head { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; padding: 10px 14px 0; }
+.pfd-scroll { overflow-x: auto; }
+.pfd svg#pfd { display: block; width: 100%; min-width: 1120px; height: auto; color: var(--ink); }
+.pfd figcaption { padding: 10px 14px 12px; border-top: 1px solid var(--rule); display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: center; color: var(--muted); font-size: 13px; }
+.legend { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.legend svg { width: 34px; height: 10px; }
+#pfd text { font-family: var(--body); fill: currentColor; }
+#pfd .blk-rect { fill: var(--panel); stroke: currentColor; stroke-width: 1.6; }
+#pfd .blk-tag { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+#pfd .blk-name { font-family: var(--display); font-size: 16px; font-weight: 600; letter-spacing: 0.01em; text-anchor: middle; }
+#pfd .blk-sub { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); text-anchor: middle; }
+#pfd .blk-note { font-family: var(--display); font-size: 11px; letter-spacing: 0.1em; text-anchor: end; fill: var(--accent); }
+#pfd .block, #pfd .stream, #pfd .chip { cursor: pointer; }
+#pfd .block:focus, #pfd .stream:focus, #pfd .chip:focus { outline: none; }
+#pfd .block:hover .blk-rect, #pfd .block:focus-visible .blk-rect { stroke: var(--accent); }
+#pfd .block.sel .blk-rect { stroke: var(--accent); stroke-width: 3; fill: var(--accent-soft); }
+#pfd .block.aux .blk-rect { stroke-dasharray: 2 3; }
+#pfd .s-line { fill: none; stroke: currentColor; stroke-width: 2; }
+#pfd .s-hit { fill: none; stroke: transparent; stroke-width: 16; }
+#pfd .s-head { fill: currentColor; stroke: none; }
+#pfd .s-tag { fill: var(--sheet); stroke: currentColor; stroke-width: 1.4; }
+#pfd .s-num { font-family: var(--mono); font-size: 10px; font-weight: 500; text-anchor: middle; }
+#pfd .s-name { font-size: 11px; fill: var(--muted); }
+#pfd .s-val { font-family: var(--mono); font-size: 11.5px; }
+#pfd .s-cond { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+#pfd .s-end { font-size: 11px; font-style: italic; fill: var(--muted); }
+#pfd .ph-solid { color: var(--solid); } #pfd .ph-metal { color: var(--metal); } #pfd .ph-semi { color: var(--semi); } #pfd .ph-gas { color: var(--gas); }
+#pfd .ph-tech { color: var(--tech); } #pfd .ph-water { color: var(--water); } #pfd .ph-elec { color: var(--elec); } #pfd .ph-flue { color: var(--flue); } #pfd .ph-by { color: var(--by); }
+#pfd .ph-metal .s-line { stroke-width: 3.2; }
+#pfd .ph-semi .s-line { stroke-width: 2.4; }
+#pfd .ph-gas .s-line { stroke-dasharray: 9 5; }
+#pfd .ph-tech .s-line { stroke-dasharray: 9 3 2 3; }
+#pfd .ph-water .s-line { stroke-dasharray: 2 5; stroke-linecap: round; }
+#pfd .ph-elec .s-line { stroke-width: 1.6; stroke-dasharray: 5 3; }
+#pfd .ph-flue .s-line { stroke-dasharray: 11 4 2 4; }
+#pfd .ph-by .s-line { stroke-dasharray: 6 3; }
+#pfd .stream:hover .s-tag, #pfd .stream:focus-visible .s-tag, #pfd .chip:hover .s-tag, #pfd .chip:focus-visible .s-tag { stroke: var(--accent); stroke-width: 2.4; }
+#pfd .stream.sel .s-line { stroke-width: 3.8; }
+#pfd .stream.sel .s-tag, #pfd .chip.sel .s-tag { fill: var(--accent); stroke: var(--accent); }
+#pfd .stream.sel .s-num, #pfd .chip.sel .s-num { fill: var(--accent-ink); }
+#pfd .bl { font-family: var(--display); font-size: 12px; letter-spacing: 0.08em; fill: var(--muted); }
+#pfd .zone { fill: none; stroke: var(--rule); stroke-width: 1; stroke-dasharray: 2 4; }
+#pfd.stale .s-val, #pfd.stale .s-cond { fill: var(--muted); opacity: 0.6; }
+
+/* Pannelli */
+.row { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 980px) { .row { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--rule); padding: 14px 16px 16px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 600px) { .panel { padding: 12px 12px 14px; } }
+.panel .head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; }
+.stack { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.stack-s { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.tscroll { overflow-x: auto; max-width: 100%; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 4px 8px; border-bottom: 1px solid var(--rule); text-align: left; white-space: nowrap; }
+th { font-family: var(--display); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--rule-strong); }
+td.n, th.n { text-align: right; }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+tr.total td { border-top: 1px solid var(--rule-strong); font-weight: 600; }
+tr.cur td { background: var(--accent-soft); }
+td.wrap, th.wrap { white-space: normal; min-width: 14em; }
+.kv { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 3px 16px; margin: 0; }
+.kv dt { color: var(--muted); overflow-wrap: anywhere; } .kv dd { margin: 0; font-family: var(--mono); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) { .kv { grid-template-columns: minmax(0, 1fr); gap: 0; } .kv dd { margin-bottom: 7px; } }
+.links { display: flex; flex-wrap: wrap; gap: 6px; }
+.links button { padding: 2px 8px; font-family: var(--mono); font-size: 12px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
+.pill.ok { color: var(--ok); } .pill.bad { color: var(--bad); } .pill.na { color: var(--muted); font-weight: 500; }
+.note { font-size: 13px; color: var(--muted); max-width: 110ch; }
+.sect { font-family: var(--display); font-size: 14px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink); border-bottom: 1px solid var(--rule); padding-bottom: 2px; margin-top: 6px; }
+details.grp { border: 1px solid var(--rule); border-radius: 2px; }
+details.grp > summary { cursor: pointer; padding: 6px 10px; font-weight: 500; list-style-position: inside; }
+details.grp > summary .muted { font-weight: 400; }
+details.grp[open] > summary { border-bottom: 1px solid var(--rule); }
+details.grp > .form, details.grp > .pad { padding: 10px; }
+details.grp.unused > summary { color: var(--muted); }
+.form { display: grid; grid-template-columns: minmax(10em, 1fr) minmax(0, 19em); gap: 6px 14px; align-items: center; }
+.form label { min-width: 0; }
+.form .rng { display: block; font-size: 11.5px; color: var(--muted); font-family: var(--mono); }
+.form .ctl { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; flex-wrap: wrap; min-width: 0; max-width: 100%; }
+.form .unit { color: var(--muted); font-size: 12px; min-width: 5.5em; }
+input[type="number"] { width: 8em; max-width: 100%; padding: 3px 6px; font-size: 13px; text-align: right; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 2px; font-family: var(--mono); }
+.form select { max-width: 100%; min-width: 0; }
+input.bad, select.bad { border-color: var(--bad) !important; background: var(--bad-soft) !important; }
+input.chg, select.chg { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.mk { font-family: var(--mono); font-size: 11px; color: var(--muted); border: 1px solid var(--rule); border-radius: 2px; padding: 0 3px; margin-left: 4px; }
+.mk.F { color: var(--ok); border-color: var(--ok); }
+@media (max-width: 600px) { .form { grid-template-columns: minmax(0, 1fr); } .form .ctl { justify-content: flex-start; margin-bottom: 4px; } .form .unit { min-width: 0; } input[type="number"] { width: 6.4em; } th, td { padding: 4px 6px; } }
+.streamtable td:first-child, .streamtable th:first-child { position: sticky; left: 0; background: var(--panel); }
+.streamtable tr.selrow td { background: var(--accent-soft); }
+.streamtable tbody tr { cursor: pointer; }
+.lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px 28px; }
+.lists ul { margin: 6px 0 0; padding-left: 18px; }
+.lists li { margin-bottom: 3px; max-width: 70ch; }
+textarea { font-family: var(--mono); font-size: 12px; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 2px; width: 100%; max-width: 100%; }
+.status-d { border-top: 1px solid var(--rule); padding-top: 8px; }
+.diff-up { color: var(--ok); } .diff-dn { color: var(--bad); }
+.field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.bar { height: 10px; background: var(--rule); border-radius: 1px; min-width: 60px; }
+.bar > span { display: block; height: 100%; background: var(--accent); }
+.bar.neg > span { background: var(--ok); }
+@media (pointer: coarse) { button, select, input[type="number"], details.grp > summary, .links button, .filebtn { min-height: 44px; } }
+
+/* Elaborati */
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1.5px solid var(--ink); }
+.tabs button { border-radius: 3px 3px 0 0; border-bottom: 0; background: var(--sheet); font-family: var(--display); font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; padding: 6px 12px; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.tabs button .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-left: 6px; background: var(--rule-strong); }
+.tabs button .dot.ok { background: var(--ok); } .tabs button .dot.old { background: var(--warn); }
+.dv-head { border: 1px solid var(--rule-strong); background: var(--sheet); padding: 8px 12px; font-size: 12.5px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 2px 18px; }
+.dv-head div { min-width: 0; overflow-wrap: anywhere; }
+.dv-head .k { font-family: var(--display); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-size: 12px; margin-right: 6px; }
+.dv-head .sd { grid-column: 1 / -1; color: var(--bad); font-weight: 600; }
+.dv-old { border: 1px solid var(--warn); background: var(--warn-soft); padding: 8px 12px; border-radius: 3px; }
+.dv-tscroll { max-height: 70vh; overflow: auto; border: 1px solid var(--rule); }
+.dvtable th { position: sticky; top: 0; background: var(--panel); z-index: 1; white-space: normal; vertical-align: bottom; }
+.dv-notes { margin: 0; padding-left: 18px; font-size: 13px; color: var(--muted); max-width: 110ch; }
+
+/* Vista assonometrica e planimetria */
+.iso-view { overflow: auto; border: 1px solid var(--rule-strong); background: var(--sheet); }
+.iso-view svg { display: block; width: 100%; min-width: 760px; height: auto; color: var(--ink); }
+.plot-view { overflow: auto; border: 1px solid var(--rule-strong); background: var(--sheet); }
+.plot-view svg { display: block; width: 100%; min-width: 760px; height: auto; color: var(--ink); }
+.iso-view text, .plot-view text { font-family: var(--body); fill: currentColor; }
+.plot-view [data-b], .iso-view [data-b] { cursor: pointer; }
+.plot-view [data-b].sel rect, .iso-view [data-b].sel polygon { stroke: var(--accent); stroke-width: 2.5; }
+h2:focus { outline: none; }
+</style>
+
+<a class="skip" href="#main">Vai al simulatore</a>
+<div class="app" id="main">
+  <header class="titleblock">
+    <div><div class="lbl">Siderurgia, laminati piani e tubi</div><h1>Simulatore Acciaieria Integrata</h1></div>
+    <div><div class="lbl">Documento</div><div class="val">SIM-ACC-01</div></div>
+    <div><div class="lbl">Versione</div><div class="val" id="tb-version">1.0.0</div></div>
+    <div><div class="lbl">Caso</div><div class="val" id="tb-case">–</div></div>
+    <div><div class="lbl">Stato</div><div class="val">D, preliminare</div></div>
+  </header>
+
+  <p class="notice"><strong>Bilancio di massa ed energia di screening di un'acciaieria a ciclo completo</strong>, area per area, ricostruito dalla descrizione funzionale "Acciaieria integrata per laminati piani e tubi" (DF): parco materie prime, area primaria (altoforno o riduzione diretta), acciaieria, metallurgia secondaria, colata continua, linea A laminati piani o linea B tubi, utilities, ambiente e sottoprodotti. I valori sono ordini di grandezza di settore da confermare con i licenziatari di tecnologia e la Basis of Design (stato D). Servono per studi di fattibilità, WBS, stima delle ore di ingegneria e battery limits in offerta. Nulla di quanto inserito lascia il browser.</p>
+  <p id="boot" role="status"><strong>Il simulatore non è partito.</strong> Il sinottico e le tabelle sono vuoti perché gli script della pagina non sono in esecuzione. Apri il file completo <code>simulatore-acciaieria.html</code> in un browser.</p>
+
+  <div class="toolbar" role="toolbar" aria-label="Caso e calcolo">
+    <div class="ctl"><label for="preset">Caso di riferimento</label><select id="preset"></select></div>
+    <div class="ctl"><label for="q-product">Configurazione</label><select id="q-product"></select></div>
+    <div class="ctl"><label for="q-route">Rotta di processo</label><select id="q-route"></select></div>
+    <div class="ctl ctl-btns">
+      <button type="button" id="btn-refresh" class="primary">Aggiorna</button>
+      <button type="button" id="btn-reset">Ripristina il caso di riferimento</button>
+    </div>
+    <div class="ctl"><label for="theme">Tema</label><select id="theme"><option value="auto">Come il sistema</option><option value="light">Chiaro</option><option value="dark">Scuro</option></select></div>
+  </div>
+
+  <div id="stale" class="stale" role="status" aria-live="polite"></div>
+  <section class="products" aria-label="Risultati principali dell'impianto" id="products"></section>
+  <div id="status" role="alert" hidden></div>
+  <div id="warnings" role="status" hidden></div>
+
+  <figure class="pfd" aria-labelledby="pfd-cap">
+    <div class="pfd-head"><h2>Schema a blocchi</h2><span class="muted" id="pfd-sub"></span></div>
+    <div class="pfd-scroll" tabindex="0" role="group" aria-label="Schema a blocchi, scorre di lato su schermo stretto">
+      <svg id="pfd" viewBox="0 0 1480 720" role="group" aria-label="Schema a blocchi dell'impianto configurato"></svg>
+    </div>
+    <figcaption id="pfd-cap">
+      <span>Seleziona un blocco per i suoi input e risultati, o una corrente per le sue condizioni. Portate in t/h sulle ore di esercizio.</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--solid)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2"/></svg>Materie prime e rottame</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--metal)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="3.2"/></svg>Ghisa e acciaio liquido</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--semi)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2.4"/></svg>Semilavorati e prodotti</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--gas)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="9 5"/></svg>Gas combustibili</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--tech)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="9 3 2 3"/></svg>Gas tecnici</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--water)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="2 5" stroke-linecap="round"/></svg>Acqua</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--elec)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 3"/></svg>Energia elettrica</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--by)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="6 3"/></svg>Sottoprodotti</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--flue)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="11 4 2 4"/></svg>Fumi</span>
+    </figcaption>
+  </figure>
+
+  <div class="row">
+    <section class="panel" id="inspector" aria-label="Ispettore"></section>
+    <section class="panel" aria-labelledby="inputs-h">
+      <div class="head"><h2 id="inputs-h">Input</h2><span class="muted">marcatore di ogni default</span></div>
+      <p class="note">Ogni input del modello per sezione, con default, campo ammesso e marcatore: <span class="mk F">F</span> dalla descrizione funzionale, <span class="mk">R</span> regola pratica di settore, <span class="mk">A</span> ipotesi per gli esempi. Un valore cambiato è evidenziato; i risultati diventano <em>non aggiornati</em> fino ad Aggiorna.</p>
+      <div id="inputs" class="stack-s"></div>
+    </section>
+  </div>
+
+  <div class="row">
+    <section class="panel" aria-labelledby="bal-h">
+      <div class="head"><h2 id="bal-h">Bilanci di massa</h2><div class="field"><label for="bal-sel" class="muted">Bilancio</label><select id="bal-sel"></select></div></div>
+      <div id="bal-body"></div>
+    </section>
+    <div class="stack">
+      <section class="panel" aria-labelledby="em-h"><div class="head"><h2 id="em-h">Emissioni di CO₂</h2><span class="muted">bilancio del carbonio, DF §10.1</span></div><div id="em-body"></div></section>
+      <section class="panel" aria-labelledby="df-h"><div class="head"><h2 id="df-h">Confronto con la descrizione</h2><span class="muted">indicatori tipici, DF §12.1</span></div><div id="df-body"></div></section>
+    </div>
+  </div>
+
+  <div class="row">
+    <section class="panel" aria-labelledby="aux-h"><div class="head"><h2 id="aux-h">Utilities e servizi ausiliari</h2><span class="muted">B10, B11, DF §9</span></div><div id="aux-body"></div></section>
+    <section class="panel" aria-labelledby="sz-h"><div class="head"><h2 id="sz-h">Dimensioni principali</h2><span class="muted">al punto di progetto</span></div><div id="sz-body"></div></section>
+  </div>
+
+  <section class="panel streamtable" aria-labelledby="st-h">
+    <div class="head"><h2 id="st-h">Tabella delle correnti</h2><span class="muted">bilancio di materia del caso</span></div>
+    <div class="tscroll" id="streamtable" tabindex="0" role="group" aria-label="Tabella delle correnti, scorre di lato"></div>
+    <p class="note">Portate medie sulle ore di esercizio. Le correnti di gas, acqua ed elettricità sono in Nm³/h, m³/h e MW.</p>
+  </section>
+
+  <div class="row">
+    <section class="panel" aria-labelledby="cmp-h">
+      <div class="head"><h2 id="cmp-h">Confronto tra casi</h2>
+        <div class="field"><button type="button" id="btn-keep-A">Tieni come caso A</button><button type="button" id="btn-keep-B">Tieni come caso B</button></div></div>
+      <div id="compare"></div>
+    </section>
+    <section class="panel" aria-labelledby="log-h">
+      <div class="head"><h2 id="log-h">Registro dei ricalcoli</h2><span class="muted">questa sessione</span></div>
+      <div id="log" class="tscroll"></div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="iso-h">
+    <div class="head"><h2 id="iso-h">Vista assonometrica</h2><span class="muted">disposizione schematica per studio, non un modello 3D di progetto</span></div>
+    <div class="iso-view" id="iso-body"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="dv-h">
+    <div class="head"><h2 id="dv-h">Elaborati</h2><span class="muted">generati dai risultati correnti; stato D</span></div>
+    <p class="note">Ogni elaborato è generato dai risultati dell'ultimo Aggiorna, con le stesse sigle di area e di corrente del sinottico. Dopo una modifica degli input gli elaborati risultano superati finché non premi Aggiorna.</p>
+    <div class="tabs" role="tablist" aria-label="Elaborati" id="dv-tabs"></div>
+    <div class="field" id="dv-tools"></div>
+    <p class="note" id="dv-msg" role="status" aria-live="polite"></p>
+    <div class="stack-s" id="dv-body" role="tabpanel" aria-labelledby="dv-h"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="plot-h">
+    <div class="head"><h2 id="plot-h">Planimetria schematica</h2><span class="muted">aree per estensione tipica; preliminare</span></div>
+    <div class="plot-view" id="plot-body"></div>
+    <div id="plot-table" class="tscroll"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="case-h">
+    <div class="head"><h2 id="case-h">Salva e carica un caso</h2><span class="note" id="case-msg" role="status" aria-live="polite"></span></div>
+    <div class="field">
+      <button type="button" id="btn-save">Salva il caso come file</button>
+      <label class="filebtn" for="file-load">Carica un file di caso</label><input type="file" id="file-load" accept=".json,application/json" class="vh">
+      <button type="button" id="btn-copy-case">Copia il caso</button>
+      <button type="button" id="btn-load-case">Carica il caso incollato</button>
+    </div>
+    <textarea id="case-text" rows="3" aria-label="Incolla qui un caso salvato" placeholder="Incolla qui il testo di un caso salvato, poi premi Carica il caso incollato."></textarea>
+    <p class="note">Un file di caso (JSON, schema acc-case/1) contiene gli input. Caricarlo sostituisce il caso corrente e lo ricalcola. Il caso corrente resta anche in questo browser tra una visita e l'altra.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="chk-h">
+    <div class="head"><h2 id="chk-h">Verifiche e limiti</h2></div>
+    <div class="lists">
+      <div><h3>Come è stato verificato</h3><ul id="val-list"></ul></div>
+      <div><h3>Precisione attesa</h3><ul id="acc-list"></ul></div>
+      <div><h3>Punti deboli noti</h3><ul id="weak-list"></ul></div>
+      <div><h3>Campo di validità</h3><ul id="field-list"></ul></div>
+    </div>
+    <p class="note status-d"><strong>Stato D.</strong> Preliminare, da confermare con i dati dei licenziatari di tecnologia e una revisione tecnica. Non verificato da un ingegnere qualificato per un progetto specifico; non per progettazione, acquisti o costruzione e non un deliverable per il cliente prima della revisione tecnica.</p>
+  </section>
+</div>

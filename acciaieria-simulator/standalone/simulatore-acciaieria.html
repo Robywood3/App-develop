@@ -1,0 +1,2090 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>Simulatore Acciaieria Integrata</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Simulatore di impianto di un'acciaieria integrata per laminati piani e tubi: bilancio di massa ed energia di screening, sinottico a blocchi, dimensioni principali ed elaborati. Stato D.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Simulatore acciaieria integrata – stile della pagina. Stato D.
+   Impostazione dei simulatori KB (stessa famiglia del Gas Power Simulator KB-T-07): cartiglio in alto,
+   sinottico a blocchi come foglio, ispettore e tabelle sotto, elaborati e verifiche in fondo.
+   Colori per fase di corrente: materie prime solide, metallo liquido, semilavorati, gas, gas tecnici, acqua, elettricità. */
+:root {
+  --bg: #E6EAEC; --sheet: #F5F7F7; --panel: #FBFCFC;
+  --ink: #17222B; --muted: #55626C; --rule: #C3CBD0; --rule-strong: #8B98A1;
+  --accent: #B5400C; --accent-ink: #FFFFFF; --accent-soft: #F7E2D6;
+  --solid: #7A5A2E; --metal: #C2410C; --semi: #5B4B8A; --gas: #17222B; --tech: #0F6C74; --water: #1A6AA3; --elec: #2E7D32; --flue: #4F5B66; --by: #8A6D1F;
+  --ok: #1B7341; --bad: #B3261E; --bad-soft: #FBE9E7; --warn: #7A5200; --warn-soft: #FAF0D6;
+  --iso-top: #E3E8EB; --iso-left: #C4CDD3; --iso-right: #A9B5BD;
+  --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11181D; --sheet: #172027; --panel: #1B252D;
+    --ink: #E1E7EB; --muted: #9AA8B2; --rule: #33424C; --rule-strong: #5A6B77;
+    --accent: #F2884B; --accent-ink: #1C1006; --accent-soft: #3B2619;
+    --solid: #D6B07A; --metal: #FB8B4C; --semi: #B4A6E8; --gas: #E1E7EB; --tech: #5CC9D1; --water: #66B6EC; --elec: #7BCF80; --flue: #A9B6C2; --by: #E0C068;
+    --ok: #62C68D; --bad: #F28B82; --bad-soft: #3B1F1D; --warn: #EBC06A; --warn-soft: #362B12;
+    --iso-top: #34414B; --iso-left: #26313A; --iso-right: #1E2830;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11181D; --sheet: #172027; --panel: #1B252D;
+  --ink: #E1E7EB; --muted: #9AA8B2; --rule: #33424C; --rule-strong: #5A6B77;
+  --accent: #F2884B; --accent-ink: #1C1006; --accent-soft: #3B2619;
+  --solid: #D6B07A; --metal: #FB8B4C; --semi: #B4A6E8; --gas: #E1E7EB; --tech: #5CC9D1; --water: #66B6EC; --elec: #7BCF80; --flue: #A9B6C2; --by: #E0C068;
+  --ok: #62C68D; --bad: #F28B82; --bad-soft: #3B1F1D; --warn: #EBC06A; --warn-soft: #362B12;
+  --iso-top: #34414B; --iso-left: #26313A; --iso-right: #1E2830;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.45; margin: 0; overflow-x: hidden; }
+.app { max-width: 1480px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); padding-block: 20px 40px; display: flex; flex-direction: column; gap: 18px; }
+@media (max-width: 600px) { .app { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); } }
+[hidden] { display: none !important; }
+.skip { position: absolute; left: -9999px; top: 0; }
+.skip:focus { left: 16px; top: 8px; z-index: 10; background: var(--panel); padding: 6px 10px; border: 2px solid var(--accent); }
+.vh { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance; }
+h2 { font-size: 20px; letter-spacing: 0.02em; text-transform: uppercase; }
+h3 { font-size: 16px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; }
+code { font-family: var(--mono); font-size: 0.92em; }
+.muted { color: var(--muted); }
+button, .filebtn { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--rule-strong); border-radius: 3px; padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; }
+button:hover, .filebtn:hover { border-color: var(--accent); color: var(--accent); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+button.primary:hover { color: var(--accent-ink); filter: brightness(1.08); }
+button.primary.due { box-shadow: 0 0 0 3px var(--accent-soft); }
+button:disabled { opacity: 0.45; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible, .filebtn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Cartiglio */
+.titleblock { display: grid; grid-template-columns: minmax(260px, 2.2fr) repeat(4, minmax(110px, 1fr)); border: 1.5px solid var(--ink); background: var(--sheet); }
+.titleblock > div { padding: 8px 14px; border-left: 1px solid var(--rule-strong); min-width: 0; }
+.titleblock > div:first-child { border-left: 0; }
+.titleblock .lbl { font-family: var(--display); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.titleblock h1 { font-size: 30px; letter-spacing: 0.03em; text-transform: uppercase; line-height: 1.05; }
+.titleblock .val { font-family: var(--mono); font-size: 14px; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .titleblock { grid-template-columns: 1fr 1fr; }
+  .titleblock > div:first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--rule-strong); }
+  .titleblock > div:nth-child(2), .titleblock > div:nth-child(4) { border-left: 0; }
+  .titleblock > div:nth-child(2), .titleblock > div:nth-child(3) { border-bottom: 1px solid var(--rule-strong); }
+}
+.notice { max-width: 110ch; color: var(--muted); }
+.notice strong { color: var(--ink); font-weight: 600; }
+#boot { border: 1px solid var(--bad); background: var(--bad-soft); padding: 10px 14px; border-radius: 3px; max-width: 110ch; visibility: hidden; animation: bootshow 0s linear 2s forwards; }
+#boot.failed { visibility: visible; animation: none; }
+@keyframes bootshow { to { visibility: visible; } }
+
+/* Comandi */
+.toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 22px; }
+.toolbar .ctl { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.toolbar .ctl-btns { flex-direction: row; gap: 8px; flex-wrap: wrap; }
+.toolbar label { font-family: var(--display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+select { font: inherit; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 2px; padding: 4px 6px; max-width: 100%; }
+#preset { max-width: min(100%, 34em); }
+.stale { border: 1px solid var(--warn); background: var(--warn-soft); padding: 10px 14px; border-radius: 3px; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+.stale .head { font-weight: 600; color: var(--warn); }
+.stale.fresh { border-color: var(--rule-strong); background: var(--panel); }
+.stale.fresh .head { color: var(--ok); }
+.stale .meta { font-family: var(--mono); font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+
+/* Risultati principali */
+.products { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border-top: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); }
+.products > div { padding: 10px 14px 12px; border-left: 1px solid var(--rule); min-width: 0; }
+.products > div:first-child { border-left: 0; }
+.products .lbl { font-family: var(--display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.products .val { font-family: var(--mono); font-size: 24px; font-weight: 500; line-height: 1.2; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.products .unit { font-size: 12px; color: var(--muted); }
+.products .sub { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.products.old .val { color: var(--muted); text-decoration: line-through 1px; }
+@media (max-width: 600px) { .products { grid-template-columns: 1fr 1fr; } .products > div:nth-child(odd) { border-left: 0; } .products > div { border-top: 1px solid var(--rule); } .products .val { font-size: 20px; } }
+#status { border: 1px solid var(--bad); background: var(--bad-soft); padding: 10px 14px; border-radius: 3px; }
+#status .head { font-weight: 600; color: var(--bad); }
+#warnings { border: 1px solid var(--warn); background: var(--warn-soft); padding: 10px 14px; border-radius: 3px; }
+#warnings .head { font-weight: 600; color: var(--warn); }
+#warnings ul { margin: 6px 0 0; padding-left: 18px; }
+#warnings li { max-width: 110ch; }
+
+/* Sinottico */
+figure { margin: 0; }
+.pfd { background: var(--sheet); border: 1px solid var(--rule-strong); }
+.pfd-head { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; padding: 10px 14px 0; }
+.pfd-scroll { overflow-x: auto; }
+.pfd svg#pfd { display: block; width: 100%; min-width: 1120px; height: auto; color: var(--ink); }
+.pfd figcaption { padding: 10px 14px 12px; border-top: 1px solid var(--rule); display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: center; color: var(--muted); font-size: 13px; }
+.legend { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.legend svg { width: 34px; height: 10px; }
+#pfd text { font-family: var(--body); fill: currentColor; }
+#pfd .blk-rect { fill: var(--panel); stroke: currentColor; stroke-width: 1.6; }
+#pfd .blk-tag { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+#pfd .blk-name { font-family: var(--display); font-size: 16px; font-weight: 600; letter-spacing: 0.01em; text-anchor: middle; }
+#pfd .blk-sub { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); text-anchor: middle; }
+#pfd .blk-note { font-family: var(--display); font-size: 11px; letter-spacing: 0.1em; text-anchor: end; fill: var(--accent); }
+#pfd .block, #pfd .stream, #pfd .chip { cursor: pointer; }
+#pfd .block:focus, #pfd .stream:focus, #pfd .chip:focus { outline: none; }
+#pfd .block:hover .blk-rect, #pfd .block:focus-visible .blk-rect { stroke: var(--accent); }
+#pfd .block.sel .blk-rect { stroke: var(--accent); stroke-width: 3; fill: var(--accent-soft); }
+#pfd .block.aux .blk-rect { stroke-dasharray: 2 3; }
+#pfd .s-line { fill: none; stroke: currentColor; stroke-width: 2; }
+#pfd .s-hit { fill: none; stroke: transparent; stroke-width: 16; }
+#pfd .s-head { fill: currentColor; stroke: none; }
+#pfd .s-tag { fill: var(--sheet); stroke: currentColor; stroke-width: 1.4; }
+#pfd .s-num { font-family: var(--mono); font-size: 10px; font-weight: 500; text-anchor: middle; }
+#pfd .s-name { font-size: 11px; fill: var(--muted); }
+#pfd .s-val { font-family: var(--mono); font-size: 11.5px; }
+#pfd .s-cond { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+#pfd .s-end { font-size: 11px; font-style: italic; fill: var(--muted); }
+#pfd .ph-solid { color: var(--solid); } #pfd .ph-metal { color: var(--metal); } #pfd .ph-semi { color: var(--semi); } #pfd .ph-gas { color: var(--gas); }
+#pfd .ph-tech { color: var(--tech); } #pfd .ph-water { color: var(--water); } #pfd .ph-elec { color: var(--elec); } #pfd .ph-flue { color: var(--flue); } #pfd .ph-by { color: var(--by); }
+#pfd .ph-metal .s-line { stroke-width: 3.2; }
+#pfd .ph-semi .s-line { stroke-width: 2.4; }
+#pfd .ph-gas .s-line { stroke-dasharray: 9 5; }
+#pfd .ph-tech .s-line { stroke-dasharray: 9 3 2 3; }
+#pfd .ph-water .s-line { stroke-dasharray: 2 5; stroke-linecap: round; }
+#pfd .ph-elec .s-line { stroke-width: 1.6; stroke-dasharray: 5 3; }
+#pfd .ph-flue .s-line { stroke-dasharray: 11 4 2 4; }
+#pfd .ph-by .s-line { stroke-dasharray: 6 3; }
+#pfd .stream:hover .s-tag, #pfd .stream:focus-visible .s-tag, #pfd .chip:hover .s-tag, #pfd .chip:focus-visible .s-tag { stroke: var(--accent); stroke-width: 2.4; }
+#pfd .stream.sel .s-line { stroke-width: 3.8; }
+#pfd .stream.sel .s-tag, #pfd .chip.sel .s-tag { fill: var(--accent); stroke: var(--accent); }
+#pfd .stream.sel .s-num, #pfd .chip.sel .s-num { fill: var(--accent-ink); }
+#pfd .bl { font-family: var(--display); font-size: 12px; letter-spacing: 0.08em; fill: var(--muted); }
+#pfd .zone { fill: none; stroke: var(--rule); stroke-width: 1; stroke-dasharray: 2 4; }
+#pfd.stale .s-val, #pfd.stale .s-cond { fill: var(--muted); opacity: 0.6; }
+
+/* Pannelli */
+.row { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 980px) { .row { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--rule); padding: 14px 16px 16px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 600px) { .panel { padding: 12px 12px 14px; } }
+.panel .head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; }
+.stack { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.stack-s { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.tscroll { overflow-x: auto; max-width: 100%; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 4px 8px; border-bottom: 1px solid var(--rule); text-align: left; white-space: nowrap; }
+th { font-family: var(--display); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--rule-strong); }
+td.n, th.n { text-align: right; }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+tr.total td { border-top: 1px solid var(--rule-strong); font-weight: 600; }
+tr.cur td { background: var(--accent-soft); }
+td.wrap, th.wrap { white-space: normal; min-width: 14em; }
+.kv { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 3px 16px; margin: 0; }
+.kv dt { color: var(--muted); overflow-wrap: anywhere; } .kv dd { margin: 0; font-family: var(--mono); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) { .kv { grid-template-columns: minmax(0, 1fr); gap: 0; } .kv dd { margin-bottom: 7px; } }
+.links { display: flex; flex-wrap: wrap; gap: 6px; }
+.links button { padding: 2px 8px; font-family: var(--mono); font-size: 12px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
+.pill.ok { color: var(--ok); } .pill.bad { color: var(--bad); } .pill.na { color: var(--muted); font-weight: 500; }
+.note { font-size: 13px; color: var(--muted); max-width: 110ch; }
+.sect { font-family: var(--display); font-size: 14px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink); border-bottom: 1px solid var(--rule); padding-bottom: 2px; margin-top: 6px; }
+details.grp { border: 1px solid var(--rule); border-radius: 2px; }
+details.grp > summary { cursor: pointer; padding: 6px 10px; font-weight: 500; list-style-position: inside; }
+details.grp > summary .muted { font-weight: 400; }
+details.grp[open] > summary { border-bottom: 1px solid var(--rule); }
+details.grp > .form, details.grp > .pad { padding: 10px; }
+details.grp.unused > summary { color: var(--muted); }
+.form { display: grid; grid-template-columns: minmax(10em, 1fr) minmax(0, 19em); gap: 6px 14px; align-items: center; }
+.form label { min-width: 0; }
+.form .rng { display: block; font-size: 11.5px; color: var(--muted); font-family: var(--mono); }
+.form .ctl { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; flex-wrap: wrap; min-width: 0; max-width: 100%; }
+.form .unit { color: var(--muted); font-size: 12px; min-width: 5.5em; }
+input[type="number"] { width: 8em; max-width: 100%; padding: 3px 6px; font-size: 13px; text-align: right; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 2px; font-family: var(--mono); }
+.form select { max-width: 100%; min-width: 0; }
+input.bad, select.bad { border-color: var(--bad) !important; background: var(--bad-soft) !important; }
+input.chg, select.chg { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.mk { font-family: var(--mono); font-size: 11px; color: var(--muted); border: 1px solid var(--rule); border-radius: 2px; padding: 0 3px; margin-left: 4px; }
+.mk.F { color: var(--ok); border-color: var(--ok); }
+@media (max-width: 600px) { .form { grid-template-columns: minmax(0, 1fr); } .form .ctl { justify-content: flex-start; margin-bottom: 4px; } .form .unit { min-width: 0; } input[type="number"] { width: 6.4em; } th, td { padding: 4px 6px; } }
+.streamtable td:first-child, .streamtable th:first-child { position: sticky; left: 0; background: var(--panel); }
+.streamtable tr.selrow td { background: var(--accent-soft); }
+.streamtable tbody tr { cursor: pointer; }
+.lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px 28px; }
+.lists ul { margin: 6px 0 0; padding-left: 18px; }
+.lists li { margin-bottom: 3px; max-width: 70ch; }
+textarea { font-family: var(--mono); font-size: 12px; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 2px; width: 100%; max-width: 100%; }
+.status-d { border-top: 1px solid var(--rule); padding-top: 8px; }
+.diff-up { color: var(--ok); } .diff-dn { color: var(--bad); }
+.field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.bar { height: 10px; background: var(--rule); border-radius: 1px; min-width: 60px; }
+.bar > span { display: block; height: 100%; background: var(--accent); }
+.bar.neg > span { background: var(--ok); }
+@media (pointer: coarse) { button, select, input[type="number"], details.grp > summary, .links button, .filebtn { min-height: 44px; } }
+
+/* Elaborati */
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1.5px solid var(--ink); }
+.tabs button { border-radius: 3px 3px 0 0; border-bottom: 0; background: var(--sheet); font-family: var(--display); font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; padding: 6px 12px; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.tabs button .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-left: 6px; background: var(--rule-strong); }
+.tabs button .dot.ok { background: var(--ok); } .tabs button .dot.old { background: var(--warn); }
+.dv-head { border: 1px solid var(--rule-strong); background: var(--sheet); padding: 8px 12px; font-size: 12.5px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 2px 18px; }
+.dv-head div { min-width: 0; overflow-wrap: anywhere; }
+.dv-head .k { font-family: var(--display); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-size: 12px; margin-right: 6px; }
+.dv-head .sd { grid-column: 1 / -1; color: var(--bad); font-weight: 600; }
+.dv-old { border: 1px solid var(--warn); background: var(--warn-soft); padding: 8px 12px; border-radius: 3px; }
+.dv-tscroll { max-height: 70vh; overflow: auto; border: 1px solid var(--rule); }
+.dvtable th { position: sticky; top: 0; background: var(--panel); z-index: 1; white-space: normal; vertical-align: bottom; }
+.dv-notes { margin: 0; padding-left: 18px; font-size: 13px; color: var(--muted); max-width: 110ch; }
+
+/* Vista assonometrica e planimetria */
+.iso-view { overflow: auto; border: 1px solid var(--rule-strong); background: var(--sheet); }
+.iso-view svg { display: block; width: 100%; min-width: 760px; height: auto; color: var(--ink); }
+.plot-view { overflow: auto; border: 1px solid var(--rule-strong); background: var(--sheet); }
+.plot-view svg { display: block; width: 100%; min-width: 760px; height: auto; color: var(--ink); }
+.iso-view text, .plot-view text { font-family: var(--body); fill: currentColor; }
+.plot-view [data-b], .iso-view [data-b] { cursor: pointer; }
+.plot-view [data-b].sel rect, .iso-view [data-b].sel polygon { stroke: var(--accent); stroke-width: 2.5; }
+h2:focus { outline: none; }
+</style>
+
+<a class="skip" href="#main">Vai al simulatore</a>
+<div class="app" id="main">
+  <header class="titleblock">
+    <div><div class="lbl">Siderurgia, laminati piani e tubi</div><h1>Simulatore Acciaieria Integrata</h1></div>
+    <div><div class="lbl">Documento</div><div class="val">SIM-ACC-01</div></div>
+    <div><div class="lbl">Versione</div><div class="val" id="tb-version">1.0.0</div></div>
+    <div><div class="lbl">Caso</div><div class="val" id="tb-case">–</div></div>
+    <div><div class="lbl">Stato</div><div class="val">D, preliminare</div></div>
+  </header>
+
+  <p class="notice"><strong>Bilancio di massa ed energia di screening di un'acciaieria a ciclo completo</strong>, area per area, ricostruito dalla descrizione funzionale "Acciaieria integrata per laminati piani e tubi" (DF): parco materie prime, area primaria (altoforno o riduzione diretta), acciaieria, metallurgia secondaria, colata continua, linea A laminati piani o linea B tubi, utilities, ambiente e sottoprodotti. I valori sono ordini di grandezza di settore da confermare con i licenziatari di tecnologia e la Basis of Design (stato D). Servono per studi di fattibilità, WBS, stima delle ore di ingegneria e battery limits in offerta. Nulla di quanto inserito lascia il browser.</p>
+  <p id="boot" role="status"><strong>Il simulatore non è partito.</strong> Il sinottico e le tabelle sono vuoti perché gli script della pagina non sono in esecuzione. Apri il file completo <code>simulatore-acciaieria.html</code> in un browser.</p>
+
+  <div class="toolbar" role="toolbar" aria-label="Caso e calcolo">
+    <div class="ctl"><label for="preset">Caso di riferimento</label><select id="preset"></select></div>
+    <div class="ctl"><label for="q-product">Configurazione</label><select id="q-product"></select></div>
+    <div class="ctl"><label for="q-route">Rotta di processo</label><select id="q-route"></select></div>
+    <div class="ctl ctl-btns">
+      <button type="button" id="btn-refresh" class="primary">Aggiorna</button>
+      <button type="button" id="btn-reset">Ripristina il caso di riferimento</button>
+    </div>
+    <div class="ctl"><label for="theme">Tema</label><select id="theme"><option value="auto">Come il sistema</option><option value="light">Chiaro</option><option value="dark">Scuro</option></select></div>
+  </div>
+
+  <div id="stale" class="stale" role="status" aria-live="polite"></div>
+  <section class="products" aria-label="Risultati principali dell'impianto" id="products"></section>
+  <div id="status" role="alert" hidden></div>
+  <div id="warnings" role="status" hidden></div>
+
+  <figure class="pfd" aria-labelledby="pfd-cap">
+    <div class="pfd-head"><h2>Schema a blocchi</h2><span class="muted" id="pfd-sub"></span></div>
+    <div class="pfd-scroll" tabindex="0" role="group" aria-label="Schema a blocchi, scorre di lato su schermo stretto">
+      <svg id="pfd" viewBox="0 0 1480 720" role="group" aria-label="Schema a blocchi dell'impianto configurato"></svg>
+    </div>
+    <figcaption id="pfd-cap">
+      <span>Seleziona un blocco per i suoi input e risultati, o una corrente per le sue condizioni. Portate in t/h sulle ore di esercizio.</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--solid)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2"/></svg>Materie prime e rottame</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--metal)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="3.2"/></svg>Ghisa e acciaio liquido</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--semi)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2.4"/></svg>Semilavorati e prodotti</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--gas)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="9 5"/></svg>Gas combustibili</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--tech)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="9 3 2 3"/></svg>Gas tecnici</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--water)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="2 5" stroke-linecap="round"/></svg>Acqua</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--elec)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 3"/></svg>Energia elettrica</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--by)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="6 3"/></svg>Sottoprodotti</span>
+      <span class="legend"><svg viewBox="0 0 34 10" aria-hidden="true" style="color:var(--flue)"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="11 4 2 4"/></svg>Fumi</span>
+    </figcaption>
+  </figure>
+
+  <div class="row">
+    <section class="panel" id="inspector" aria-label="Ispettore"></section>
+    <section class="panel" aria-labelledby="inputs-h">
+      <div class="head"><h2 id="inputs-h">Input</h2><span class="muted">marcatore di ogni default</span></div>
+      <p class="note">Ogni input del modello per sezione, con default, campo ammesso e marcatore: <span class="mk F">F</span> dalla descrizione funzionale, <span class="mk">R</span> regola pratica di settore, <span class="mk">A</span> ipotesi per gli esempi. Un valore cambiato è evidenziato; i risultati diventano <em>non aggiornati</em> fino ad Aggiorna.</p>
+      <div id="inputs" class="stack-s"></div>
+    </section>
+  </div>
+
+  <div class="row">
+    <section class="panel" aria-labelledby="bal-h">
+      <div class="head"><h2 id="bal-h">Bilanci di massa</h2><div class="field"><label for="bal-sel" class="muted">Bilancio</label><select id="bal-sel"></select></div></div>
+      <div id="bal-body"></div>
+    </section>
+    <div class="stack">
+      <section class="panel" aria-labelledby="em-h"><div class="head"><h2 id="em-h">Emissioni di CO₂</h2><span class="muted">bilancio del carbonio, DF §10.1</span></div><div id="em-body"></div></section>
+      <section class="panel" aria-labelledby="df-h"><div class="head"><h2 id="df-h">Confronto con la descrizione</h2><span class="muted">indicatori tipici, DF §12.1</span></div><div id="df-body"></div></section>
+    </div>
+  </div>
+
+  <div class="row">
+    <section class="panel" aria-labelledby="aux-h"><div class="head"><h2 id="aux-h">Utilities e servizi ausiliari</h2><span class="muted">B10, B11, DF §9</span></div><div id="aux-body"></div></section>
+    <section class="panel" aria-labelledby="sz-h"><div class="head"><h2 id="sz-h">Dimensioni principali</h2><span class="muted">al punto di progetto</span></div><div id="sz-body"></div></section>
+  </div>
+
+  <section class="panel streamtable" aria-labelledby="st-h">
+    <div class="head"><h2 id="st-h">Tabella delle correnti</h2><span class="muted">bilancio di materia del caso</span></div>
+    <div class="tscroll" id="streamtable" tabindex="0" role="group" aria-label="Tabella delle correnti, scorre di lato"></div>
+    <p class="note">Portate medie sulle ore di esercizio. Le correnti di gas, acqua ed elettricità sono in Nm³/h, m³/h e MW.</p>
+  </section>
+
+  <div class="row">
+    <section class="panel" aria-labelledby="cmp-h">
+      <div class="head"><h2 id="cmp-h">Confronto tra casi</h2>
+        <div class="field"><button type="button" id="btn-keep-A">Tieni come caso A</button><button type="button" id="btn-keep-B">Tieni come caso B</button></div></div>
+      <div id="compare"></div>
+    </section>
+    <section class="panel" aria-labelledby="log-h">
+      <div class="head"><h2 id="log-h">Registro dei ricalcoli</h2><span class="muted">questa sessione</span></div>
+      <div id="log" class="tscroll"></div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="iso-h">
+    <div class="head"><h2 id="iso-h">Vista assonometrica</h2><span class="muted">disposizione schematica per studio, non un modello 3D di progetto</span></div>
+    <div class="iso-view" id="iso-body"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="dv-h">
+    <div class="head"><h2 id="dv-h">Elaborati</h2><span class="muted">generati dai risultati correnti; stato D</span></div>
+    <p class="note">Ogni elaborato è generato dai risultati dell'ultimo Aggiorna, con le stesse sigle di area e di corrente del sinottico. Dopo una modifica degli input gli elaborati risultano superati finché non premi Aggiorna.</p>
+    <div class="tabs" role="tablist" aria-label="Elaborati" id="dv-tabs"></div>
+    <div class="field" id="dv-tools"></div>
+    <p class="note" id="dv-msg" role="status" aria-live="polite"></p>
+    <div class="stack-s" id="dv-body" role="tabpanel" aria-labelledby="dv-h"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="plot-h">
+    <div class="head"><h2 id="plot-h">Planimetria schematica</h2><span class="muted">aree per estensione tipica; preliminare</span></div>
+    <div class="plot-view" id="plot-body"></div>
+    <div id="plot-table" class="tscroll"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="case-h">
+    <div class="head"><h2 id="case-h">Salva e carica un caso</h2><span class="note" id="case-msg" role="status" aria-live="polite"></span></div>
+    <div class="field">
+      <button type="button" id="btn-save">Salva il caso come file</button>
+      <label class="filebtn" for="file-load">Carica un file di caso</label><input type="file" id="file-load" accept=".json,application/json" class="vh">
+      <button type="button" id="btn-copy-case">Copia il caso</button>
+      <button type="button" id="btn-load-case">Carica il caso incollato</button>
+    </div>
+    <textarea id="case-text" rows="3" aria-label="Incolla qui un caso salvato" placeholder="Incolla qui il testo di un caso salvato, poi premi Carica il caso incollato."></textarea>
+    <p class="note">Un file di caso (JSON, schema acc-case/1) contiene gli input. Caricarlo sostituisce il caso corrente e lo ricalcola. Il caso corrente resta anche in questo browser tra una visita e l'altra.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="chk-h">
+    <div class="head"><h2 id="chk-h">Verifiche e limiti</h2></div>
+    <div class="lists">
+      <div><h3>Come è stato verificato</h3><ul id="val-list"></ul></div>
+      <div><h3>Precisione attesa</h3><ul id="acc-list"></ul></div>
+      <div><h3>Punti deboli noti</h3><ul id="weak-list"></ul></div>
+      <div><h3>Campo di validità</h3><ul id="field-list"></ul></div>
+    </div>
+    <p class="note status-d"><strong>Stato D.</strong> Preliminare, da confermare con i dati dei licenziatari di tecnologia e una revisione tecnica. Non verificato da un ingegnere qualificato per un progetto specifico; non per progettazione, acquisti o costruzione e non un deliverable per il cliente prima della revisione tecnica.</p>
+  </section>
+</div>
+
+<script id="src-data">
+/* Simulatore acciaieria integrata – dati del modello (globale AccData). Stato D.
+   Parametri con default, campo ammesso e marcatore dell'origine:
+   [F] dalla descrizione funzionale "Acciaieria integrata per laminati piani e tubi" (DF, § indicato),
+   [R] regola pratica di settore senza fonte di progetto, [A] ipotesi per gli esempi.
+   I valori non sono dati di progetto: vanno sostituiti con quelli dei licenziatari e della Basis of Design. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.AccData = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  // p(path, etichetta, unità, default, min, max, marcatore, fonte, opzioni)
+  function p(path, label, unit, def, min, max, marker, source, extra) {
+    var o = { path: path, label: label, unit: unit, def: def, min: min, max: max, marker: marker, source: source || '' };
+    if (extra) Object.keys(extra).forEach(function (k) { o[k] = extra[k]; });
+    return o;
+  }
+
+  var PARAMS = [
+    // ---------------------------------------------------------------- sito
+    p('site.grid_CO2', 'Fattore di emissione della rete elettrica', 'kg CO₂/kWh', 0.30, 0, 1.2, 'A', '', { note: 'Per le emissioni indirette (scope 2) dell\'energia prelevata dalla rete' }),
+    p('site.ng_LHV', 'Potere calorifico inferiore del gas naturale', 'MJ/Sm³', 34.5, 30, 40, 'R'),
+    p('site.ng_C', 'Carbonio del gas naturale', 'kg C/GJ', 15.3, 13, 17, 'R', '', { note: '15,3 kg C/GJ = 56,1 kg CO₂/GJ PCI' }),
+
+    // ---------------------------------------------------------------- configurazione
+    p('config.product', 'Configurazione', '', 'A', null, null, 'F', 'DF §1', { options: ['A', 'B'], names: { A: 'A – Laminati piani', B: 'B – Tubi' } }),
+    p('config.route', 'Rotta di processo', '', 'BF-BOF', null, null, 'F', 'DF §1, §4', { options: ['BF-BOF', 'DRI-EAF', 'EAF'], names: { 'BF-BOF': 'Altoforno + convertitore (BF-BOF)', 'DRI-EAF': 'Riduzione diretta + forno elettrico (DRI-EAF)', EAF: 'Forno elettrico a rottame (EAF)' } }),
+    p('config.capacity_Mt', 'Capacità di acciaio liquido', 'Mt/anno', 4.0, 0.2, 8, 'F', 'DF §1', { note: 'A: 3–5 Mt/anno; B: 0,6–1,5 Mt/anno' }),
+    p('config.hours', 'Ore di esercizio', 'h/anno', 8000, 5000, 8760, 'F', 'DF §1', { note: 'Esercizio continuo 24/7: circa 8.000 h/anno (B 7.500–8.000)' }),
+    p('config.caster', 'Macchina di colata per i piani', '', 'slab', null, null, 'F', 'DF §6', { options: ['slab', 'thin'], names: { slab: 'Bramme convenzionali', thin: 'Bramme sottili (thin slab)' }, only: 'A' }),
+
+    // ---------------------------------------------------------------- B1 parco materie prime
+    p('b1.autonomy_d', 'Autonomia del parco materie prime', 'giorni', 45, 30, 60, 'F', 'DF §3'),
+    p('b1.yard_t_m2', 'Densità di stoccaggio a cumuli (comprese le vie)', 't/m²', 18, 5, 40, 'R'),
+    p('b1.fines_Fe', 'Ferro nei fini di minerale', 't/t', 0.62, 0.5, 0.68, 'R'),
+    p('b1.pellet_Fe', 'Ferro nel pellet', 't/t', 0.655, 0.6, 0.69, 'R', '', { note: 'Pellet di grado DR: 0,67–0,68' }),
+    p('b1.scrap_Fe', 'Ferro nel rottame acquistato', 't/t', 0.96, 0.85, 0.99, 'R'),
+
+    // ---------------------------------------------------------------- B2 cokeria e agglomerazione (BF)
+    p('b2.coal_per_coke', 'Carbone da coke per tonnellata di coke', 't/t', 1.30, 1.2, 1.45, 'R'),
+    p('b2.coal_C', 'Carbonio nel carbone da coke', 't/t', 0.80, 0.7, 0.9, 'R'),
+    p('b2.byprod_C', 'Quota del carbonio del carbone nei sottoprodotti (catrame, benzolo)', '', 0.04, 0, 0.1, 'R', 'DF §4.1'),
+    p('b2.cog_Nm3', 'Gas di cokeria prodotto', 'Nm³/t coke', 420, 350, 480, 'R', 'DF §4.1'),
+    p('b2.cog_MJ', 'Potere calorifico del gas di cokeria', 'MJ/Nm³', 17.5, 16, 19, 'R'),
+    p('b2.cdq', 'Spegnimento del coke a secco (CDQ)', '', true, null, null, 'F', 'DF §4.1', { options: [true, false], names: { 'true': 'Sì, con recupero di energia', 'false': 'No, a umido' } }),
+    p('b2.cdq_kWh', 'Energia elettrica recuperata dal CDQ', 'kWh/t coke', 110, 60, 160, 'R'),
+    p('b2.battery_Mt', 'Capacità di una batteria di forni a coke', 'Mt coke/anno', 1.0, 0.3, 2.5, 'A'),
+    p('b2.sinter_share', 'Quota di agglomerato nella carica ferrosa dell\'altoforno', '', 0.70, 0, 0.9, 'R'),
+    p('b2.sinter_Fe', 'Ferro nell\'agglomerato', 't/t', 0.58, 0.5, 0.62, 'R'),
+    p('b2.ore_per_sinter', 'Fini di minerale per tonnellata di agglomerato', 't/t', 0.94, 0.8, 1.05, 'R'),
+    p('b2.limestone', 'Calcare e dolomite all\'agglomerazione', 'kg/t agglomerato', 150, 50, 250, 'R'),
+    p('b2.breeze', 'Polverino di coke all\'agglomerazione', 'kg/t agglomerato', 50, 35, 70, 'R'),
+    p('b2.sinter_prod', 'Produttività del nastro di agglomerazione', 't/m²·giorno', 35, 25, 45, 'R'),
+    p('b2.coke_kWh', 'Energia elettrica della cokeria', 'kWh/t coke', 35, 15, 60, 'R'),
+    p('b2.sinter_kWh', 'Energia elettrica dell\'agglomerazione', 'kWh/t agglomerato', 35, 20, 50, 'R'),
+
+    // ---------------------------------------------------------------- B3 produzione di ferro
+    p('b3.coke_rate', 'Consumo di coke dell\'altoforno', 'kg/t ghisa', 340, 270, 450, 'R', 'DF §4.1'),
+    p('b3.pci', 'Polverino di carbone iniettato (PCI)', 'kg/t ghisa', 180, 0, 250, 'R', 'DF §4.1'),
+    p('b3.pci_C', 'Carbonio nel carbone da iniezione', 't/t', 0.78, 0.7, 0.88, 'R'),
+    p('b3.burden', 'Carica ferrosa dell\'altoforno', 't/t ghisa', 1.60, 1.45, 1.7, 'F', 'DF §12.1', { note: '1,5–1,6 t minerale per t ghisa' }),
+    p('b3.hm_Fe', 'Ferro nella ghisa', 't/t', 0.945, 0.93, 0.955, 'R', 'DF §4.1', { note: 'C 4–4,5 %' }),
+    p('b3.hm_T', 'Temperatura della ghisa al foro di colata', '°C', 1480, 1450, 1500, 'F', 'DF §4.1'),
+    p('b3.bf_slag', 'Loppa d\'altoforno', 'kg/t ghisa', 280, 180, 380, 'R', 'DF §4.1'),
+    p('b3.bf_dust', 'Polveri e fanghi d\'altoforno', 'kg/t ghisa', 15, 5, 30, 'R'),
+    p('b3.bfg_Nm3', 'Gas d\'altoforno prodotto', 'Nm³/t ghisa', 1500, 1200, 1800, 'R', 'DF §4.1'),
+    p('b3.bfg_MJ', 'Potere calorifico del gas d\'altoforno', 'MJ/Nm³', 3.2, 2.8, 3.8, 'R'),
+    p('b3.bf_O2', 'Ossigeno di arricchimento del vento', 'Nm³/t ghisa', 45, 0, 120, 'R'),
+    p('b3.bf_kWh', 'Energia elettrica dell\'altoforno (soffianti escluse se a vapore)', 'kWh/t ghisa', 60, 20, 150, 'R'),
+    p('b3.trt_kWh', 'Recupero della turbina di pressione (TRT)', 'kWh/t ghisa', 35, 0, 50, 'R', 'DF §4.1'),
+    p('b3.bf_prod', 'Produttività dell\'altoforno', 't ghisa/m³·giorno', 2.4, 1.8, 3.0, 'R'),
+    p('b3.bf_max_m3', 'Volume utile massimo di un altoforno', 'm³', 5500, 1000, 6000, 'A'),
+    p('b3.pellet_per_dri', 'Pellet per tonnellata di DRI', 't/t DRI', 1.45, 1.35, 1.55, 'F', 'DF §12.1', { note: '1,4–1,5 t pellet per t DRI' }),
+    p('b3.dri_Fe', 'Ferro totale nel DRI', 't/t', 0.92, 0.85, 0.95, 'R'),
+    p('b3.dri_C', 'Carbonio nel DRI', 't/t', 0.025, 0, 0.045, 'R'),
+    p('b3.dri_T', 'Temperatura del DRI caldo', '°C', 600, 400, 700, 'F', 'DF §4.2'),
+    p('b3.dri_GJ', 'Gas riducente come gas naturale', 'GJ/t DRI', 10.0, 8.5, 12, 'R', '', { note: 'Riformatura e riscaldo compresi, MIDREX/Energiron ordine di grandezza' }),
+    p('b3.h2_frac', 'Quota di idrogeno nel gas riducente (su base energetica)', '', 0, 0, 1, 'A', 'DF §4.2'),
+    p('b3.h2_kg', 'Idrogeno per tonnellata di DRI con il 100 % di idrogeno', 'kg/t DRI', 60, 50, 80, 'R'),
+    p('b3.h2_onsite', 'Idrogeno da elettrolisi nel sito', '', false, null, null, 'A', '', { options: [false, true], names: { 'false': 'No, acquistato', 'true': 'Sì, elettrolizzatori nel sito' } }),
+    p('b3.electrolyser_kWh', 'Consumo specifico dell\'elettrolisi', 'kWh/kg H₂', 52, 45, 60, 'R'),
+    p('b3.dri_kWh', 'Energia elettrica dell\'impianto DRI', 'kWh/t DRI', 110, 60, 180, 'R'),
+    p('b3.dri_module_Mt', 'Capacità di un modulo DRI', 'Mt DRI/anno', 2.0, 0.5, 2.8, 'A'),
+
+    // ---------------------------------------------------------------- B4 fusione primaria
+    p('b4.hm_share', 'Ghisa liquida nella carica del convertitore', '', 0.85, 0.7, 0.95, 'F', 'DF §5.1', { note: '80–90 % ghisa, 10–20 % rottame' }),
+    p('b4.bof_yield', 'Resa metallica del convertitore', 't/t carica', 0.90, 0.85, 0.94, 'R'),
+    p('b4.bof_O2', 'Ossigeno al convertitore', 'Nm³/t acciaio', 55, 45, 65, 'R'),
+    p('b4.ldg_Nm3', 'Gas di convertitore recuperato (LDG)', 'Nm³/t acciaio', 90, 0, 120, 'R', 'DF §5.1'),
+    p('b4.ldg_MJ', 'Potere calorifico del gas di convertitore', 'MJ/Nm³', 8.0, 6.5, 9.5, 'R'),
+    p('b4.bof_lime', 'Calce al convertitore', 'kg/t acciaio', 45, 30, 70, 'R'),
+    p('b4.bof_slag', 'Scoria di convertitore', 'kg/t acciaio', 110, 80, 150, 'R'),
+    p('b4.bof_dust', 'Polveri e fanghi del convertitore', 'kg/t acciaio', 18, 8, 30, 'R'),
+    p('b4.bof_heat', 'Capacità per colata del convertitore', 't', 300, 150, 350, 'F', 'DF §5.1'),
+    p('b4.bof_ttt', 'Tap-to-tap del convertitore', 'min', 40, 35, 45, 'F', 'DF §5.1'),
+    p('b4.dri_share', 'DRI o HBI nella carica metallica del forno elettrico', '', 0.0, 0, 1, 'A', 'DF §5.1', { note: 'Rotta DRI-EAF: DRI prodotto nel sito; rotta EAF: HBI acquistato' }),
+    p('b4.hot_dri', 'Carica del DRI a caldo', '', true, null, null, 'F', 'DF §4.2', { options: [true, false], names: { 'true': 'Sì, DRI caldo', 'false': 'No, a freddo' } }),
+    p('b4.scrap_yield', 'Resa metallica del rottame al forno elettrico', 't/t', 0.91, 0.86, 0.95, 'F', 'DF §12.1', { note: '1,08–1,12 t carica per t acciaio liquido' }),
+    p('b4.dri_yield', 'Resa metallica del DRI al forno elettrico', 't/t', 0.87, 0.8, 0.93, 'R'),
+    p('b4.eaf_kWh_scrap', 'Energia elettrica del forno con 100 % rottame', 'kWh/t acciaio', 400, 350, 450, 'F', 'DF §12.1'),
+    p('b4.eaf_kWh_dri', 'Energia elettrica del forno con 100 % DRI freddo', 'kWh/t acciaio', 680, 550, 750, 'F', 'DF §12.1', { note: 'DRI-EAF: 550–700 kWh/t con DRI caldo o freddo' }),
+    p('b4.hot_dri_saving', 'Risparmio con il 100 % di DRI caldo', 'kWh/t acciaio', 120, 60, 200, 'R'),
+    p('b4.preheat', 'Preriscaldo del rottame (carica continua tipo Consteel)', '', false, null, null, 'F', 'DF §5.1', { options: [false, true], names: { 'false': 'No', 'true': 'Sì' } }),
+    p('b4.preheat_saving', 'Risparmio del preriscaldo, per la quota di rottame', 'kWh/t acciaio', 50, 20, 90, 'R'),
+    p('b4.eaf_O2', 'Ossigeno al forno elettrico', 'Nm³/t acciaio', 35, 15, 50, 'R'),
+    p('b4.eaf_NG', 'Gas naturale ai bruciatori del forno elettrico', 'GJ/t acciaio', 0.25, 0, 0.6, 'R'),
+    p('b4.electrode', 'Consumo di elettrodi in grafite', 'kg/t acciaio', 1.6, 0.8, 3, 'R', 'DF §5.1'),
+    p('b4.charge_C', 'Carbone di carica e di schiumatura', 'kg/t acciaio', 12, 0, 30, 'R'),
+    p('b4.eaf_lime', 'Calce al forno elettrico', 'kg/t acciaio', 40, 20, 70, 'R'),
+    p('b4.eaf_slag', 'Scoria del forno elettrico con 100 % rottame', 'kg/t acciaio', 120, 80, 180, 'R'),
+    p('b4.slag_dri', 'Scoria aggiuntiva con 100 % DRI (ganga)', 'kg/t acciaio', 90, 30, 160, 'R'),
+    p('b4.eaf_dust', 'Polveri del forno elettrico', 'kg/t acciaio', 16, 8, 25, 'R', 'DF §10.2'),
+    p('b4.eaf_heat', 'Capacità per colata del forno elettrico', 't', 150, 100, 300, 'F', 'DF §5.1'),
+    p('b4.eaf_ttt', 'Tap-to-tap del forno elettrico', 'min', 50, 40, 60, 'F', 'DF §5.1'),
+    p('b4.power_on', 'Tempo sotto arco sul tap-to-tap', '', 0.78, 0.6, 0.9, 'R'),
+    p('b4.availability', 'Disponibilità delle unità di fusione', '', 0.88, 0.7, 0.97, 'R'),
+
+    // ---------------------------------------------------------------- B5 metallurgia secondaria
+    p('b5.lf_kWh', 'Energia elettrica del forno siviera', 'kWh/t acciaio', 35, 20, 60, 'R', 'DF §5.2'),
+    p('b5.degas_share', 'Colate trattate sotto vuoto', '', 0.5, 0, 1, 'A', 'DF §5.2'),
+    p('b5.degas_type', 'Tipo di degasaggio', '', 'RH', null, null, 'F', 'DF §5.2', { options: ['RH', 'VD'], names: { RH: 'RH (decarburazione spinta, ULC/IF)', VD: 'VD/VOD' } }),
+    p('b5.degas_kWh', 'Energia elettrica del degasaggio (vuoto con pompe meccaniche)', 'kWh/t trattata', 15, 3, 30, 'R'),
+    p('b5.alloys', 'Ferroleghe e disossidanti', 'kg/t acciaio', 15, 5, 40, 'R'),
+    p('b5.lf_slag', 'Scoria di siviera', 'kg/t acciaio', 15, 5, 30, 'R'),
+    p('b5.lf_electrode', 'Elettrodi del forno siviera', 'kg/t acciaio', 0.3, 0.1, 0.6, 'R'),
+    p('b5.ladle_GJ', 'Preriscaldo siviere e paniere', 'GJ/t acciaio', 0.08, 0, 0.2, 'R'),
+    p('b5.argon', 'Argon di agitazione', 'Nm³/t acciaio', 0.5, 0.1, 1.5, 'R'),
+
+    // ---------------------------------------------------------------- B6 colata continua
+    p('b6.yield', 'Resa della colata continua', 't/t', 0.975, 0.95, 0.99, 'R'),
+    p('b6.slab_thk', 'Spessore delle bramme', 'mm', 250, 200, 300, 'F', 'DF §6'),
+    p('b6.slab_w', 'Larghezza media delle bramme', 'mm', 1600, 900, 2200, 'F', 'DF §6'),
+    p('b6.slab_v', 'Velocità di colata delle bramme', 'm/min', 1.4, 1, 2, 'F', 'DF §6'),
+    p('b6.thin_thk', 'Spessore delle bramme sottili', 'mm', 80, 50, 110, 'F', 'DF §6'),
+    p('b6.thin_w', 'Larghezza media delle bramme sottili', 'mm', 1500, 900, 2000, 'A'),
+    p('b6.thin_v', 'Velocità di colata delle bramme sottili', 'm/min', 5, 4, 6, 'F', 'DF §6'),
+    p('b6.round_d', 'Diametro dei tondi', 'mm', 300, 150, 400, 'F', 'DF §6'),
+    p('b6.round_v', 'Velocità di colata dei tondi', 'm/min', 0.9, 0.5, 2, 'F', 'DF §6'),
+    p('b6.util', 'Utilizzo della macchina (tempo di colata sul tempo di esercizio)', '', 0.85, 0.7, 0.95, 'R'),
+    p('b6.hot_charge', 'Quota di carica a caldo nei forni di riscaldo', '', 0.4, 0, 0.9, 'A', 'DF §6'),
+
+    // ---------------------------------------------------------------- B7 laminazione a caldo (A) / tubi senza saldatura (B)
+    p('b7.plate_share', 'Bramme al treno lamiere', '', 0.15, 0, 0.6, 'A', 'DF §7.1', { only: 'A' }),
+    p('b7.hsm_yield', 'Resa del treno nastri a caldo', 't/t', 0.975, 0.95, 0.99, 'R', '', { only: 'A' }),
+    p('b7.plate_yield', 'Resa del treno lamiere', 't/t', 0.90, 0.85, 0.95, 'R', '', { only: 'A' }),
+    p('b7.reheat_GJ', 'Forni di riscaldo a longheroni, carica fredda', 'GJ/t', 1.25, 0.9, 1.6, 'R', 'DF §7.1'),
+    p('b7.tunnel_GJ', 'Forno a tunnel della linea thin slab', 'GJ/t', 0.45, 0.2, 0.8, 'R', '', { only: 'A' }),
+    p('b7.hot_saving', 'Risparmio di combustibile con la carica a caldo', '', 0.35, 0.1, 0.6, 'R', 'DF §6'),
+    p('b7.hsm_kWh', 'Energia elettrica del treno nastri', 'kWh/t', 110, 80, 150, 'R', '', { only: 'A' }),
+    p('b7.plate_kWh', 'Energia elettrica del treno lamiere', 'kWh/t', 140, 100, 200, 'R', '', { only: 'A' }),
+    p('b7.furnace_tph', 'Capacità di un forno di riscaldo', 't/h', 300, 100, 450, 'A'),
+    p('b7.scale', 'Scaglia di laminazione', 'kg/t laminata', 15, 5, 30, 'R', 'DF §10.2'),
+    p('b7.hsm_Mt', 'Capacità di un treno nastri a caldo', 'Mt/anno', 5.0, 1.5, 6.5, 'A', '', { only: 'A' }),
+    p('b7.seam_yield', 'Resa del laminatoio tubi senza saldatura (tondo → tubo grezzo)', 't/t', 0.87, 0.8, 0.93, 'R', 'DF §8.1', { only: 'B' }),
+    p('b7.rhf_GJ', 'Forno a suola rotante e riscaldo intermedio', 'GJ/t', 1.6, 1.1, 2.2, 'R', 'DF §8.1', { only: 'B' }),
+    p('b7.seam_kWh', 'Energia elettrica del laminatoio tubi', 'kWh/t', 190, 120, 260, 'R', '', { only: 'B' }),
+    p('b7.seam_Mt', 'Capacità di un laminatoio a mandrino', 'Mt/anno', 0.6, 0.2, 1.2, 'A', '', { only: 'B' }),
+
+    // ---------------------------------------------------------------- B8 linee a freddo (A) / tubi saldati (B)
+    p('b8.cold_share', 'Coil a caldo al decapaggio e laminazione a freddo', '', 0.45, 0, 0.9, 'A', 'DF §7.2', { only: 'A' }),
+    p('b8.coated_share', 'Nastro a freddo zincato o preverniciato', '', 0.5, 0, 1, 'A', 'DF §7.4', { only: 'A' }),
+    p('b8.pickle_yield', 'Resa del decapaggio', 't/t', 0.98, 0.96, 0.995, 'R', '', { only: 'A' }),
+    p('b8.cold_yield', 'Resa della laminazione a freddo e della ricottura', 't/t', 0.975, 0.95, 0.99, 'R', '', { only: 'A' }),
+    p('b8.anneal', 'Ricottura', '', 'CAL', null, null, 'F', 'DF §7.3', { options: ['CAL', 'BAF'], names: { CAL: 'Continua (CAL)', BAF: 'A campana (batch)' }, only: 'A' }),
+    p('b8.anneal_GJ', 'Combustibile della ricottura', 'GJ/t', 0.9, 0.5, 1.5, 'R', '', { only: 'A' }),
+    p('b8.cgl_GJ', 'Combustibile della zincatura continua', 'GJ/t', 1.0, 0.6, 1.5, 'R', '', { only: 'A' }),
+    p('b8.cold_kWh', 'Energia elettrica di decapaggio e treno tandem', 'kWh/t', 140, 90, 200, 'R', '', { only: 'A' }),
+    p('b8.anneal_kWh', 'Energia elettrica di ricottura, skin pass e rivestimento', 'kWh/t', 60, 30, 100, 'R', '', { only: 'A' }),
+    p('b8.zinc', 'Zinco e leghe di rivestimento', 'kg/t rivestita', 30, 10, 60, 'R', '', { only: 'A' }),
+    p('b8.oxide', 'Ossido di ferro dalla rigenerazione dell\'acido', 'kg/t decapata', 5, 2, 10, 'R', 'DF §7.2', { only: 'A' }),
+    p('b8.welded_ls', 'Acciaio liquido colato in bramme per i tubi saldati', '', 0.0, 0, 0.8, 'A', 'DF §8.2', { only: 'B', note: 'Le bramme vanno a un treno coil e lamiere compatto nel sito' }),
+    p('b8.purchased_coil_Mt', 'Coil e lamiere acquistati per i tubi saldati', 'Mt/anno', 0.0, 0, 2, 'A', 'DF §2', { only: 'B' }),
+    p('b8.strip_yield', 'Resa del treno coil e lamiere per tubi', 't/t', 0.965, 0.93, 0.99, 'R', '', { only: 'B' }),
+    p('b8.strip_kWh', 'Energia elettrica del treno coil e lamiere per tubi', 'kWh/t', 120, 80, 180, 'R', '', { only: 'B' }),
+    p('b8.erw_share', 'Quota ERW/HFI dei tubi saldati', '', 0.7, 0, 1, 'A', 'DF §8.2', { only: 'B' }),
+    p('b8.sawl_share', 'Quota SAW longitudinale (UOE, JCOE)', '', 0.0, 0, 1, 'A', 'DF §8.2', { only: 'B' }),
+    p('b8.erw_yield', 'Resa ERW', 't/t', 0.95, 0.9, 0.98, 'R', '', { only: 'B' }),
+    p('b8.saw_yield', 'Resa SAW', 't/t', 0.93, 0.88, 0.97, 'R', '', { only: 'B' }),
+    p('b8.erw_kWh', 'Energia elettrica ERW (formatura, saldatura HF, normalizzazione)', 'kWh/t', 110, 60, 160, 'R', '', { only: 'B' }),
+    p('b8.saw_kWh', 'Energia elettrica SAW (formatura, saldatura, espansione)', 'kWh/t', 160, 100, 240, 'R', '', { only: 'B' }),
+
+    // ---------------------------------------------------------------- B9 finitura e spedizione
+    p('b9.yield', 'Resa di finitura (rifilatura, spuntatura, scarti di collaudo)', 't/t', 0.99, 0.95, 1, 'R'),
+    p('b9.qt_share', 'Tubi senza saldatura temprati e rinvenuti (Q&T)', '', 0.5, 0, 1, 'A', 'DF §8.3', { only: 'B' }),
+    p('b9.qt_GJ', 'Combustibile della tempra e rinvenimento', 'GJ/t', 1.3, 0.8, 1.8, 'R', '', { only: 'B' }),
+    p('b9.coat_share', 'Tubi con rivestimento esterno (3LPE, 3LPP, FBE)', '', 0.2, 0, 1, 'A', 'DF §8.3', { only: 'B' }),
+    p('b9.coat_GJ', 'Combustibile del rivestimento', 'GJ/t rivestita', 0.3, 0.1, 0.6, 'R', '', { only: 'B' }),
+    p('b9.kWh', 'Energia elettrica di finitura, controlli e magazzino', 'kWh/t', 25, 5, 80, 'R'),
+
+    // ---------------------------------------------------------------- B10 energia elettrica e centrale gas di recupero
+    p('b10.bfg_internal', 'Gas d\'altoforno usato nei cowper e nella cokeria', '', 0.45, 0.2, 0.7, 'R'),
+    p('b10.cog_internal', 'Gas di cokeria usato nella cokeria e nei forni', '', 0.45, 0.2, 0.8, 'R'),
+    p('b10.pp_eta', 'Rendimento elettrico della centrale a gas di recupero', '', 0.36, 0.25, 0.45, 'R', 'DF §9'),
+    p('b10.services_kWh', 'Servizi generali di stabilimento (aria compressa, illuminazione, edifici)', 'kWh/t acciaio', 30, 10, 60, 'R'),
+    p('b10.peak', 'Rapporto tra punta e media dei carichi senza forni ad arco', '', 1.35, 1.1, 2, 'R'),
+    p('b10.pf', 'Fattore di potenza dei carichi', '', 0.92, 0.8, 0.98, 'R'),
+    p('b10.svc', 'Compensazione SVC/STATCOM per MVA di trasformatore del forno', 'Mvar/MVA', 1.0, 0.5, 1.5, 'R', 'DF §5.1'),
+    p('b10.losses', 'Perdite di trasformazione e distribuzione', '', 0.015, 0, 0.04, 'R'),
+
+    // ---------------------------------------------------------------- B11 gas tecnici, acqua, gas naturale, calce
+    p('b11.asu_kWh', 'Energia elettrica della separazione aria per ossigeno', 'kWh/Nm³ O₂', 0.55, 0.4, 0.75, 'R', 'DF §9'),
+    p('b11.n2', 'Azoto di stabilimento', 'Nm³/t acciaio', 20, 5, 50, 'R'),
+    p('b11.o2_peak', 'Rapporto punta/media della domanda di ossigeno', '', 1.3, 1, 1.8, 'R'),
+    p('b11.circ_factor', 'Fattore sulle portate di ricircolo tipiche dell\'acqua', '', 1.0, 0.5, 2, 'R'),
+    p('b11.makeup', 'Reintegro dei circuiti di raffreddamento', '', 0.02, 0.005, 0.05, 'R', 'DF §9'),
+    p('b11.pump_kWh', 'Energia di pompaggio e ventilazione delle torri', 'kWh/m³ ricircolato', 0.25, 0.1, 0.5, 'R'),
+    p('b11.lime_kiln', 'Forni a calce nel sito', '', true, null, null, 'F', 'DF §3', { options: [true, false], names: { 'true': 'Sì, calcinazione nel sito', 'false': 'No, calce acquistata' } }),
+    p('b11.lime_GJ', 'Combustibile del forno a calce', 'GJ/t calce', 4.2, 3.5, 6, 'R'),
+
+    // ---------------------------------------------------------------- B12 ambiente e sottoprodotti
+    p('b12.fume_eaf', 'Fumi captati al forno elettrico (primari e secondari)', 'Nm³/t acciaio', 10000, 5000, 16000, 'R', 'DF §10.1'),
+    p('b12.fume_bof', 'Fumi secondari captati al convertitore', 'Nm³/t acciaio', 6000, 2000, 10000, 'R', 'DF §10.1'),
+    p('b12.fan_kWh', 'Ventilatori dei filtri', 'kWh/1.000 Nm³', 1.6, 0.8, 2.5, 'R'),
+    p('b12.dust_mg', 'Polveri residue al camino dopo i filtri a maniche', 'mg/Nm³', 5, 1, 20, 'R', 'DF §10.1')
+  ];
+
+  // Parametri che valgono solo per alcune rotte (nascosti negli input delle altre)
+  var ROUTE_ONLY = {
+    'BF-BOF': ['b3.coke_rate', 'b3.pci', 'b3.pci_C', 'b3.burden', 'b3.hm_Fe', 'b3.hm_T', 'b3.bf_slag', 'b3.bf_dust', 'b3.bfg_Nm3', 'b3.bfg_MJ', 'b3.bf_O2', 'b3.bf_kWh', 'b3.trt_kWh', 'b3.bf_prod', 'b3.bf_max_m3',
+      'b4.hm_share', 'b4.bof_yield', 'b4.bof_O2', 'b4.ldg_Nm3', 'b4.ldg_MJ', 'b4.bof_lime', 'b4.bof_slag', 'b4.bof_dust', 'b4.bof_heat', 'b4.bof_ttt', 'b10.bfg_internal', 'b10.cog_internal', 'b10.pp_eta', 'b12.fume_bof'],
+    'DRI-EAF': ['b3.pellet_per_dri', 'b3.dri_Fe', 'b3.dri_T', 'b3.dri_GJ', 'b3.h2_frac', 'b3.h2_kg', 'b3.h2_onsite', 'b3.electrolyser_kWh', 'b3.dri_kWh', 'b3.dri_module_Mt', 'b4.hot_dri', 'b4.hot_dri_saving'],
+    'EAF+': ['b3.dri_C', 'b4.dri_share', 'b4.scrap_yield', 'b4.dri_yield', 'b4.eaf_kWh_scrap', 'b4.eaf_kWh_dri', 'b4.preheat', 'b4.preheat_saving', 'b4.eaf_O2', 'b4.eaf_NG', 'b4.electrode', 'b4.charge_C', 'b4.eaf_lime', 'b4.eaf_slag', 'b4.slag_dri', 'b4.eaf_dust', 'b4.eaf_heat', 'b4.eaf_ttt', 'b4.power_on', 'b10.svc', 'b12.fume_eaf']
+  };
+  PARAMS.forEach(function (q) {
+    if (/^b2\./.test(q.path) || ROUTE_ONLY['BF-BOF'].indexOf(q.path) >= 0) q.routes = ['BF-BOF'];
+    else if (ROUTE_ONLY['DRI-EAF'].indexOf(q.path) >= 0) q.routes = ['DRI-EAF'];
+    else if (ROUTE_ONLY['EAF+'].indexOf(q.path) >= 0) q.routes = ['DRI-EAF', 'EAF'];
+  });
+
+  // Parametri che dipendono dalla rotta o dalla configurazione: si applicano prima dei valori del caso
+  var PRESETS = {
+    route: {
+      'BF-BOF': { 'b4.dri_share': 0, 'b5.degas_share': 0.5 },
+      'DRI-EAF': { 'b4.dri_share': 0.8, 'b4.hot_dri': true },
+      EAF: { 'b4.dri_share': 0, 'b4.hot_dri': false }
+    },
+    product: {
+      A: { 'config.capacity_Mt': 4.0, 'config.hours': 8000, 'b9.yield': 0.99, 'b5.degas_share': 0.5, 'b5.degas_type': 'RH' },
+      B: { 'config.capacity_Mt': 1.0, 'config.hours': 7800, 'b9.yield': 0.98, 'b5.degas_share': 0.8, 'b5.degas_type': 'VD' }
+    }
+  };
+
+  // Casi di riferimento (ipotesi per gli esempi, non progetti)
+  var CASES = {
+    order: ['A1', 'A2', 'A3', 'B1', 'B2'],
+    cases: {
+      A1: { title: 'A1 – Laminati piani, BF-BOF, 4 Mt/anno', notes: 'Rotta integrata classica con cokeria, agglomerazione, altoforno e convertitori; HRC, lamiere grosse, CRC e zincati.',
+        inputs: { config: { product: 'A', route: 'BF-BOF', capacity_Mt: 4.0, hours: 8000, caster: 'slab' } } },
+      A2: { title: 'A2 – Laminati piani, DRI-EAF a gas naturale, 2,5 Mt/anno', notes: 'Riduzione diretta con carica a caldo dell\'80 % di DRI; il caso sta sotto il campo 3–5 Mt/anno della configurazione A.',
+        inputs: { config: { product: 'A', route: 'DRI-EAF', capacity_Mt: 2.5, hours: 8000, caster: 'slab' }, b4: { dri_share: 0.8, hot_dri: true, eaf_heat: 200 }, b8: { cold_share: 0.5 } } },
+      A3: { title: 'A3 – Laminati piani, EAF a rottame con thin slab, 3 Mt/anno', notes: 'Forno elettrico a rottame con preriscaldo, colata di bramme sottili collegata al treno nastri; niente treno lamiere.',
+        inputs: { config: { product: 'A', route: 'EAF', capacity_Mt: 3.0, hours: 8000, caster: 'thin' }, b4: { preheat: true }, b7: { plate_share: 0 }, b8: { cold_share: 0.3 } } },
+      B1: { title: 'B1 – Tubi senza saldatura, EAF a rottame, 1 Mt/anno', notes: 'Forno elettrico, colata di tondi Ø 300 mm, laminatoio a mandrino trattenuto, Q&T per OCTG.',
+        inputs: { config: { product: 'B', route: 'EAF', capacity_Mt: 1.0, hours: 7800 } } },
+      B2: { title: 'B2 – Tubi senza saldatura e saldati, EAF con 20 % HBI, 1,2 Mt/anno', notes: 'Il 35 % dell\'acciaio è colato in bramme per un treno coil compatto che alimenta ERW e SAW elicoidale.',
+        inputs: { config: { product: 'B', route: 'EAF', capacity_Mt: 1.2, hours: 7800 }, b4: { dri_share: 0.2, eaf_heat: 180 }, b8: { welded_ls: 0.35, erw_share: 0.7, sawl_share: 0 }, b9: { coat_share: 0.3 } } }
+    }
+  };
+
+  var SECTIONS = [
+    { id: 'site', name: 'Sito' }, { id: 'config', name: 'Configurazione' },
+    { id: 'b1', block: 'B1', name: 'Parco materie prime e logistica in ingresso', df: 'DF §3' },
+    { id: 'b2', block: 'B2', name: 'Cokeria e agglomerazione', df: 'DF §4.1' },
+    { id: 'b3', block: 'B3', name: 'Area primaria – produzione di ferro', df: 'DF §4' },
+    { id: 'b4', block: 'B4', name: 'Acciaieria – fusione primaria', df: 'DF §5.1' },
+    { id: 'b5', block: 'B5', name: 'Metallurgia secondaria', df: 'DF §5.2' },
+    { id: 'b6', block: 'B6', name: 'Colata continua', df: 'DF §6' },
+    { id: 'b7', block: 'B7', name: 'Laminazione a caldo / tubi senza saldatura', df: 'DF §7.1, §8.1' },
+    { id: 'b8', block: 'B8', name: 'Linee a freddo e rivestimenti / tubi saldati', df: 'DF §7.2–7.4, §8.2' },
+    { id: 'b9', block: 'B9', name: 'Finitura, controlli e spedizione', df: 'DF §7.5, §8.3' },
+    { id: 'b10', block: 'B10', name: 'Energia elettrica e centrale a gas di recupero', df: 'DF §9' },
+    { id: 'b11', block: 'B11', name: 'Gas tecnici, acqua, gas naturale e calce', df: 'DF §9' },
+    { id: 'b12', block: 'B12', name: 'Ambiente e sottoprodotti', df: 'DF §10' }
+  ];
+
+  // Indicatori tipici della descrizione funzionale (§12.1), per il confronto
+  var DF_RANGES = {
+    'BF-BOF': { charge: [1.5, 1.6, 't minerale/t ghisa'], elec: null, co2: [1.8, 2.2] },
+    'DRI-EAF': { charge: [1.4, 1.5, 't pellet/t DRI'], elec: [550, 700], co2: [1.0, 1.4] },
+    EAF: { charge: [1.08, 1.12, 't carica/t acciaio liquido'], elec: [350, 450], co2: [0.3, 0.6] },
+    yieldHRC: [0.95, 0.97],
+    capacity: { A: [3, 5], B: [0.6, 1.5] }
+  };
+
+  return { version: '1.0.0', params: PARAMS, presets: PRESETS, cases: CASES, sections: SECTIONS, dfRanges: DF_RANGES };
+});
+
+</script>
+<script id="src-engine">
+/* Simulatore acciaieria integrata – motore di calcolo (globale AccEngine), versione 1.0.0. Stato D.
+   Bilancio di massa e di energia di screening su base annua, area per area, con i metodi e gli
+   ordini di grandezza della descrizione funzionale (DF). Il calcolo procede a ritroso dall'acciaio
+   liquido: prima le linee a valle (rese, rottame interno), poi la fusione, poi l'area primaria.
+   Unità interne: t/anno, GJ/anno, MWh/anno, Nm³/anno; le correnti sono riportate in t/h sulle ore di esercizio.
+   Nessuna richiesta di rete: funzione pura degli input. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./data.js'));
+  else root.AccEngine = factory(root.AccData);
+})(typeof self !== 'undefined' ? self : this, function (D) {
+  'use strict';
+  var VERSION = '1.0.0';
+
+  // Costanti del modello [R]: ordini di grandezza di letteratura, documentati in "Punti deboli noti"
+  var K = {
+    rho_steel: 7.8,       // t/m³, acciaio solido a caldo per la portata di colata
+    skull: 0.005,         // perdite di siviera e paniera, frazione dell'acciaio liquido
+    lf_lime: 8,           // kg/t, calce al forno siviera
+    steel_C: 0.0015,      // carbonio medio nei prodotti
+    scrap_C: 0.002,
+    hm_C: 0.045,
+    caco3_C: 0.12, caco3_per_cao: 1.785, cao_co2: 0.785,
+    lime_kWh: 30,         // kWh/t calce
+    caster_O2: 1.0,       // Nm³/t, ossitaglio
+    arc_pf: 0.82,         // fattore di potenza dell'arco per il dimensionamento del trasformatore
+    lf_time: 45, degas_time: 35, // min per colata
+    cap: { tcm: 2.0, cal: 0.8, baf: 0.4, cgl: 0.5, erw: 0.3, sawl: 0.5, sawh: 0.25, qt: 0.25, coat: 0.3, strip: 1.5, asu: 3500, kiln: 600, strand_m2: 600 },
+    fe: { slag_bf: 0.005, slag_bof: 0.18, slag_eaf: 0.22, slag_lf: 0.02, dust: 0.25, bof_dust: 0.55, bf_dust: 0.35, scale: 0.72, oxide: 0.70, steel: 0.985, hbi: 0.90, coil: 0.985 },
+    circ: { coke: 3, sinter: 1, bf: 25, dri: 6, bof: 15, eaf: 35, lf: 10, cc: 25, hsm: 35, plate: 40, cold: 20, coat: 10, seam: 30, strip: 30, weld: 15, finish: 5, asu: 0.1, pp: 150 },
+    quench_m3: 0.4,       // m³/t coke, spegnimento a umido
+    hydro_m3: 0.05        // m³/t tubi, prova idrostatica
+  };
+
+  function InputError(msg, path) { var e = new Error(msg); e.name = 'InputError'; e.path = path; return e; }
+  function clone(o) { return o === undefined ? undefined : JSON.parse(JSON.stringify(o)); }
+  function isObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+  function getPath(o, p) { var ks = p.split('.'); for (var i = 0; i < ks.length; i++) { if (!isObj(o) || !(ks[i] in o)) return undefined; o = o[ks[i]]; } return o; }
+  function setPath(o, p, v) { var ks = p.split('.'), last = ks.pop(); ks.forEach(function (k) { if (!isObj(o[k])) o[k] = {}; o = o[k]; }); o[last] = v; }
+  function param(path) { for (var i = 0; i < D.params.length; i++) if (D.params[i].path === path) return D.params[i]; return null; }
+
+  // ------------------------------------------------------------------ input
+  function defaultInputs(product, route) {
+    var o = {};
+    D.params.forEach(function (p) { setPath(o, p.path, clone(p.def)); });
+    product = product || 'A'; route = route || (product === 'B' ? 'EAF' : 'BF-BOF');
+    o.config.product = product; o.config.route = route;
+    var pp = D.presets.product[product] || {}, pr = D.presets.route[route] || {};
+    Object.keys(pp).forEach(function (k) { setPath(o, k, clone(pp[k])); });
+    Object.keys(pr).forEach(function (k) { setPath(o, k, clone(pr[k])); });
+    return o;
+  }
+  // input completi: default della configurazione e della rotta scelte, poi i valori dell'utente
+  function completeInputs(user) {
+    user = user || {};
+    var product = getPath(user, 'config.product'), route = getPath(user, 'config.route');
+    if (product !== undefined && ['A', 'B'].indexOf(product) < 0) throw InputError('config.product: configurazione sconosciuta "' + product + '"', 'config.product');
+    if (route !== undefined && ['BF-BOF', 'DRI-EAF', 'EAF'].indexOf(route) < 0) throw InputError('config.route: rotta sconosciuta "' + route + '"', 'config.route');
+    var o = defaultInputs(product || 'A', route || (product === 'B' ? 'EAF' : 'BF-BOF'));
+    D.params.forEach(function (p) { var v = getPath(user, p.path); if (v !== undefined && v !== null && v !== '') setPath(o, p.path, clone(v)); });
+    validate(o);
+    return o;
+  }
+  function checkValue(p, v) {
+    if (p.options) return p.options.some(function (x) { return x === v; }) ? '' : 'valore non ammesso';
+    if (typeof v !== 'number' || !isFinite(v)) return 'serve un numero';
+    if (p.min !== null && v < p.min) return 'sotto il minimo ' + p.min;
+    if (p.max !== null && v > p.max) return 'sopra il massimo ' + p.max;
+    return '';
+  }
+  function validate(o) {
+    D.params.forEach(function (p) {
+      var why = checkValue(p, getPath(o, p.path));
+      if (why) throw InputError(p.path + ' (' + p.label + '): ' + why, p.path);
+    });
+    if (o.b8.erw_share + o.b8.sawl_share > 1 + 1e-9) throw InputError('b8.erw_share + b8.sawl_share: la somma delle quote ERW e SAW longitudinale supera 1', 'b8.erw_share');
+    return o;
+  }
+
+  // ------------------------------------------------------------------ calcolo
+  function solve(user) {
+    var I = completeInputs(user);
+    var c = I.config, A = c.product === 'A', route = c.route, BF = route === 'BF-BOF', DRI = route === 'DRI-EAF', H = c.hours;
+    var W = [], blockWarn = {};
+    function warn(b, t) { W.push(b + ': ' + t); (blockWarn[b] = blockWarn[b] || []).push(t); }
+    var LS = c.capacity_Mt * 1e6;
+    var blocks = {}, ledgers = {}, elec = {}, ng = {}, circ = {};
+    function addE(b, mwh) { elec[b] = (elec[b] || 0) + mwh; }
+    function addNG(b, gj) { ng[b] = (ng[b] || 0) + gj; }
+    function addW(b, m3) { circ[b] = (circ[b] || 0) + m3 * I.b11.circ_factor; }
+    function ledger(b, ins, outs) {
+      var mi = 0, mo = 0, resLabel = null;
+      outs = outs.filter(function (x) { if (/per differenza/.test(x[0])) { resLabel = x[0].replace(/ \(per differenza\)/, ''); return false; } return true; });
+      ins.forEach(function (x) { mi += x[1]; }); outs.forEach(function (x) { mo += x[1]; });
+      ledgers[b] = { items: ins.filter(function (x) { return x[1] > 0; }).map(function (x) { return { side: 'in', item: x[0], t: x[1] }; })
+        .concat(outs.filter(function (x) { return x[1] > 0; }).map(function (x) { return { side: 'out', item: x[0], t: x[1] }; })), t_in: mi, t_out: mo, residual: mi - mo, resLabel: resLabel };
+    }
+
+    var DR = D.dfRanges.capacity[c.product];
+    if (c.capacity_Mt < DR[0] || c.capacity_Mt > DR[1]) warn('Configurazione', 'capacità ' + c.capacity_Mt + ' Mt/anno fuori dal campo tipico della configurazione ' + c.product + ' (' + DR[0] + '–' + DR[1] + ' Mt/anno, DF §1)');
+    if (!A && BF) warn('Configurazione', 'la configurazione B (tubi) è descritta con rotta a forno elettrico (DF §1); la rotta BF-BOF è calcolata ma è fuori dalla descrizione');
+
+    // ---------------- B5 metallurgia secondaria: dall'acciaio liquido trattato all'acciaio spillato
+    var alloys = LS * I.b5.alloys / 1000, lfLime = LS * K.lf_lime / 1000, lfSlag = LS * I.b5.lf_slag / 1000;
+    var tap = LS * (1 + K.skull) - alloys;
+    addE('B5', (LS * I.b5.lf_kWh + LS * I.b5.degas_share * I.b5.degas_kWh) / 1000);
+    addNG('B5', LS * I.b5.ladle_GJ); addW('B5', LS * K.circ.lf);
+    ledger('B5', [['Acciaio spillato', tap], ['Ferroleghe e disossidanti', alloys], ['Calce di siviera', lfLime]],
+      [['Acciaio liquido trattato', LS], ['Scoria di siviera', lfSlag], ['Perdite di siviera e paniera (per differenza)', 0]]);
+
+    // ---------------- B6 colata continua
+    var y6 = I.b6.yield, cast = LS * y6, ccLoss = LS - cast;
+    var lsSlab = A ? LS : LS * I.b8.welded_ls, lsRound = A ? 0 : LS - lsSlab;
+    var thin = A && c.caster === 'thin';
+    function strandTph(areaM2, v) { return K.rho_steel * areaM2 * v * 60; }
+    var cc = { formats: [] };
+    if (lsSlab > 0) {
+      var thk = (thin ? I.b6.thin_thk : I.b6.slab_thk) / 1000, wid = (thin ? I.b6.thin_w : I.b6.slab_w) / 1000, vv = thin ? I.b6.thin_v : I.b6.slab_v;
+      var tphS = strandTph(thk * wid, vv), needS = lsSlab / H, nS = Math.max(1, Math.ceil(needS / (tphS * I.b6.util)));
+      cc.formats.push({ kind: thin ? 'Bramme sottili' : 'Bramme', section: (thk * 1000).toFixed(0) + ' × ' + (wid * 1000).toFixed(0) + ' mm', speed: vv, tph_strand: tphS, strands: nS, machines: thin ? nS : Math.ceil(nS / 2), util: needS / (nS * tphS), t: lsSlab * y6 });
+    }
+    if (lsRound > 0) {
+      var dR = I.b6.round_d / 1000, tphR = strandTph(Math.PI * dR * dR / 4, I.b6.round_v), needR = lsRound / H, nR = Math.max(1, Math.ceil(needR / (tphR * I.b6.util)));
+      cc.formats.push({ kind: 'Tondi', section: 'Ø ' + I.b6.round_d + ' mm', speed: I.b6.round_v, tph_strand: tphR, strands: nR, machines: Math.ceil(nR / 6), util: needR / (nR * tphR), t: lsRound * y6 });
+    }
+    cc.formats.forEach(function (f) { if (f.kind === 'Tondi' && f.strands > 6 * f.machines) warn('B6', 'tondi: servono ' + f.strands + ' linee'); });
+    addE('B6', LS * 15 / 1000); addW('B6', LS * K.circ.cc);
+    var slabs = lsSlab * y6, rounds = lsRound * y6;
+    ledger('B6', [['Acciaio liquido trattato', LS]], [[A ? (thin ? 'Bramme sottili' : 'Bramme') : 'Bramme per tubi saldati', slabs], ['Tondi', rounds], ['Spuntature, teste e code (rottame interno)', ccLoss]]);
+
+    // ---------------- B7, B8, B9 linee a valle
+    var hc = I.b6.hot_charge * I.b7.hot_saving, scaleT = 0, internalScrap = ccLoss, products = [], oxide = 0, zinc = 0;
+    var r7 = {}, r8 = {}, r9 = {}, flow = {};
+    function scaleOf(t) { return t * I.b7.scale / 1000; }
+    if (A) {
+      var plateShare = thin ? 0 : I.b7.plate_share;
+      if (thin && I.b7.plate_share > 0) warn('B7', 'con la colata thin slab il treno lamiere non è alimentato: quota al treno lamiere posta a 0');
+      var toPlate = slabs * plateShare, toHSM = slabs - toPlate;
+      var hrc = toHSM * I.b7.hsm_yield, plates = toPlate * I.b7.plate_yield;
+      var sH = scaleOf(toHSM), sP = scaleOf(toPlate), cropH = Math.max(0, toHSM - hrc - sH), cropP = Math.max(0, toPlate - plates - sP);
+      if (toHSM - hrc - sH < 0) warn('B7', 'la scaglia supera le perdite di resa del treno nastri: resa o scaglia da rivedere');
+      scaleT += sH + sP; internalScrap += cropH + cropP;
+      addNG('B7', (thin ? I.b7.tunnel_GJ * toHSM : I.b7.reheat_GJ * (1 - hc) * toHSM) + I.b7.reheat_GJ * (1 - hc) * toPlate);
+      addE('B7', (I.b7.hsm_kWh * toHSM + I.b7.plate_kWh * toPlate) / 1000);
+      addW('B7', toHSM * K.circ.hsm + toPlate * K.circ.plate);
+      var nFur = thin ? cc.formats[0].strands : Math.max(1, Math.ceil(slabs / H / (I.b7.furnace_tph * 0.9)));
+      r7 = { toHSM: toHSM, toPlate: toPlate, hrc: hrc, plates: plates, furnaces: nFur, hsm: Math.max(1, Math.ceil(toHSM / 1e6 / I.b7.hsm_Mt)), plateMill: toPlate > 0 ? 1 : 0, scale: sH + sP };
+      ledger('B7', [[thin ? 'Bramme sottili' : 'Bramme', slabs]], [['Coil a caldo (HRC)', hrc], ['Lamiere grosse', plates], ['Scaglia di laminazione', sH + sP], ['Spuntature e rifili (rottame interno)', cropH + cropP]]);
+      // B8 linee a freddo
+      var toCold = hrc * I.b8.cold_share, hrcSold = hrc - toCold;
+      var pickled = toCold * I.b8.pickle_yield, ox = toCold * I.b8.oxide / 1000, cropPk = Math.max(0, toCold - pickled - ox * K.fe.oxide);
+      var coldOut = pickled * I.b8.cold_yield, cropC = pickled - coldOut, coated = coldOut * I.b8.coated_share, crc = coldOut - coated;
+      zinc = coated * I.b8.zinc / 1000; oxide = ox; internalScrap += cropPk + cropC;
+      addNG('B8', I.b8.anneal_GJ * coldOut + I.b8.cgl_GJ * coated);
+      addE('B8', (I.b8.cold_kWh * toCold + I.b8.anneal_kWh * coldOut) / 1000);
+      addW('B8', toCold * K.circ.cold + coldOut * K.circ.coat);
+      r8 = { toCold: toCold, coldOut: coldOut, coated: coated + zinc, crc: crc, tcm: toCold > 0 ? Math.ceil(toCold / 1e6 / K.cap.tcm) : 0,
+        anneal: coldOut > 0 ? Math.ceil(coldOut / 1e6 / (I.b8.anneal === 'CAL' ? K.cap.cal : K.cap.baf)) : 0, cgl: coated > 0 ? Math.ceil(coated / 1e6 / K.cap.cgl) : 0 };
+      ledger('B8', [['Coil a caldo da decapare', toCold], ['Zinco e leghe di rivestimento', zinc]], [['Nastro a freddo (CRC)', crc], ['Zincati e preverniciati', coated + zinc], ['Ossido di ferro (rigenerazione acido)', ox], ['Spuntature e rifili (rottame interno)', cropPk + cropC], ['Ferro disciolto e ossigeno dell\'ossido (per differenza)', 0]]);
+      flow = { s13: toCold, s14: hrcSold + plates, s15: crc + coated + zinc };
+      products = [['HRC', 'Coil a caldo (HRC)', hrcSold], ['PL', 'Lamiere grosse', plates], ['CRC', 'Coil a freddo (CRC)', crc], ['ZN', 'Zincati e preverniciati', coated + zinc]];
+    } else {
+      // B7 tubi senza saldatura
+      var shells = rounds * I.b7.seam_yield, sS = scaleOf(rounds), cropS = Math.max(0, rounds - shells - sS);
+      scaleT += sS; internalScrap += cropS;
+      addNG('B7', I.b7.rhf_GJ * (1 - hc) * rounds); addE('B7', I.b7.seam_kWh * rounds / 1000); addW('B7', rounds * K.circ.seam);
+      r7 = { rounds: rounds, shells: shells, mills: rounds > 0 ? Math.ceil(rounds / 1e6 / I.b7.seam_Mt) : 0, scale: sS };
+      ledger('B7', [['Tondi', rounds]], [['Tubi senza saldatura grezzi', shells], ['Scaglia', sS], ['Spuntature (rottame interno)', cropS]]);
+      // B8 tubi saldati
+      var coilInt = slabs * I.b8.strip_yield, sSt = scaleOf(slabs), cropSt = Math.max(0, slabs - coilInt - sSt), coilBuy = I.b8.purchased_coil_Mt * 1e6, coil = coilInt + coilBuy;
+      var erwIn = coil * I.b8.erw_share, sawlIn = coil * I.b8.sawl_share, sawhIn = coil - erwIn - sawlIn;
+      var erw = erwIn * I.b8.erw_yield, sawl = sawlIn * I.b8.saw_yield, sawh = sawhIn * I.b8.saw_yield, cropW = coil - erw - sawl - sawh;
+      scaleT += sSt; internalScrap += cropSt + cropW;
+      addNG('B8', I.b7.reheat_GJ * (1 - hc) * slabs);
+      addE('B8', (I.b8.strip_kWh * slabs + I.b8.erw_kWh * erwIn + I.b8.saw_kWh * (sawlIn + sawhIn)) / 1000);
+      addW('B8', slabs * K.circ.strip + coil * K.circ.weld);
+      r8 = { slabs: slabs, coilInt: coilInt, coilBuy: coilBuy, erw: erw, sawl: sawl, sawh: sawh, strip: slabs > 0 ? 1 : 0,
+        erwLines: erwIn > 0 ? Math.ceil(erwIn / 1e6 / K.cap.erw) : 0, sawlLines: sawlIn > 0 ? Math.ceil(sawlIn / 1e6 / K.cap.sawl) : 0, sawhLines: sawhIn > 0 ? Math.ceil(sawhIn / 1e6 / K.cap.sawh) : 0 };
+      if (slabs + coilBuy > 0) ledger('B8', [['Bramme per tubi saldati', slabs], ['Coil e lamiere acquistati', coilBuy]], [['Tubi ERW/HFI', erw], ['Tubi SAW longitudinali', sawl], ['Tubi SAW elicoidali', sawh], ['Scaglia', sSt], ['Spuntature e rifili (rottame interno)', cropSt + cropW]]);
+      flow = { s13: slabs, s14: shells, s15: erw + sawl + sawh, s17: coilBuy };
+      products = [['SMLS', 'Tubi senza saldatura (OCTG, line pipe)', shells], ['ERW', 'Tubi saldati ERW/HFI', erw], ['SAWL', 'Tubi SAW longitudinali', sawl], ['SAWH', 'Tubi SAW elicoidali', sawh]];
+    }
+    // B9 finitura
+    var finIn = 0, finOut = 0;
+    products = products.filter(function (p) { return p[2] > 0; }).map(function (p) { var o = p[2] * I.b9.yield; finIn += p[2]; finOut += o; return { key: p[0], name: p[1], t_in: p[2], t: o }; });
+    var cropF = finIn - finOut; internalScrap += cropF;
+    var qt = 0, coatT = 0;
+    if (!A) {
+      qt = (flow.s14 || 0) * I.b9.qt_share; coatT = finIn * I.b9.coat_share;
+      addNG('B9', qt * I.b9.qt_GJ + coatT * I.b9.coat_GJ);
+      r9 = { qt: qt, coat: coatT, qtLines: qt > 0 ? Math.ceil(qt / 1e6 / K.cap.qt) : 0, coatLines: coatT > 0 ? Math.ceil(coatT / 1e6 / K.cap.coat) : 0 };
+    }
+    addE('B9', I.b9.kWh * finIn / 1000); addW('B9', finIn * K.circ.finish);
+    ledger('B9', products.map(function (p) { return [p.name + ' (da finire)', p.t_in]; }), products.map(function (p) { return [p.name, p.t]; }).concat([['Scarti di finitura (rottame interno)', cropF]]));
+    var productTotal = finOut;
+
+    // ---------------- B4 fusione primaria
+    var r4 = {}, scrapNeed, hm = 0, driNeed = 0, hbi = 0, slag4, dust = 0, lime4, o2_4, electrode = 0, chargeC = 0, ldgGJ = 0, charge;
+    var s_d = BF ? 0 : I.b4.dri_share;
+    if (BF) {
+      charge = tap / I.b4.bof_yield; hm = charge * I.b4.hm_share; scrapNeed = charge - hm;
+      slag4 = tap * I.b4.bof_slag / 1000; lime4 = tap * I.b4.bof_lime / 1000; o2_4 = tap * I.b4.bof_O2;
+      ldgGJ = tap * I.b4.ldg_Nm3 * I.b4.ldg_MJ / 1000; dust = tap * I.b4.bof_dust / 1000;
+      addE('B4', tap * 25 / 1000); addW('B4', tap * K.circ.bof);
+      var capB = I.b4.bof_heat * (H * 60 / I.b4.bof_ttt) * I.b4.availability, nB = Math.max(1, Math.ceil(tap / capB));
+      r4 = { unit: 'BOF', n: nB, heat: I.b4.bof_heat, ttt: I.b4.bof_ttt, heats_day: tap / I.b4.bof_heat / (H / 24), util: tap / (nB * capB), kWh_t: 25 };
+    } else {
+      var mixY = (1 - s_d) * I.b4.scrap_yield + s_d * I.b4.dri_yield;
+      charge = tap / mixY; scrapNeed = charge * (1 - s_d); driNeed = charge * s_d;
+      if (!DRI) hbi = driNeed;
+      var spec = (1 - s_d) * I.b4.eaf_kWh_scrap + s_d * I.b4.eaf_kWh_dri - (DRI && I.b4.hot_dri ? s_d * I.b4.hot_dri_saving : 0) - (I.b4.preheat ? (1 - s_d) * I.b4.preheat_saving : 0);
+      if (!DRI && I.b4.hot_dri && s_d > 0) warn('B4', 'l\'HBI acquistato è caricato a freddo: la carica a caldo vale solo per il DRI prodotto nel sito (rotta DRI-EAF)');
+      slag4 = tap * (I.b4.eaf_slag + s_d * I.b4.slag_dri) / 1000; lime4 = tap * I.b4.eaf_lime / 1000; o2_4 = tap * I.b4.eaf_O2;
+      dust = tap * I.b4.eaf_dust / 1000; electrode = tap * I.b4.electrode / 1000; chargeC = tap * I.b4.charge_C / 1000;
+      addE('B4', spec * tap / 1000); addNG('B4', tap * I.b4.eaf_NG); addW('B4', tap * K.circ.eaf);
+      var capE = I.b4.eaf_heat * (H * 60 / I.b4.eaf_ttt) * I.b4.availability, nE = Math.max(1, Math.ceil(tap / capE));
+      var pOn = spec * I.b4.eaf_heat / (I.b4.eaf_ttt * I.b4.power_on / 60) / 1000; // MW sotto arco
+      var mva = Math.ceil(pOn / K.arc_pf / 5) * 5;
+      r4 = { unit: 'EAF', n: nE, heat: I.b4.eaf_heat, ttt: I.b4.eaf_ttt, heats_day: tap / I.b4.eaf_heat / (H / 24), util: tap / (nE * capE), kWh_t: spec, P_on_MW: pOn, MVA: mva, svc_Mvar: Math.ceil(mva * I.b10.svc / 5) * 5 };
+      if (spec * I.b4.eaf_heat / 1000 > 0 && mva > 320) warn('B4', 'trasformatore del forno di ' + mva + ' MVA: oltre la taglia usuale, valutare più forni o colate più piccole');
+    }
+    if (r4.util > 0.97) warn('B4', 'utilizzo delle unità di fusione oltre il 97 %');
+    var ldBF = BF ? 'Ghisa liquida' : (DRI ? (I.b4.hot_dri ? 'DRI caldo' : 'DRI freddo') : 'HBI acquistato');
+    var lime_total = lime4 + lfLime;
+    ledger('B4', [[ldBF, hm + driNeed], ['Rottame', scrapNeed], ['Calce', lime4], ['Carbone di carica ed elettrodi', chargeC + electrode]],
+      [['Acciaio spillato', tap], ['Scoria di acciaieria', slag4], ['Polveri di abbattimento', dust], ['Ossidazione e gas (per differenza)', 0]]);
+
+    // rottame: interno di ritorno e acquistato
+    var scrapBuy = scrapNeed - internalScrap, scrapSold = 0;
+    if (scrapBuy < 0) { scrapSold = -scrapBuy; scrapBuy = 0; warn('B1', 'il rottame interno (' + fmt(internalScrap / H, 1) + ' t/h) supera il fabbisogno della carica: ' + fmt(scrapSold / 1e3, 0) + ' kt/anno di rottame venduto'); }
+
+    // ---------------- B3 area primaria
+    var r3 = {}, bfDust = 0, bfgGJ = 0, cogGJ = 0, coke = 0, pci = 0, burden = 0, sinter = 0, pelletBF = 0, pelletDR = 0, bfSlag = 0, o2_3 = 0, h2 = 0, trtMWh = 0, cdqMWh = 0, fines = 0, limestoneS = 0, coal = 0, cokeTot = 0;
+    var driNG = 0;
+    if (BF) {
+      coke = hm * I.b3.coke_rate / 1000; pci = hm * I.b3.pci / 1000; burden = hm * I.b3.burden;
+      sinter = burden * I.b2.sinter_share; pelletBF = burden - sinter;
+      bfSlag = hm * I.b3.bf_slag / 1000; o2_3 = hm * I.b3.bf_O2;
+      bfgGJ = hm * I.b3.bfg_Nm3 * I.b3.bfg_MJ / 1000; trtMWh = hm * I.b3.trt_kWh / 1000;
+      addE('B3', hm * I.b3.bf_kWh / 1000); addW('B3', hm * K.circ.bf);
+      var vTot = hm / (H / 24) / I.b3.bf_prod, nBF = Math.max(1, Math.ceil(vTot / I.b3.bf_max_m3));
+      r3 = { unit: 'BF', n: nBF, V_m3: vTot / nBF, hm: hm, hm_tpd: hm / (H / 24) };
+      ledger('B3', [['Coke', coke], ['Agglomerato', sinter], ['Pellet e minerale in pezzatura', pelletBF], ['Polverino di carbone (PCI)', pci]],
+        [['Ghisa liquida', hm], ['Loppa', bfSlag], ['Polveri e fanghi', bfDust], ['Carbonio e ossigeno al gas d\'altoforno (per differenza)', 0]]);
+      // B2 cokeria e agglomerazione
+      cokeTot = coke + sinter * I.b2.breeze / 1000; coal = cokeTot * I.b2.coal_per_coke;
+      fines = sinter * I.b2.ore_per_sinter; limestoneS = sinter * I.b2.limestone / 1000;
+      cogGJ = cokeTot * I.b2.cog_Nm3 * I.b2.cog_MJ / 1000; cdqMWh = I.b2.cdq ? cokeTot * I.b2.cdq_kWh / 1000 : 0;
+      addE('B2', (cokeTot * I.b2.coke_kWh + sinter * I.b2.sinter_kWh) / 1000); addW('B2', cokeTot * K.circ.coke + sinter * K.circ.sinter);
+      var strandM2 = sinter / (H / 24) / I.b2.sinter_prod;
+      blocks.B2 = { coke_t: cokeTot, coal_t: coal, sinter_t: sinter, batteries: Math.max(1, Math.ceil(cokeTot / 1e6 / I.b2.battery_Mt)), strand_m2: strandM2, strands: Math.max(1, Math.ceil(strandM2 / K.cap.strand_m2)), cog_GJ: cogGJ };
+      var ledB2a = [['Carbone da coke', coal], ['Fini di minerale', fines], ['Calcare e dolomite', limestoneS]];
+      var ledB2b = [['Coke all\'altoforno', coke], ['Agglomerato', sinter], ['Gas di cokeria, sottoprodotti e CO₂ di calcinazione (per differenza)', 0]];
+      ledger('B2', ledB2a, ledB2b);
+    } else if (DRI) {
+      pelletDR = driNeed * I.b3.pellet_per_dri;
+      driNG = driNeed * I.b3.dri_GJ * (1 - I.b3.h2_frac); h2 = driNeed * I.b3.h2_kg * I.b3.h2_frac / 1000; // t H₂
+      addNG('B3', driNG); addE('B3', driNeed * I.b3.dri_kWh / 1000 + (I.b3.h2_onsite ? h2 * 1000 * I.b3.electrolyser_kWh / 1000 : 0)); addW('B3', driNeed * K.circ.dri);
+      r3 = { unit: 'DRI', n: Math.max(1, Math.ceil(driNeed / 1e6 / I.b3.dri_module_Mt)), dri: driNeed, electrolyser_MW: I.b3.h2_onsite ? h2 * 1000 * I.b3.electrolyser_kWh / 1000 / H : 0, h2_t: h2 };
+      ledger('B3', [['Pellet di grado DR', pelletDR]], [[I.b4.hot_dri ? 'DRI caldo' : 'DRI freddo', driNeed], ['Ossigeno rimosso, fini e polveri (per differenza)', 0]]);
+      if (I.b3.h2_frac > 0 && !I.b3.h2_onsite) warn('B3', fmt(h2 * 1000 / H, 0) + ' kg/h di idrogeno acquistato: emissioni e costi della produzione dell\'idrogeno fuori dal perimetro');
+    }
+
+    // ---------------- B11 calce, gas tecnici, acqua
+    var kilnLimestone = I.b11.lime_kiln ? lime_total * K.caco3_per_cao : 0;
+    if (I.b11.lime_kiln) { addNG('B11', lime_total * I.b11.lime_GJ); addE('B11', lime_total * K.lime_kWh / 1000); }
+    var o2 = o2_3 + o2_4 + LS * K.caster_O2, n2 = LS * I.b11.n2, ar = LS * I.b5.argon;
+    addE('B11', o2 * I.b11.asu_kWh / 1000);
+    addW('B11', o2 * K.circ.asu);
+    var o2tpd = o2 / H * 1.429 * 24 / 1000 * I.b11.o2_peak;
+
+    // ---------------- B12 fumi
+    var fume = BF ? tap * I.b12.fume_bof : tap * I.b12.fume_eaf;
+    addE('B12', fume / 1000 * I.b12.fan_kWh / 1000);
+    var stackDust = fume * I.b12.dust_mg / 1e9;
+
+    // ---------------- B10 gas di recupero e centrale
+    var bfgPP = bfgGJ * (1 - I.b10.bfg_internal), cogPP = cogGJ * (1 - I.b10.cog_internal), recGJ = bfgPP + cogPP + ldgGJ;
+    var ppMWh = recGJ * I.b10.pp_eta / 3.6;
+    addW('B10', ppMWh * K.circ.pp);
+    addE('B10', LS * I.b10.services_kWh / 1000);
+
+    // acqua: pompaggio come carico di B11
+    var circTot = 0; Object.keys(circ).forEach(function (k) { circTot += circ[k]; });
+    var tubesT = A ? 0 : finIn;
+    var makeup = circTot * I.b11.makeup + (BF && !I.b2.cdq ? cokeTot * K.quench_m3 : 0) + tubesT * K.hydro_m3;
+    addE('B11', circTot * I.b11.pump_kWh / 1000);
+
+    // nastri, stacker-reclaimer e carriponti del parco
+    addE('B1', (fines + pelletBF + pelletDR + coal + pci + scrapBuy + hbi) * 3 / 1000);
+
+    // ---------------- energia elettrica
+    var eTot = 0; Object.keys(elec).forEach(function (k) { eTot += elec[k]; });
+    var eLoss = eTot * I.b10.losses, eDemand = eTot + eLoss, ownGen = ppMWh + trtMWh + cdqMWh, gridImport = eDemand - ownGen;
+    var arcAvg = BF ? 0 : (elec.B4 || 0) / H;
+    var otherAvg = (eDemand / H) - arcAvg;
+    var peakMW = otherAvg * I.b10.peak + (BF ? 0 : r4.n * r4.P_on_MW);
+    var subMVA = Math.ceil(peakMW / I.b10.pf / 50) * 50;
+    var r10 = { pp_MW: ppMWh / H, trt_MW: trtMWh / H, cdq_MW: cdqMWh / H, ownGen_MW: ownGen / H, demand_MW: eDemand / H, grid_MW: gridImport / H, peak_MW: peakMW, substation_MVA: subMVA,
+      kV: subMVA > 400 || (!BF && r4.MVA > 150) ? '380–400 kV' : '220 kV', recGJ: recGJ, bfg_GJ: bfgGJ, cog_GJ: cogGJ, ldg_GJ: ldgGJ };
+    if (gridImport < 0) warn('B10', 'autoproduzione superiore alla domanda: ' + fmt(-gridImport / H, 1) + ' MW medi esportati in rete');
+
+    // ---------------- gas naturale
+    var ngTot = 0; Object.keys(ng).forEach(function (k) { ngTot += ng[k]; });
+    var ngSm3h = ngTot * 1000 / I.site.ng_LHV / H;
+
+    // ---------------- bilancio del carbonio e CO₂ diretta
+    var C = [], f = 44 / 12;
+    function cIn(name, area, tC) { if (tC > 0) C.push({ name: name, area: area, tC: tC }); }
+    cIn('Carbone da coke', 'Cokeria, altoforno e centrale a gas di recupero', coal * I.b2.coal_C * (1 - I.b2.byprod_C));
+    cIn('Carbone da iniezione (PCI)', 'Cokeria, altoforno e centrale a gas di recupero', pci * I.b3.pci_C);
+    cIn('Gas naturale al DRI', 'Riduzione diretta', driNG * I.site.ng_C / 1000);
+    cIn('Elettrodi e carbone di carica', 'Acciaieria', (electrode + LS * I.b5.lf_electrode / 1000) * 0.99 + chargeC * 0.85);
+    cIn('Carbonio dell\'HBI acquistato', 'Acciaieria', hbi * I.b3.dri_C);
+    cIn('Carbonio del rottame acquistato', 'Acciaieria', scrapBuy * K.scrap_C);
+    cIn('Gas naturale in acciaieria (bruciatori, siviere)', 'Acciaieria', ((ng.B4 || 0) + (ng.B5 || 0)) * I.site.ng_C / 1000);
+    cIn('Gas naturale ai forni di riscaldo e trattamento', 'Laminazione, tubi e finitura', ((ng.B7 || 0) + (ng.B8 || 0) + (ng.B9 || 0)) * I.site.ng_C / 1000);
+    cIn('Calcinazione di calcare e dolomite', 'Agglomerazione e forni a calce', (limestoneS + kilnLimestone) * K.caco3_C);
+    cIn('Gas naturale ai forni a calce', 'Agglomerazione e forni a calce', (ng.B11 || 0) * I.site.ng_C / 1000);
+    var cOut = (productTotal + scrapSold) * K.steel_C;
+    var cInTot = C.reduce(function (s, x) { return s + x.tC; }, 0);
+    var co2Direct = (cInTot - cOut) * f;
+    var co2Indirect = Math.max(0, gridImport) * I.site.grid_CO2; // MWh × kg/kWh = t
+    var byArea = {};
+    C.forEach(function (x) { byArea[x.area] = (byArea[x.area] || 0) + x.tC * f; });
+    byArea['Carbonio nei prodotti (sottratto)'] = -cOut * f;
+
+    // ---------------- B1 parco e logistica
+    var day = H / 24;
+    var stocks = [['Fini di minerale', fines], ['Pellet', pelletBF + pelletDR], ['Carbone da coke e da iniezione', coal + pci], ['Rottame acquistato', scrapBuy], ['HBI acquistato', hbi], ['Calcare, dolomite, calce', limestoneS + kilnLimestone + (I.b11.lime_kiln ? 0 : lime_total)], ['Ferroleghe e additivi', alloys]]
+      .filter(function (x) { return x[1] > 0; }).map(function (x) { return { name: x[0], t_y: x[1], stock_t: x[1] / day * I.b1.autonomy_d }; });
+    var stockTot = stocks.reduce(function (s, x) { return s + x.stock_t; }, 0);
+    blocks.B1 = { stocks: stocks, stock_t: stockTot, yard_m2: stockTot / I.b1.yard_t_m2, internalScrap: internalScrap, scrapBuy: scrapBuy, scrapSold: scrapSold };
+    var inB1 = [['Fini di minerale', fines], ['Pellet', pelletBF + pelletDR], ['Carbone', coal + pci], ['Rottame acquistato', scrapBuy], ['Rottame interno di ritorno', Math.min(internalScrap, scrapNeed)], ['HBI acquistato', hbi], ['Calcare e dolomite', limestoneS + kilnLimestone]];
+    var outB1 = BF ? [['Fini, carbone e calcare a cokeria e agglomerazione', fines + coal + limestoneS], ['Pellet e PCI all\'altoforno', pelletBF + pci], ['Rottame e HBI all\'acciaieria', scrapNeed + hbi], ['Calcare ai forni a calce', kilnLimestone]]
+      : [['Pellet al reattore DRI', pelletDR], ['Rottame e HBI all\'acciaieria', scrapNeed + hbi], ['Calcare ai forni a calce', kilnLimestone]];
+    ledger('B1', inB1, outB1);
+
+    // ---------------- sottoprodotti
+    var byp = [['Loppa granulata', 'Altoforno', bfSlag, 'Cementifici'], ['Scoria di acciaieria', BF ? 'BOF, LF' : 'EAF, LF', slag4 + lfSlag, 'Inerti stradali, riciclo interno'],
+      ['Polveri e fanghi d\'altoforno', 'Altoforno', bfDust, 'Riciclo in agglomerazione'],
+      ['Polveri di abbattimento', BF ? 'BOF' : 'EAF', dust, BF ? 'Riciclo in agglomerazione o recupero' : 'Recupero zinco (processo Waelz)'], ['Scaglia di laminazione', 'Laminatoi, colata', scaleT, 'Riciclo in agglomerazione o vendita'],
+      ['Ossido di ferro', 'Rigenerazione acido', oxide, 'Vendita (ferriti, pigmenti)'], ['Rottame interno eccedente', 'Linee a valle', scrapSold, 'Vendita']]
+      .filter(function (x) { return x[2] > 0; }).map(function (x) { return { name: x[0], origin: x[1], t: x[2], dest: x[3], kg_t: x[2] / LS * 1000 }; });
+    var bypTot = byp.reduce(function (s, x) { return s + x.t; }, 0);
+    ledger('B12', byp.map(function (x) { return [x.name + ' (' + x.origin + ')', x.t]; }), byp.map(function (x) { return [x.name + ' – ' + x.dest, x.t]; }));
+
+    // ---------------- bilancio del ferro di stabilimento
+    var feIn = [['Fini di minerale', fines * I.b1.fines_Fe], ['Pellet', (pelletBF + pelletDR) * I.b1.pellet_Fe], ['Rottame acquistato', scrapBuy * I.b1.scrap_Fe], ['HBI acquistato', hbi * K.fe.hbi], ['Coil e lamiere acquistati', (flow.s17 || 0) * K.fe.coil]];
+    var feOut = [['Prodotti finiti', productTotal * K.fe.steel], ['Loppa', bfSlag * K.fe.slag_bf], ['Scoria di acciaieria', slag4 * (BF ? K.fe.slag_bof : K.fe.slag_eaf) + lfSlag * K.fe.slag_lf], ['Polveri e fanghi', dust * (BF ? K.fe.bof_dust : K.fe.dust) + bfDust * K.fe.bf_dust], ['Scaglia', scaleT * K.fe.scale], ['Ossido di ferro', oxide * K.fe.oxide], ['Rottame venduto', scrapSold * K.fe.steel]];
+    var feI = feIn.reduce(function (s, x) { return s + x[1]; }, 0), feO = feOut.reduce(function (s, x) { return s + x[1]; }, 0);
+    // il pellet del BF entra come pellet; l'agglomerato come fini: il ferro dell'agglomerato è nei fini
+    var feRes = (feI - feO) / feI;
+    if (feRes < -0.005) warn('Bilancio del ferro', 'esce più ferro di quanto ne entri (' + fmt(feRes * 100, 1) + ' % del ferro in ingresso): carica ferrosa, tenori o rese incoerenti');
+    else if (feRes > 0.05) warn('Bilancio del ferro', 'perdite di ferro non ripartite pari al ' + fmt(feRes * 100, 1) + ' % del ferro in ingresso: oltre il 5 %, tenori o rese da rivedere');
+    ledgers.Fe = { items: feIn.filter(function (x) { return x[1] > 0; }).map(function (x) { return { side: 'in', item: 'Fe – ' + x[0], t: x[1] }; }).concat(feOut.filter(function (x) { return x[1] > 0; }).map(function (x) { return { side: 'out', item: 'Fe – ' + x[0], t: x[1] }; })), t_in: feI, t_out: feO, residual: feI - feO };
+
+    // ---------------- utilities e carichi
+    var BN = { B1: 'Parco materie prime', B2: 'Cokeria e agglomerazione', B3: BF ? 'Altoforno' : (DRI ? 'Impianto DRI' : 'Area primaria'), B4: BF ? 'Convertitori (BOF)' : 'Forno elettrico (EAF)', B5: 'Metallurgia secondaria', B6: 'Colata continua', B7: A ? 'Laminazione a caldo' : 'Tubi senza saldatura', B8: A ? 'Linee a freddo e rivestimenti' : 'Tubi saldati', B9: 'Finitura e spedizione', B10: 'Servizi generali', B11: 'ASU, pompaggi, forni a calce', B12: 'Captazione fumi' };
+    var loads = Object.keys(elec).filter(function (k) { return elec[k] > 0; }).sort(function (a, b) { return +a.slice(1) - +b.slice(1); }).map(function (k) { return { block: k, item: BN[k], MWh: elec[k], MW: elec[k] / H, kWh_t: elec[k] * 1000 / LS }; });
+    var ngList = Object.keys(ng).filter(function (k) { return ng[k] > 0; }).sort(function (a, b) { return +a.slice(1) - +b.slice(1); }).map(function (k) { return { block: k, item: BN[k], GJ: ng[k], MW: ng[k] / H / 3.6, Sm3h: ng[k] * 1000 / I.site.ng_LHV / H, GJ_t: ng[k] / LS }; });
+    var waterList = Object.keys(circ).filter(function (k) { return circ[k] > 0; }).sort(function (a, b) { return +a.slice(1) - +b.slice(1); }).map(function (k) { return { block: k, item: BN[k], m3h: circ[k] / H }; });
+
+    // ---------------- energia primaria
+    var energy = { coal_GJ: (coal + pci) * 29, ng_GJ: ngTot, h2_GJ: h2 * 120, grid_GJ: Math.max(0, gridImport) * 3.6, electrodes_GJ: (electrode + chargeC) * 32 };
+    energy.total_GJ = energy.coal_GJ + energy.ng_GJ + energy.h2_GJ + energy.grid_GJ + energy.electrodes_GJ;
+
+    // ---------------- correnti
+    var S = {};
+    function st(id, name, cls, from, to, t_y, extra) { var o = { id: id, name: name, cls: cls, from: from, to: to, t_h: t_y === null ? null : t_y / H }; if (extra) Object.keys(extra).forEach(function (k) { o[k] = extra[k]; }); S[id] = o; }
+    if (BF) st('S01', 'Fini di minerale e pellet', 'solid', null, 'B1', fines + pelletBF, { note: 'nave o treno' });
+    else if (DRI) st('S01', 'Pellet di grado DR', 'solid', null, 'B1', pelletDR, { note: 'nave o treno' });
+    if (BF) st('S02', 'Carbone da coke e da iniezione', 'solid', null, 'B1', coal + pci);
+    if (scrapBuy > 0) st('S03', 'Rottame acquistato', 'solid', null, 'B1', scrapBuy, { note: 'camion o treno, controllo radioattività' });
+    if (hbi > 0) st('S04', 'HBI acquistato', 'solid', null, 'B1', hbi);
+    st('S05', I.b11.lime_kiln ? 'Calcare e dolomite' : 'Calcare e calce acquistata', 'solid', null, 'B1', limestoneS + kilnLimestone + (I.b11.lime_kiln ? 0 : lime_total));
+    if (BF) {
+      st('S06', 'Fini, carbone e fondenti', 'solid', 'B1', 'B2', fines + coal + limestoneS);
+      st('S07', 'Coke, agglomerato, pellet e PCI', 'solid', 'B2', 'B3', coke + sinter + pelletBF + pci);
+      st('S08', 'Ghisa liquida', 'metal', 'B3', 'B4', hm, { T: I.b3.hm_T });
+    } else if (DRI) {
+      st('S07', 'Pellet al reattore', 'solid', 'B1', 'B3', pelletDR);
+      st('S08', I.b4.hot_dri ? 'DRI caldo' : 'DRI freddo', I.b4.hot_dri ? 'metal' : 'solid', 'B3', 'B4', driNeed, { T: I.b4.hot_dri ? I.b3.dri_T : 25 });
+    }
+    st('S09', BF || DRI ? 'Rottame alla carica' : 'Rottame e HBI alla carica', 'solid', 'B1', 'B4', scrapNeed + hbi, { note: 'compreso il rottame interno' });
+    st('S10', 'Acciaio spillato', 'metal', 'B4', 'B5', tap, { T: 1640 });
+    st('S11', 'Acciaio liquido trattato', 'metal', 'B5', 'B6', LS, { T: 1580 });
+    if (A) {
+      st('S12', thin ? 'Bramme sottili' : 'Bramme', 'semi', 'B6', 'B7', slabs, { T: thin ? 1050 : null });
+      if (flow.s13 > 0) st('S13', 'Coil a caldo al decapaggio', 'semi', 'B7', 'B8', flow.s13);
+      st('S14', 'HRC e lamiere grosse', 'semi', 'B7', 'B9', flow.s14);
+      if (flow.s15 > 0) st('S15', 'CRC, zincati e preverniciati', 'semi', 'B8', 'B9', flow.s15);
+    } else {
+      if (rounds > 0) st('S12', 'Tondi', 'semi', 'B6', 'B7', rounds);
+      if (flow.s13 > 0) st('S13', 'Bramme per tubi saldati', 'semi', 'B6', 'B8', flow.s13);
+      if (flow.s14 > 0) st('S14', 'Tubi senza saldatura grezzi', 'semi', 'B7', 'B9', flow.s14);
+      if (flow.s15 > 0) st('S15', 'Tubi saldati', 'semi', 'B8', 'B9', flow.s15);
+      if (flow.s17 > 0) st('S17', 'Coil e lamiere acquistati', 'semi', null, 'B8', flow.s17);
+    }
+    st('S16', 'Prodotti spediti', 'semi', 'B9', null, productTotal, { note: 'ferrovia, camion, banchina' });
+    if (BF) st('S18', 'Gas di recupero alla centrale', 'gas', 'B3', 'B10', null, { MW: recGJ / H / 3.6, note: 'BFG ' + fmt(bfgPP / H / 3.6, 0) + ' MW, COG ' + fmt(cogPP / H / 3.6, 0) + ' MW, LDG ' + fmt(ldgGJ / H / 3.6, 0) + ' MW' });
+    if (h2 > 0 && !I.b3.h2_onsite) st('S26', 'Idrogeno acquistato', 'gas', null, 'B3', h2, { note: 'per il reattore DRI' });
+    st('S19', 'Gas naturale', 'gas', null, 'B11', null, { MW: ngTot / H / 3.6, Sm3h: ngSm3h });
+    st('S20', 'Ossigeno alle aree', 'tech', 'B11', null, null, { Nm3h: o2 / H, note: 'azoto ' + fmt(n2 / H, 0) + ' Nm³/h, argon ' + fmt(ar / H, 0) + ' Nm³/h' });
+    st('S21', 'Acqua di reintegro', 'water', null, 'B11', null, { m3h: makeup / H });
+    st('S22', 'Scorie, polveri e scaglie', 'by', null, 'B12', bypTot - scrapSold);
+    st('S23', 'Fumi depurati al camino', 'flue', 'B12', null, null, { Nm3h: fume / H, note: 'CO₂ diretta di stabilimento ' + fmt(co2Direct / H, 0) + ' t/h' });
+    st('S24', 'Sottoprodotti a recupero e vendita', 'by', 'B12', null, bypTot);
+    st('S25', 'Rottame interno di ritorno', 'solid', 'B6–B9', 'B1', internalScrap);
+    st('E1', gridImport >= 0 ? 'Energia elettrica dalla rete' : 'Energia elettrica in rete (esportata)', 'elec', null, 'B10', null, { MW: gridImport / H });
+    if (ownGen > 0) st('E2', 'Autoproduzione (centrale, TRT, CDQ)', 'elec', 'B10', 'B10', null, { MW: ownGen / H });
+    st('E3', 'Energia elettrica alle aree', 'elec', 'B10', null, null, { MW: eDemand / H });
+
+    // ---------------- dimensioni principali e risultati per blocco
+    var cast_util = cc.formats.map(function (q) { return q.util; });
+    blocks.B3 = r3; blocks.B4 = r4; blocks.B6 = cc; blocks.B7 = r7; blocks.B8 = r8; blocks.B9 = r9; blocks.B10 = r10;
+    blocks.B5 = { lf: Math.max(1, Math.ceil(r4.heats_day * K.lf_time / (1440 * 0.85))), degas: I.b5.degas_share > 0 ? Math.max(1, Math.ceil(r4.heats_day * I.b5.degas_share * K.degas_time / (1440 * 0.85))) : 0, degas_type: I.b5.degas_type, alloys: alloys };
+    blocks.B11 = { o2_Nm3h: o2 / H, o2_tpd: o2tpd, asu: Math.max(1, Math.ceil(o2tpd / K.cap.asu)), n2_Nm3h: n2 / H, ar_Nm3h: ar / H, circ_m3h: circTot / H, makeup_m3h: makeup / H, ng_Sm3h: ngSm3h, ng_MW: ngTot / H / 3.6, lime_tpd: lime_total / day, kilns: I.b11.lime_kiln ? Math.max(1, Math.ceil(lime_total / day / K.cap.kiln)) : 0 };
+    blocks.B12 = { fume_Nm3h: fume / H, stack_dust_t_y: stackDust, byproducts: byp };
+
+    var indicators = {
+      LS_t: LS, tap_t: tap, product_t: productTotal, yield_products: productTotal / LS, yield_LS_HRC: A ? y6 * I.b7.hsm_yield : null,
+      charge_t_t: charge / LS, metallic: { hm: hm, dri: DRI ? driNeed : 0, hbi: hbi, scrap: scrapNeed, scrapBuy: scrapBuy, internalScrap: internalScrap },
+      elec_MWh: eDemand, elec_kWh_t: eDemand * 1000 / LS, elec_MW: eDemand / H, grid_MW: gridImport / H, ownGen_MW: ownGen / H,
+      meltshop_kWh_t: ((elec.B4 || 0) + LS * I.b5.lf_kWh / 1000) * 1000 / LS,
+      ng_GJ: ngTot, ng_GJ_t: ngTot / LS, ng_MW: ngTot / H / 3.6, h2_t: h2,
+      o2_Nm3_t: o2 / LS, water_m3_t: makeup / LS, makeup_m3h: makeup / H,
+      co2_direct_t: co2Direct, co2_direct_t_t: co2Direct / LS, co2_indirect_t: co2Indirect, co2_total_t_t: (co2Direct + co2Indirect) / LS, co2_per_product: (co2Direct + co2Indirect) / productTotal,
+      energy_GJ_t: energy.total_GJ / LS, byproducts_kg_t: bypTot / LS * 1000, cast_util: cast_util
+    };
+
+    // confronto con la DF §12.1
+    var R = D.dfRanges[route], checks = [];
+    function chk(name, val, rng, unit, d) { checks.push({ name: name, value: val, range: rng, unit: unit, d: d, ok: rng ? val >= rng[0] - 1e-9 && val <= rng[1] + 1e-9 : null }); }
+    if (BF) chk('Carica ferrosa dell\'altoforno', I.b3.burden, R.charge.slice(0, 2), 't minerale/t ghisa', 2);
+    else if (DRI) chk('Pellet per DRI', I.b3.pellet_per_dri, R.charge.slice(0, 2), 't pellet/t DRI', 2);
+    if (!BF) chk('Carica metallica del forno elettrico', charge / LS, route === 'EAF' && s_d === 0 ? R.charge.slice(0, 2) : null, 't/t acciaio liquido', 3);
+    chk('Energia elettrica all\'acciaieria (fusione e siviera)', indicators.meltshop_kWh_t, route === 'EAF' && s_d > 0 ? null : R.elec, 'kWh/t', 0);
+    chk('Emissioni dirette di CO₂', indicators.co2_direct_t_t, R.co2, 't/t acciaio liquido', 2);
+    chk('Emissioni di CO₂ dirette e indirette (rete)', indicators.co2_total_t_t, R.co2, 't/t acciaio liquido', 2);
+    if (A) chk('Resa acciaio liquido → HRC', indicators.yield_LS_HRC, D.dfRanges.yieldHRC, '', 3);
+    chk('Capacità di acciaio liquido', c.capacity_Mt, D.dfRanges.capacity[c.product], 'Mt/anno', 2);
+    chk('Autonomia del parco materie prime', I.b1.autonomy_d, [30, 60], 'giorni', 0);
+
+    var res = { version: VERSION, inputs: I, blocks: blocks, streams: S, ledgers: ledgers, loads: loads, ng: ngList, water: waterList, products: products, byproducts: byp,
+      co2: { sources: C.map(function (x) { return { name: x.name, area: x.area, t: x.tC * f }; }), C_out_t: cOut * f, direct_t: co2Direct, indirect_t: co2Indirect, byArea: byArea },
+      energy: energy, indicators: indicators, checks: checks, warnings: W, blockWarnings: blockWarn, names: BN };
+    return res;
+  }
+
+  function fmt(v, d) { return (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toLocaleString('it-IT', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+
+  // blocchi della configurazione
+  function blocksFor(I) {
+    var b = ['B1'];
+    if (I.config.route === 'BF-BOF') b.push('B2', 'B3');
+    else if (I.config.route === 'DRI-EAF') b.push('B3');
+    b.push('B4', 'B5', 'B6');
+    if (I.config.product === 'A') b.push('B7', 'B8');
+    else { if (I.b8.welded_ls < 1) b.push('B7'); if (I.b8.welded_ls > 0 || I.b8.purchased_coil_Mt > 0) b.push('B8'); }
+    b.push('B9', 'B10', 'B11', 'B12');
+    return b;
+  }
+
+  return { VERSION: VERSION, K: K, solve: solve, completeInputs: completeInputs, defaultInputs: defaultInputs, validate: validate, checkValue: checkValue, param: param, blocksFor: blocksFor, getPath: getPath, setPath: setPath, clone: clone };
+});
+
+</script>
+<script id="src-docs">
+/* Simulatore acciaieria integrata – elaborati e disposizione (globale AccDocs), versione 1.0.0. Stato D.
+   Funzioni pure sui risultati di AccEngine.solve: equipment list, load list, utility summary, bilancio materiali,
+   WBS con discipline e interfacce (DF §12.2), battery limits (DF §12.3), sottoprodotti; aree della planimetria
+   schematica e altezze della vista assonometrica. Le sigle di area sono le stesse del sinottico (B1…B12). */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.AccDocs = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var AREA = { B1: '10', B2: '20', B3: '30', B4: '40', B5: '45', B6: '50', B7: '60', B8: '70', B9: '80', B10: '90', B11: '91', B12: '95' };
+  function n(v, d) { if (typeof v !== 'number' || !isFinite(v)) return '–'; return v.toLocaleString('it-IT', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }).replace(/^-/, '−'); }
+  function tag(b, code, i) { return AREA[b] + '-' + code + '-' + (i < 10 ? '0' : '') + i; }
+  function kt(t) { return n(t / 1e3, 0) + ' kt/anno'; }
+
+  // ------------------------------------------------------------------ equipment list
+  function equipmentList(r) {
+    var I = r.inputs, c = I.config, A = c.product === 'A', B = r.blocks, H = c.hours, rows = [];
+    function add(b, code, desc, qty, data, basis) { for (var i = 1; i <= Math.max(1, qty); i++) { if (qty === 0) return; rows.push([tag(b, code, i), b, desc, qty > 1 ? i + ' di ' + qty : '1', data, basis]); } }
+    function one(b, code, desc, data, basis) { rows.push([AREA[b] + '-' + code, b, desc, '1 sistema', data, basis]); }
+    one('B1', 'YRD', 'Parco materie prime a cumuli e silos', n(B.B1.stock_t / 1e3, 0) + ' kt a scorta, ' + n(B.B1.yard_m2 / 1e4, 1) + ' ha', I.b1.autonomy_d + ' giorni di autonomia (DF §3)');
+    one('B1', 'RCV', 'Ricevimento, pesatura, campionamento, portali di radioattività', 'Pese a ponte e ferroviarie', 'DF §3');
+    if (B.B2) {
+      add('B2', 'COB', 'Batteria di forni a coke con trattamento gas', B.B2.batteries, n(B.B2.coke_t / B.B2.batteries / 1e6, 2) + ' Mt coke/anno ciascuna', 'Capacità ' + n(I.b2.battery_Mt, 1) + ' Mt/anno per batteria');
+      if (I.b2.cdq) one('B2', 'CDQ', 'Spegnimento a secco del coke con caldaia di recupero', n(B.B2.coke_t / H, 0) + ' t/h coke', I.b2.cdq_kWh + ' kWh/t coke recuperati');
+      add('B2', 'SIN', 'Nastro di agglomerazione con depolverazione', B.B2.strands, n(B.B2.strand_m2 / B.B2.strands, 0) + ' m² di griglia', I.b2.sinter_prod + ' t/m²·giorno');
+    }
+    if (B.B3.unit === 'BF') {
+      add('B3', 'BF', 'Altoforno con cowper, campo di colata e depurazione gas', B.B3.n, n(B.B3.V_m3, 0) + ' m³ volume utile', n(B.B3.hm_tpd / B.B3.n, 0) + ' t ghisa/giorno ciascuno, ' + n(I.b3.bf_prod, 1) + ' t/m³·giorno');
+      if (I.b3.trt_kWh > 0) add('B3', 'TRT', 'Turbina di recupero della pressione del gas d\'altoforno', B.B3.n, n(r.blocks.B10.trt_MW / B.B3.n, 1) + ' MW', I.b3.trt_kWh + ' kWh/t ghisa');
+      if (I.b3.pci > 0) one('B3', 'PCI', 'Macinazione ed iniezione del carbone', n(I.b3.pci * B.B3.hm / 1000 / H, 0) + ' t/h', I.b3.pci + ' kg/t ghisa');
+      one('B3', 'DES', 'Desolforazione della ghisa', n(B.B3.hm / H, 0) + ' t/h ghisa', 'DF §4.1');
+    } else if (B.B3.unit === 'DRI') {
+      add('B3', 'DRI', 'Modulo di riduzione diretta a tino con riformatore', B.B3.n, n(B.B3.dri / B.B3.n / 1e6, 2) + ' Mt DRI/anno', 'MIDREX o Energiron, ' + I.b3.dri_module_Mt + ' Mt/anno max');
+      if (B.B3.electrolyser_MW > 0) one('B3', 'ELY', 'Elettrolizzatori per idrogeno', n(B.B3.electrolyser_MW, 0) + ' MW elettrici', I.b3.electrolyser_kWh + ' kWh/kg H₂');
+      if (I.b4.hot_dri) one('B3', 'HDT', 'Trasporto del DRI caldo all\'acciaieria', n(B.B3.dri / H, 0) + ' t/h a ' + I.b3.dri_T + ' °C', 'DF §4.2');
+    }
+    var b4 = B.B4;
+    if (b4.unit === 'BOF') {
+      add('B4', 'BOF', 'Convertitore a ossigeno con cappa e recupero LDG', b4.n, b4.heat + ' t/colata, tap-to-tap ' + b4.ttt + ' min', n(b4.heats_day, 1) + ' colate/giorno totali, utilizzo ' + n(b4.util * 100, 0) + ' %');
+      one('B4', 'GHO', 'Gasometro del gas di convertitore', n(I.b4.ldg_Nm3 * r.indicators.tap_t / H, 0) + ' Nm³/h medi', 'DF §5.1');
+    } else {
+      add('B4', 'EAF', 'Forno elettrico ad arco con trasformatore', b4.n, b4.heat + ' t/colata, ' + b4.MVA + ' MVA, tap-to-tap ' + b4.ttt + ' min', n(b4.kWh_t, 0) + ' kWh/t, ' + n(b4.P_on_MW, 0) + ' MW sotto arco, utilizzo ' + n(b4.util * 100, 0) + ' %');
+      add('B4', 'SVC', 'Compensatore statico SVC/STATCOM', b4.n, b4.svc_Mvar + ' Mvar', 'Flicker, DF §5.1');
+      if (I.b4.preheat) add('B4', 'CST', 'Carica continua e preriscaldo del rottame', b4.n, 'Tipo Consteel', 'DF §5.1');
+    }
+    add('B4', 'CRN', 'Carroponte di colata', Math.max(2, b4.n), b4.heat * 1.5 > 450 ? 'fino a 450 t' : n(Math.ceil(b4.heat * 1.5 / 10) * 10, 0) + ' t', 'Siviera piena, DF §5.2');
+    add('B5', 'LF', 'Forno siviera', B.B5.lf, n(I.b5.lf_kWh, 0) + ' kWh/t', '45 min per colata');
+    add('B5', B.B5.degas_type, B.B5.degas_type === 'RH' ? 'Degasaggio sotto vuoto RH' : 'Degasaggio sotto vuoto VD/VOD', B.B5.degas, n(I.b5.degas_share * 100, 0) + ' % delle colate', 'DF §5.2');
+    B.B6.formats.forEach(function (f, k) {
+      add('B6', f.kind === 'Tondi' ? 'RCC' : (f.kind === 'Bramme' ? 'SCC' : 'TSC'), 'Macchina di colata continua – ' + f.kind.toLowerCase(), f.machines, Math.ceil(f.strands / f.machines) + ' linee, ' + f.section + ', ' + n(f.speed, 1) + ' m/min', n(f.tph_strand, 0) + ' t/h per linea, utilizzo ' + n(f.util * 100, 0) + ' %');
+    });
+    if (A) {
+      add('B7', c.caster === 'thin' ? 'TUN' : 'RHF', c.caster === 'thin' ? 'Forno a tunnel della linea thin slab' : 'Forno di riscaldo a longheroni mobili', B.B7.furnaces, c.caster === 'thin' ? 'Collegato a una linea di colata' : I.b7.furnace_tph + ' t/h', '1.150–1.250 °C, DF §7.1');
+      add('B7', 'HSM', 'Treno nastri a caldo: sbozzatore, coil box, finitore a 6–7 gabbie, raffreddamento laminare, aspi', B.B7.hsm, kt(B.B7.toHSM / B.B7.hsm) + ' di bramme', 'DF §7.1');
+      add('B7', 'PLM', 'Treno lamiere quarto reversibile con raffreddamento accelerato (TMCP)', B.B7.plateMill, kt(B.B7.toPlate), 'Lamiere 5–150 mm');
+      add('B8', 'TCM', 'Decapaggio accoppiato al treno tandem (PL-TCM) con rigenerazione acido', B.B8.tcm, kt(B.B8.toCold / Math.max(1, B.B8.tcm)), 'Riduzione 50–85 %, DF §7.2');
+      add('B8', I.b8.anneal, I.b8.anneal === 'CAL' ? 'Linea di ricottura continua con skin pass' : 'Forni di ricottura a campana', B.B8.anneal, kt(B.B8.coldOut / Math.max(1, B.B8.anneal)), 'DF §7.3');
+      add('B8', 'CGL', 'Linea di zincatura continua a caldo', B.B8.cgl, kt(B.B8.coated / Math.max(1, B.B8.cgl)), 'DF §7.4');
+    } else {
+      add('B7', 'RHF', 'Forno a suola rotante', B.B7.mills, n(B.B7.rounds / H / Math.max(1, B.B7.mills), 0) + ' t/h', '1.250–1.300 °C, DF §8.1');
+      add('B7', 'SML', 'Laminatoio tubi: perforatore, mandrino trattenuto, riduttore-stiratore', B.B7.mills, kt(B.B7.rounds / Math.max(1, B.B7.mills)) + ' di tondi', 'DE 60–406 mm, DF §8.1');
+      add('B8', 'STR', 'Treno compatto coil e lamiere per tubi saldati', B.B8.strip, kt(B.B8.slabs), 'Bramme dalla colata interna');
+      add('B8', 'ERW', 'Linea ERW/HFI', B.B8.erwLines, '½"–24"', 'DF §8.2');
+      add('B8', 'UOE', 'Linea SAW longitudinale (UOE o JCOE)', B.B8.sawlLines, '16"–60"', 'DF §8.2');
+      add('B8', 'SPW', 'Linea SAW elicoidale', B.B8.sawhLines, '20"–100"', 'DF §8.2');
+      if (B.B9.qtLines) add('B9', 'QT', 'Linea di tempra e rinvenimento', B.B9.qtLines, kt(B.B9.qt / B.B9.qtLines), 'Gradi OCTG, DF §8.3');
+      one('B9', 'NDT', 'Controlli non distruttivi, prova idrostatica, filettatura', 'Tutti i tubi', 'API 5CT / API 5L');
+      if (B.B9.coatLines) add('B9', 'CTG', 'Linea di rivestimento esterno 3LPE/3LPP/FBE', B.B9.coatLines, kt(B.B9.coat / B.B9.coatLines), 'DF §8.3');
+    }
+    one('B9', 'WH', 'Magazzino prodotti e spedizione', kt(r.indicators.product_t), 'Raccordo ferroviario e banchina');
+    var b10 = B.B10;
+    one('B10', 'SS', 'Sottostazione AT con trasformatori', b10.substation_MVA + ' MVA, ' + b10.kV, 'Punta stimata ' + n(b10.peak_MW, 0) + ' MW');
+    if (b10.pp_MW > 0) one('B10', 'PP', 'Centrale a gas di recupero (BFG, COG, LDG)', n(b10.pp_MW, 0) + ' MW elettrici medi', 'Rendimento ' + n(I.b10.pp_eta * 100, 0) + ' %');
+    add('B11', 'ASU', 'Impianto di separazione aria (O₂, N₂, Ar)', B.B11.asu, n(B.B11.o2_tpd / B.B11.asu, 0) + ' t/giorno O₂ di progetto', 'Punta ' + I.b11.o2_peak + ' × media');
+    one('B11', 'CW', 'Circuiti di raffreddamento e torri', n(B.B11.circ_m3h, 0) + ' m³/h ricircolati', 'Reintegro ' + n(B.B11.makeup_m3h, 0) + ' m³/h');
+    one('B11', 'NG', 'Stazione di ricevimento e riduzione del gas naturale', n(B.B11.ng_Sm3h, 0) + ' Sm³/h', n(B.B11.ng_MW, 0) + ' MW PCI');
+    add('B11', 'LK', 'Forno a calce', B.B11.kilns, n(B.B11.lime_tpd / Math.max(1, B.B11.kilns), 0) + ' t/giorno calce', 'DF §3');
+    one('B12', 'FTP', 'Captazione fumi primari e secondari con filtri a maniche', n(B.B12.fume_Nm3h / 1e3, 0) + ' kNm³/h', 'Polveri ' + I.b12.dust_mg + ' mg/Nm³, DF §10.1');
+    one('B12', 'WTP', 'Trattamento acque di processo e di laminazione', 'Fosse scaglie, filtri a sabbia, separazione oli', 'DF §9');
+    one('B12', 'BPY', 'Area di trattamento scorie e sottoprodotti', kt(r.byproducts.reduce(function (s, x) { return s + x.t; }, 0)), 'DF §10.2');
+    return { code: 'EL', title: 'Equipment list', cols: ['Sigla', 'Area', 'Apparecchiatura', 'Quantità', 'Dato principale', 'Base di dimensionamento'], rows: rows,
+      notes: ['Sigla = area-codice-progressivo; area con la numerazione dello schema a blocchi (B1 = 10 … B12 = 95).', 'Quantità e taglie da regole di dimensionamento di screening: da sostituire con le offerte dei licenziatari.'] };
+  }
+
+  // ------------------------------------------------------------------ load list
+  function loadList(r) {
+    var H = r.inputs.config.hours, rows = r.loads.map(function (l) { return [AREA[l.block] + ' ' + l.block, l.item, n(l.MWh / 1e3, 1), n(l.MW, 1), n(l.kWh_t, 0)]; });
+    var tot = r.loads.reduce(function (s, l) { return s + l.MWh; }, 0);
+    rows.push(['', 'Totale utenze', n(tot / 1e3, 1), n(tot / H, 1), n(tot * 1000 / r.indicators.LS_t, 0)]);
+    rows.push(['', 'Perdite di trasformazione e distribuzione', n(tot * r.inputs.b10.losses / 1e3, 1), n(tot * r.inputs.b10.losses / H, 1), '']);
+    rows.push(['', 'Domanda totale', n(r.indicators.elec_MWh / 1e3, 1), n(r.indicators.elec_MW, 1), n(r.indicators.elec_kWh_t, 0)]);
+    rows.push(['', 'Autoproduzione (centrale, TRT, CDQ)', n(r.indicators.ownGen_MW * H / 1e3, 1), n(r.indicators.ownGen_MW, 1), '']);
+    rows.push(['', r.indicators.grid_MW >= 0 ? 'Prelievo dalla rete' : 'Cessione alla rete', n(Math.abs(r.indicators.grid_MW) * H / 1e3, 1), n(Math.abs(r.indicators.grid_MW), 1), '']);
+    return { code: 'LL', title: 'Load list elettrica per area', cols: ['Area', 'Utenza', 'GWh/anno', 'MW medi', 'kWh/t acciaio'], rows: rows, totals: 5,
+      notes: ['Punta stimata ' + n(r.blocks.B10.peak_MW, 0) + ' MW; sottostazione ' + r.blocks.B10.substation_MVA + ' MVA a ' + r.blocks.B10.kV + ' (DF §9: AT 220–400 kV).', 'Carichi medi sulle ore di esercizio; i forni ad arco sono a punta con il tempo sotto arco.'] };
+  }
+
+  // ------------------------------------------------------------------ utility summary
+  function utilitySummary(r) {
+    var B = r.blocks, k = r.indicators, LS = k.LS_t, H = r.inputs.config.hours, rows = [];
+    rows.push(['Energia elettrica', 'Domanda totale', n(k.elec_MW, 1) + ' MW', n(k.elec_kWh_t, 0) + ' kWh/t', 'Rete AT e autoproduzione']);
+    r.ng.forEach(function (g) { rows.push(['Gas naturale', g.block + ' ' + g.item, n(g.Sm3h, 0) + ' Sm³/h', n(g.GJ_t, 2) + ' GJ/t', n(g.MW, 1) + ' MW PCI']); });
+    rows.push(['Gas naturale', 'Totale', n(B.B11.ng_Sm3h, 0) + ' Sm³/h', n(k.ng_GJ_t, 2) + ' GJ/t', n(k.ng_MW, 0) + ' MW PCI']);
+    if (k.h2_t > 0) rows.push(['Idrogeno', 'Gas riducente DRI', n(k.h2_t * 1000 / H, 0) + ' kg/h', n(k.h2_t * 1000 / LS, 1) + ' kg/t', r.inputs.b3.h2_onsite ? 'Elettrolisi nel sito' : 'Acquistato']);
+    rows.push(['Ossigeno', 'BOF/EAF, altoforno, ossitaglio', n(B.B11.o2_Nm3h, 0) + ' Nm³/h', n(k.o2_Nm3_t, 0) + ' Nm³/t', n(B.B11.o2_tpd, 0) + ' t/giorno di progetto']);
+    rows.push(['Azoto', 'Inertizzazione, tenute, spurghi', n(B.B11.n2_Nm3h, 0) + ' Nm³/h', n(r.inputs.b11.n2, 0) + ' Nm³/t', 'ASU']);
+    rows.push(['Argon', 'Agitazione in siviera', n(B.B11.ar_Nm3h, 0) + ' Nm³/h', n(r.inputs.b5.argon, 1) + ' Nm³/t', 'ASU']);
+    r.water.forEach(function (w) { rows.push(['Acqua di raffreddamento', w.block + ' ' + w.item, n(w.m3h, 0) + ' m³/h', n(w.m3h * H / LS, 1) + ' m³/t', 'Ricircolo']); });
+    rows.push(['Acqua', 'Reintegro totale', n(B.B11.makeup_m3h, 0) + ' m³/h', n(k.water_m3_t, 2) + ' m³/t', 'Evaporazione, spurghi, prove idrostatiche']);
+    rows.push(['Calce', 'Convertitore o forno elettrico, siviera', n(B.B11.lime_tpd, 0) + ' t/giorno', '', r.inputs.b11.lime_kiln ? 'Forni a calce nel sito' : 'Acquistata']);
+    return { code: 'US', title: 'Utility summary', cols: ['Utility', 'Utenza', 'Portata media', 'Specifico', 'Note'], rows: rows, notes: ['Portate medie; il dimensionamento delle reti usa le punte (ossigeno ' + r.inputs.b11.o2_peak + ' × media).'] };
+  }
+
+  // ------------------------------------------------------------------ bilancio materiali
+  function materialBalance(r) {
+    var H = r.inputs.config.hours, rows = Object.keys(r.streams).sort(sortId).map(function (id) {
+      var s = r.streams[id];
+      return [id, s.name, s.from || 'limite di batteria', s.to || 'limite di batteria', s.t_h !== null ? n(s.t_h, 1) : '', s.t_h !== null ? n(s.t_h * H / 1e3, 0) : '', other(s)];
+    });
+    return { code: 'MB', title: 'Bilancio materiali e correnti', cols: ['Corrente', 'Descrizione', 'Da', 'A', 't/h', 'kt/anno', 'Altro'], rows: rows, notes: ['Stesse sigle dello schema a blocchi e della tabella delle correnti.'] };
+  }
+  function other(s) {
+    var o = [];
+    if (typeof s.T === 'number') o.push(n(s.T, 0) + ' °C');
+    if (typeof s.MW === 'number') o.push(n(s.MW, 1) + ' MW');
+    if (typeof s.Nm3h === 'number') o.push(n(s.Nm3h, 0) + ' Nm³/h');
+    if (typeof s.Sm3h === 'number') o.push(n(s.Sm3h, 0) + ' Sm³/h');
+    if (typeof s.m3h === 'number') o.push(n(s.m3h, 0) + ' m³/h');
+    if (s.note) o.push(s.note);
+    return o.join(', ');
+  }
+  function sortId(a, b) { var ka = (a[0] === 'S' ? 0 : 100) + +a.slice(1), kb = (b[0] === 'S' ? 0 : 100) + +b.slice(1); return ka - kb; }
+
+  // ------------------------------------------------------------------ WBS, discipline e interfacce (DF §12.2)
+  function wbs(r) {
+    var B = r.blocks, A = r.inputs.config.product === 'A', BF = r.inputs.config.route === 'BF-BOF', rows = [];
+    function row(b, area, disc, intf, qty) { rows.push([AREA[b], b, area, disc, intf, qty]); }
+    row('B1', 'Parco materie prime', 'Civile, strutture, meccanica (nastri, stacker-reclaimer)', 'Porto, ferrovia, impianti a valle', n(B.B1.yard_m2 / 1e4, 1) + ' ha, ' + n(B.B1.stock_t / 1e3, 0) + ' kt a scorta');
+    if (B.B2) row('B2', 'Cokeria e agglomerazione', 'Processo, refrattari, meccanica, trattamento gas', 'Gas di cokeria, centrale, acque', B.B2.batteries + ' batterie, ' + B.B2.strands + ' nastri da ' + n(B.B2.strand_m2 / B.B2.strands, 0) + ' m²');
+    if (B.B3.unit) row('B3', BF ? 'Area primaria – altoforno' : 'Area primaria – riduzione diretta', 'Processo, meccanica, refrattari, strutture pesanti', 'Gas di processo, ASU, acqua, energia', BF ? B.B3.n + ' altoforno da ' + n(B.B3.V_m3, 0) + ' m³' : B.B3.n + ' moduli DRI');
+    row('B4', 'Acciaieria', 'Strutture pesanti (capannoni con carriponti fino a circa 450 t), elettrico AT, captazione fumi', 'Sottostazione, gas tecnici, colata', B.B4.n + ' ' + B.B4.unit + ' da ' + B.B4.heat + ' t');
+    row('B5', 'Metallurgia secondaria', 'Meccanica, elettrico, vuoto, automazione', 'Acciaieria, colata, gas tecnici', B.B5.lf + ' LF, ' + B.B5.degas + ' ' + B.B5.degas_type);
+    row('B6', 'Colata continua', 'Meccanica, fluidi, automazione', 'Acque di raffreddamento, forni di riscaldo', B.B6.formats.map(function (f) { return f.machines + ' macchine ' + f.kind.toLowerCase() + ' (' + f.strands + ' linee)'; }).join(', '));
+    if (A) {
+      row('B7', 'Laminazione a caldo', 'Fondazioni pesanti, idraulica, azionamenti, automazione L1–L2', 'Trattamento acque, officina cilindri', B.B7.hsm + ' HSM' + (B.B7.plateMill ? ', 1 treno lamiere' : ''));
+      row('B8', 'Linee a freddo e rivestimenti', 'Fondazioni pesanti, idraulica, azionamenti, automazione L1–L2, chimica (ARP)', 'Trattamento acque, rigenerazione acido, gas', B.B8.tcm + ' PL-TCM, ' + B.B8.anneal + ' ' + r.inputs.b8.anneal + ', ' + B.B8.cgl + ' CGL');
+    } else {
+      if (B.B7.mills) row('B7', 'Tubi senza saldatura', 'Meccanica, automazione, trattamenti termici', 'Magazzini, laboratori', B.B7.mills + ' laminatoi');
+      if (B.B8.strip || B.B8.coilBuy) row('B8', 'Tubi saldati', 'Meccanica, saldatura, automazione, NDT', 'Magazzini coil, laboratori', [B.B8.erwLines + ' ERW', B.B8.sawlLines + ' SAWL', B.B8.sawhLines + ' SAWH'].join(', '));
+    }
+    row('B9', A ? 'Finitura e spedizione' : 'Finitura tubi e spedizione', A ? 'Meccanica, automazione, logistica' : 'Meccanica, automazione, NDT, trattamenti termici', 'Magazzini, spedizioni, laboratori', kt(r.indicators.product_t));
+    row('B10', 'Energia elettrica' + (B.B10.pp_MW > 0 ? ' e centrale a gas di recupero' : ''), 'Elettrico AT/MT/BT, meccanica', 'Rete AT, tutte le aree', B.B10.substation_MVA + ' MVA' + (B.B10.pp_MW > 0 ? ', centrale ' + n(B.B10.pp_MW, 0) + ' MW' : ''));
+    row('B11', 'Utilities e infrastrutture', 'Elettrico, meccanica, processo, civile', 'Tutte le aree e i battery limits di sito', B.B11.asu + ' ASU, ' + n(B.B11.circ_m3h, 0) + ' m³/h di ricircolo');
+    row('B12', 'Ambiente e sottoprodotti', 'Processo, meccanica, civile', 'Acciaieria, laminatoi, autorità', n(B.B12.fume_Nm3h / 1e3, 0) + ' kNm³/h di fumi');
+    return { code: 'WBS', title: 'WBS: aree, discipline e interfacce', cols: ['WBS', 'Blocco', 'Area', 'Discipline prevalenti', 'Interfacce critiche', 'Quantità di riferimento'], rows: rows, wrap: [3, 4, 5],
+      notes: ['Discipline e interfacce dalla DF §12.2; quantità dal caso corrente, utili per la stima delle ore di ingegneria.'] };
+  }
+
+  // ------------------------------------------------------------------ battery limits (DF §12.3)
+  function batteryLimits(r) {
+    var I = r.inputs, c = I.config, k = r.indicators, B = r.blocks, rows = [];
+    var routeName = { 'BF-BOF': 'BF-BOF', 'DRI-EAF': 'DRI-EAF', EAF: 'EAF a rottame' }[c.route];
+    rows.push(['Rotta di processo e licenziatari di tecnologia', routeName + '; licenziatari da definire per ogni area', 'Aperto']);
+    rows.push(['Mix di prodotto e capacità di progetto per linea', r.products.map(function (p) { return p.name + ' ' + n(p.t / 1e3, 0) + ' kt'; }).join('; '), 'Da confermare']);
+    rows.push(['Allaccio alla rete elettrica AT', B.B10.substation_MVA + ' MVA, ' + B.B10.kV + '; prelievo medio ' + n(Math.max(0, k.grid_MW), 0) + ' MW', 'Aperto']);
+    rows.push(['Allaccio gas naturale', n(B.B11.ng_Sm3h, 0) + ' Sm³/h medi', 'Aperto']);
+    if (k.h2_t > 0 && !I.b3.h2_onsite) rows.push(['Fornitura di idrogeno', n(k.h2_t * 1000 / c.hours, 0) + ' kg/h', 'Aperto']);
+    rows.push(['Presa d\'acqua grezza', n(B.B11.makeup_m3h, 0) + ' m³/h di reintegro', 'Aperto']);
+    rows.push(['Infrastrutture logistiche', 'Ingresso ' + n(Object.keys(r.streams).filter(function (id) { var s = r.streams[id]; return !s.from && s.t_h; }).reduce(function (s, id) { return s + r.streams[id].t_h; }, 0) * c.hours / 1e6, 2) + ' Mt/anno, uscita prodotti ' + n(k.product_t / 1e6, 2) + ' Mt/anno', 'Aperto']);
+    rows.push(['Ripartizione tra pacchetto tecnologico e scope EPC', 'Per area, secondo la WBS', 'Aperto']);
+    rows.push(['Permessi ambientali e garanzie di prestazione', 'CO₂ diretta ' + n(k.co2_direct_t / 1e6, 2) + ' Mt/anno (ETS, CBAM); polveri ' + I.b12.dust_mg + ' mg/Nm³', 'Aperto']);
+    return { code: 'BL', title: 'Battery limits e punti aperti in offerta', cols: ['Voce (DF §12.3)', 'Valore del caso', 'Stato'], rows: rows, wrap: [1], notes: ['Voci della DF §12.3 riempite con i valori del caso; lo stato resta da gestire in offerta.'] };
+  }
+
+  // ------------------------------------------------------------------ sottoprodotti
+  function byproducts(r) {
+    var rows = r.byproducts.map(function (b) { return [b.name, b.origin, n(b.t / r.inputs.config.hours, 1), n(b.t / 1e3, 0), n(b.kg_t, 0), b.dest]; });
+    return { code: 'BP', title: 'Sottoprodotti e destinazioni', cols: ['Sottoprodotto', 'Origine', 't/h', 'kt/anno', 'kg/t acciaio', 'Destinazione tipica (DF §10.2)'], rows: rows, notes: [] };
+  }
+
+  var ALL = [{ code: 'EL', title: 'Equipment list', fn: equipmentList }, { code: 'LL', title: 'Load list', fn: loadList }, { code: 'US', title: 'Utility summary', fn: utilitySummary },
+    { code: 'MB', title: 'Bilancio materiali', fn: materialBalance }, { code: 'WBS', title: 'WBS e interfacce', fn: wbs }, { code: 'BL', title: 'Battery limits', fn: batteryLimits }, { code: 'BP', title: 'Sottoprodotti', fn: byproducts }];
+
+  function toCSV(t) {
+    function q(v) { v = String(v === undefined || v === null ? '' : v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+    return '﻿' + [t.cols].concat(t.rows).map(function (r) { return r.map(q).join(';'); }).join('\r\n') + '\r\n';
+  }
+  function toMD(t, meta) {
+    var s = '# ' + t.title + '\n\n';
+    if (meta) s += Object.keys(meta).map(function (k) { return '- **' + k + '**: ' + meta[k]; }).join('\n') + '\n\n';
+    s += '| ' + t.cols.join(' | ') + ' |\n| ' + t.cols.map(function () { return '---'; }).join(' | ') + ' |\n';
+    s += t.rows.map(function (r) { return '| ' + r.map(function (v) { return String(v).replace(/\|/g, '\\|'); }).join(' | ') + ' |'; }).join('\n') + '\n';
+    if (t.notes && t.notes.length) s += '\n' + t.notes.map(function (x) { return '- ' + x; }).join('\n') + '\n';
+    return s;
+  }
+
+  // ------------------------------------------------------------------ planimetria schematica
+  // superfici tipiche di screening, ha [R]; altezza tipica degli edifici o degli impianti, m [R]
+  function areas(r) {
+    var B = r.blocks, I = r.inputs, A = I.config.product === 'A', L = [];
+    function a(b, name, ha, h) { if (ha > 0) L.push({ b: b, name: name, ha: ha, h: h }); }
+    a('B1', 'Parco materie prime', B.B1.yard_m2 / 1e4 * 1.3, 14);
+    if (B.B2) { a('B2', 'Cokeria', B.B2.batteries * 12, 30); a('B2', 'Agglomerazione', B.B2.strands * 6, 35); }
+    if (B.B3.unit === 'BF') a('B3', 'Altoforno', B.B3.n * 9, 100);
+    if (B.B3.unit === 'DRI') a('B3', 'Impianto DRI', B.B3.n * 5 + (B.B3.electrolyser_MW > 0 ? B.B3.electrolyser_MW / 100 * 1.5 : 0), 130);
+    a('B4', 'Acciaieria', 2 + B.B4.n * 2.5, 50);
+    a('B5', 'Metallurgia secondaria', 0.6 + B.B5.lf * 0.4 + B.B5.degas * 0.5, 40);
+    a('B6', 'Colata continua', B.B6.formats.reduce(function (s, f) { return s + f.machines * 1.6; }, 0), 35);
+    if (A) {
+      a('B7', 'Treno nastri a caldo', B.B7.hsm * 9 + B.B7.furnaces * 0.5, 28);
+      a('B7', 'Treno lamiere', B.B7.plateMill * 7, 28);
+      a('B8', 'Linee a freddo', B.B8.tcm * 5 + B.B8.anneal * 3 + B.B8.cgl * 3, 32);
+    } else {
+      a('B7', 'Laminatoio tubi senza saldatura', B.B7.mills * 6, 25);
+      a('B8', 'Tubi saldati', B.B8.strip * 6 + B.B8.erwLines * 1.5 + B.B8.sawlLines * 3 + B.B8.sawhLines * 2, 22);
+    }
+    a('B9', A ? 'Finitura e magazzino coil' : 'Finitura tubi e magazzino', r.indicators.product_t / 1e6 * 3 + (B.B9.qtLines || 0) * 1.5 + (B.B9.coatLines || 0) * 2, 16);
+    a('B10', 'Sottostazione' + (B.B10.pp_MW > 0 ? ' e centrale' : ''), 2 + B.B10.pp_MW / 100 * 3, B.B10.pp_MW > 0 ? 45 : 20);
+    a('B11', 'ASU, acqua, gas, calce', B.B11.asu * 1 + B.B11.circ_m3h / 1e4 * 0.5 + B.B11.kilns * 0.5 + 1, 45);
+    a('B12', 'Fumi, acque, sottoprodotti', B.B4.n * 1.5 + r.indicators.byproducts_kg_t * r.indicators.LS_t / 1e9 * 2 + 1, 25);
+    return L;
+  }
+  // due file parallele: processo (B1…B9) e servizi (B10…B12), separate da una strada di 30 m
+  function layout(r) {
+    var L = areas(r), proc = L.filter(function (x) { return +x.b.slice(1) <= 9; }), util = L.filter(function (x) { return +x.b.slice(1) >= 10; });
+    var procHa = proc.reduce(function (s, p) { return s + p.ha; }, 0);
+    var depth1 = Math.max(250, Math.round(Math.sqrt(procHa * 1e4 / 3.2) / 10) * 10), depth2 = Math.round(depth1 / 2), road = 30, gap = 20, x = 0, rects = [];
+    proc.forEach(function (p) { var w = p.ha * 1e4 / depth1; rects.push({ b: p.b, name: p.name, ha: p.ha, h: p.h, x: x, y: 0, w: w, d: depth1 }); x += w + gap; });
+    var wProc = x - gap, x2 = 0;
+    util.forEach(function (p) { var w = p.ha * 1e4 / depth2; rects.push({ b: p.b, name: p.name, ha: p.ha, h: p.h, x: x2, y: depth1 + road, w: w, d: depth2 }); x2 += w + gap; });
+    var W = Math.max(wProc, x2 - gap), Dp = depth1 + road + depth2;
+    var site = (W + 120) * (Dp + 120) / 1e4;
+    return { rects: rects, W: W, D: Dp, site_ha: site, built_ha: L.reduce(function (s, x) { return s + x.ha; }, 0) };
+  }
+
+  return { AREA: AREA, ALL: ALL, equipmentList: equipmentList, loadList: loadList, utilitySummary: utilitySummary, materialBalance: materialBalance, wbs: wbs, batteryLimits: batteryLimits, byproducts: byproducts, toCSV: toCSV, toMD: toMD, layout: layout, areas: areas, sortId: sortId, other: other };
+});
+
+</script>
+<script id="src-page">
+/* Simulatore acciaieria integrata – logica della pagina (globale AccPage), versione 1.0.0. Stato D.
+   Legge AccData, AccEngine e AccDocs. Nessuna richiesta di rete: i file sono consegnati come download
+   (capacità downloads del visualizzatore claude.ai, oppure un link Blob quando la pagina è aperta da file). */
+(function () {
+  'use strict';
+  var D = window.AccData, E = window.AccEngine, Dc = window.AccDocs;
+  var VERSION = '1.0.0', STORE = 'acc-sim-case-1';
+
+  // ================================================================ utilità
+  function $(id) { return document.getElementById(id); }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); return n; }
+  function el(tag, a, kids) {
+    var n = document.createElement(tag);
+    if (a) Object.keys(a).forEach(function (k) {
+      var v = a[k]; if (v === null || v === undefined || v === false) return;
+      if (k === 'text') n.textContent = v; else if (k === 'cls') n.className = v; else if (k.slice(0, 2) === 'on') n.addEventListener(k.slice(2), v); else n.setAttribute(k, v === true ? '' : v);
+    });
+    (kids || []).forEach(function (c) { if (c === null || c === undefined) return; n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    return n;
+  }
+  var NS = 'http://www.w3.org/2000/svg';
+  function sv(tag, a, text) { var n = document.createElementNS(NS, tag); Object.keys(a || {}).forEach(function (k) { if (a[k] !== null && a[k] !== undefined) n.setAttribute(k, a[k]); }); if (text !== undefined) n.textContent = text; return n; }
+  function isNum(v) { return typeof v === 'number' && isFinite(v); }
+  function fx(v, d) { if (!isNum(v)) return '–'; return v.toLocaleString('it-IT', { minimumFractionDigits: d, maximumFractionDigits: d }).replace(/^-/, '−'); }
+  function sig(v) { if (!isNum(v)) return '–'; var a = Math.abs(v); return fx(v, a >= 1000 ? 0 : a >= 100 ? 1 : a >= 10 ? 1 : a >= 1 ? 2 : a === 0 ? 0 : 3); }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function flatten(o, pre, out) { out = out || {}; Object.keys(o || {}).forEach(function (k) { var p = pre ? pre + '.' + k : k; if (o[k] !== null && typeof o[k] === 'object') flatten(o[k], p, out); else out[p] = o[k]; }); return out; }
+  function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return ('00000000' + (h >>> 0).toString(16)).slice(-8); }
+  function activate(n, fn) { n.addEventListener('click', fn); n.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } }); }
+  function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+  function kv(rows) { var dl = el('dl', { cls: 'kv' }); rows.forEach(function (r) { if (!r) return; dl.appendChild(el('dt', { text: r[0] })); dl.appendChild(el('dd', { text: r[1] })); }); return dl; }
+  function table(cols, rows, opt) {
+    opt = opt || {}; var num = opt.num || [], wrap = opt.wrap || [];
+    var t = el('table', { cls: opt.cls || null }), th = el('tr');
+    cols.forEach(function (c, i) { th.appendChild(el('th', { text: c, cls: num.indexOf(i) >= 0 ? 'n' : (wrap.indexOf(i) >= 0 ? 'wrap' : null), scope: 'col' })); });
+    t.appendChild(el('thead', null, [th]));
+    var tb = el('tbody');
+    rows.forEach(function (r) {
+      var tr = el('tr', { cls: r._cls || null });
+      r.forEach(function (v, i) { var td = el('td', { cls: num.indexOf(i) >= 0 ? 'n' : (wrap.indexOf(i) >= 0 ? 'wrap' : null) }); if (v instanceof Node) td.appendChild(v); else td.textContent = v === null || v === undefined ? '' : v; tr.appendChild(td); });
+      if (r._on) { tr.addEventListener('click', r._on); }
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    return el('div', { cls: 'tscroll' }, [t]);
+  }
+  function pill(ok) { return ok === null ? el('span', { cls: 'pill na', text: 'n.a.' }) : el('span', { cls: 'pill ' + (ok ? 'ok' : 'bad'), text: ok ? '● nel campo' : '▲ fuori campo' }); }
+
+  // ================================================================ stato
+  var P = {}; D.params.forEach(function (p) { P[p.path] = p; });
+  var st = { caseId: 'A1', user: null, calc: null, sel: { type: 'case', id: null }, open: {}, A: null, B: null, log: [], dv: 'EL', dvGen: {}, ledger: 'plant' };
+  var fieldReg = {};
+
+  function presetUser(id) { var c = D.cases.cases[id]; return E.completeInputs(clone(c.inputs)); }
+  function product() { return st.user.config.product; }
+  function route() { return st.user.config.route; }
+  function used(blocksList, b) { return blocksList.indexOf(b) >= 0; }
+
+  // ================================================================ calcolo
+  function refresh(note) {
+    var u = clone(st.user), out;
+    try { out = { ok: true, res: E.solve(u) }; } catch (e) { out = { ok: false, error: { name: e.name, message: e.message, path: e.path } }; }
+    out.user = u; out.hash = hash(JSON.stringify(u)); out.time = new Date(); out.caseId = st.caseId;
+    st.calc = out;
+    if (out.ok) {
+      var k = out.res.indicators;
+      st.log.unshift({ time: out.time, caseId: st.caseId, product: u.config.product, route: u.config.route, LS: u.config.capacity_Mt, kwh: k.elec_kWh_t, co2: k.co2_direct_t_t, hash: out.hash, note: note || '' });
+      if (st.log.length > 30) st.log.pop();
+      Object.keys(st.dvGen).forEach(function (c) { st.dvGen[c] = gen(c); });
+      if (!st.dvGen[st.dv]) st.dvGen[st.dv] = gen(st.dv);
+    }
+    store(STORE, { schema: 'acc-case/1', caseId: st.caseId, inputs: st.user });
+    renderAll();
+  }
+  function changedPaths() {
+    if (!st.calc) return [];
+    var a = flatten(st.user), b = flatten(st.calc.user);
+    return Object.keys(a).filter(function (k) { return JSON.stringify(a[k]) !== JSON.stringify(b[k]); });
+  }
+  function res() { return st.calc && st.calc.ok ? st.calc.res : null; }
+
+  // ================================================================ rendering complessivo
+  function renderAll() {
+    $('tb-case').textContent = st.caseId + (changedPaths().length ? ' (modificato)' : '');
+    syncToolbar(); renderStale(); renderProducts(); renderStatus(); drawDiagram(); renderInspector(); renderInputs();
+    renderBalances(); renderEmissions(); renderDF(); renderAux(); renderSizes(); renderStreams(); renderCompare(); renderLog(); renderIso(); renderDeliverables(); renderPlot();
+  }
+  function syncToolbar() {
+    $('preset').value = D.cases.cases[st.caseId] ? st.caseId : '';
+    $('q-product').value = product(); $('q-route').value = route();
+  }
+  function renderStale() {
+    var s = $('stale'), ch = changedPaths(), c = st.calc; clear(s);
+    var fresh = !ch.length;
+    s.className = 'stale' + (fresh ? ' fresh' : '');
+    $('btn-refresh').classList.toggle('due', !fresh);
+    $('products').classList.toggle('old', !fresh);
+    $('pfd').classList.toggle('stale', !fresh);
+    if (fresh) {
+      s.appendChild(el('span', { cls: 'head', text: c && c.ok ? '● Risultati aggiornati' : '▲ Ultimo calcolo rifiutato' }));
+      s.appendChild(el('span', { cls: 'meta', text: 'caso ' + st.caseId + ' · input ' + (c ? c.hash : '–') + ' · ' + (c ? c.time.toLocaleTimeString('it-IT') : '') + ' · motore ' + E.VERSION }));
+    } else {
+      s.appendChild(el('span', { cls: 'head', text: '▲ Risultati non aggiornati' }));
+      s.appendChild(el('span', { text: ch.length + (ch.length === 1 ? ' input modificato' : ' input modificati') + ' dopo l\'ultimo calcolo: premi Aggiorna.' }));
+      s.appendChild(el('span', { cls: 'meta', text: ch.slice(0, 6).join(', ') + (ch.length > 6 ? ' …' : '') }));
+    }
+  }
+  function renderProducts() {
+    var box = clear($('products')), r = res(), k = r ? r.indicators : null, H = r ? r.inputs.config.hours : 1;
+    function cell(lbl, val, unit, sub) { box.appendChild(el('div', null, [el('div', { cls: 'lbl', text: lbl }), el('div', { cls: 'val' }, [val, unit ? el('span', { cls: 'unit', text: ' ' + unit }) : null]), sub ? el('div', { cls: 'sub', text: sub }) : null])); }
+    cell('Acciaio liquido', k ? fx(k.LS_t / 1e6, 2) : '–', 'Mt/anno', k ? fx(k.LS_t / H, 0) + ' t/h · ' + fx(r.blocks.B4.heats_day, 0) + ' colate/giorno' : null);
+    cell('Prodotti finiti', k ? fx(k.product_t / 1e6, 2) : '–', 'Mt/anno', k ? 'resa ' + fx(k.yield_products * 100, 1) + ' % sul liquido' : null);
+    cell('Energia elettrica', k ? fx(k.elec_kWh_t, 0) : '–', 'kWh/t', k ? fx(k.elec_MW, 0) + ' MW medi, rete ' + fx(k.grid_MW, 0) + ' MW' : null);
+    cell('Gas naturale', k ? fx(k.ng_GJ_t, 2) : '–', 'GJ/t', k ? fx(k.ng_MW, 0) + ' MW PCI' : null);
+    cell('CO₂ diretta', k ? fx(k.co2_direct_t_t, 2) : '–', 't/t', k ? 'con la rete ' + fx(k.co2_total_t_t, 2) + ' t/t · ' + fx(k.co2_direct_t / 1e6, 2) + ' Mt/anno' : null);
+    cell('Ossigeno', k ? fx(k.o2_Nm3_t, 0) : '–', 'Nm³/t', k ? 'ASU ' + fx(r.blocks.B11.o2_tpd, 0) + ' t/giorno' : null);
+    cell('Acqua di reintegro', k ? fx(k.water_m3_t, 2) : '–', 'm³/t', k ? fx(k.makeup_m3h, 0) + ' m³/h' : null);
+  }
+  function renderStatus() {
+    var s = clear($('status')), w = clear($('warnings')), c = st.calc;
+    s.hidden = !(c && !c.ok);
+    if (c && !c.ok) {
+      s.appendChild(el('div', { cls: 'head', text: c.error.name === 'InputError' ? 'Input non valido: nessun risultato' : 'Calcolo non riuscito: nessun risultato' }));
+      s.appendChild(el('p', { text: c.error.message }));
+      s.appendChild(el('p', { cls: 'note', text: 'Correggi l\'input indicato, poi premi Aggiorna. Nessun valore della pagina è un risultato valido di questi input.' }));
+    }
+    var W = c && c.ok ? c.res.warnings : [];
+    w.hidden = !W.length;
+    if (W.length) { w.appendChild(el('div', { cls: 'head', text: W.length + (W.length > 1 ? ' avvisi' : ' avviso') + ' del modello (il calcolo è completo)' })); var ul = el('ul'); W.forEach(function (t) { ul.appendChild(el('li', { text: t })); }); w.appendChild(ul); }
+  }
+
+  // ================================================================ schema a blocchi
+  var BX = { B1: [220, 100, 150, 150], B2: [450, 120, 150, 110], B3: [680, 120, 150, 110], B4: [910, 120, 150, 110], B5: [1140, 120, 150, 110],
+    B6: [1140, 330, 150, 110], B7: [910, 330, 150, 110], B8: [680, 330, 150, 110], B9: [450, 330, 150, 110], B10: [190, 570, 300, 90], B11: [600, 570, 300, 90], B12: [1010, 570, 290, 90] };
+  var DIAG = { S01: 'Minerale e pellet', S02: 'Carbone', S03: 'Rottame', S04: 'HBI', S05: 'Fondenti e calce', E3: 'Energia elettrica', S20: 'Ossigeno', S22: 'Scorie, polveri, scaglie', S18: 'Gas di recupero' };
+  function blockName(b, I) {
+    var A = I.config.product === 'A', R = I.config.route;
+    return { B1: 'Parco materie prime', B2: 'Cokeria e agglomerazione', B3: R === 'BF-BOF' ? 'Altoforno' : 'Riduzione diretta', B4: R === 'BF-BOF' ? 'Convertitori BOF' : 'Forno elettrico', B5: 'Metallurgia secondaria', B6: 'Colata continua',
+      B7: A ? 'Laminazione a caldo' : 'Tubi senza saldatura', B8: A ? 'Linee a freddo e rivestimenti' : 'Tubi saldati', B9: 'Finitura e spedizione', B10: 'Energia elettrica', B11: 'Gas tecnici, acqua, gas', B12: 'Ambiente e sottoprodotti' }[b];
+  }
+  function blockSub(b, r, I) {
+    if (!r) return '';
+    var B = r.blocks;
+    switch (b) {
+      case 'B1': return I.b1.autonomy_d + ' giorni · ' + fx(B.B1.yard_m2 / 1e4, 1) + ' ha';
+      case 'B2': return B.B2.batteries + ' batterie · ' + B.B2.strands + ' nastri';
+      case 'B3': return B.B3.unit === 'BF' ? B.B3.n + ' × ' + fx(B.B3.V_m3, 0) + ' m³' : B.B3.n + ' moduli · ' + fx(B.B3.dri / 1e6, 2) + ' Mt';
+      case 'B4': return B.B4.n + ' × ' + B.B4.heat + ' t' + (B.B4.MVA ? ' · ' + B.B4.MVA + ' MVA' : '');
+      case 'B5': return B.B5.lf + ' LF · ' + B.B5.degas + ' ' + B.B5.degas_type;
+      case 'B6': return B.B6.formats.length > 1 ? B.B6.formats.map(function (f) { return (f.kind === 'Tondi' ? 'tondi ' : 'bramme ') + f.strands; }).join(' · ') + ' linee' : B.B6.formats.map(function (f) { return f.strands + ' linee ' + f.kind.toLowerCase(); }).join('');
+      case 'B7': return I.config.product === 'A' ? B.B7.hsm + ' HSM' + (B.B7.plateMill ? ' + lamiere' : '') : B.B7.mills + ' laminatoi';
+      case 'B8': return I.config.product === 'A' ? B.B8.tcm + ' PL-TCM · ' + B.B8.cgl + ' CGL' : [B.B8.erwLines ? B.B8.erwLines + ' ERW' : '', B.B8.sawlLines ? B.B8.sawlLines + ' UOE' : '', B.B8.sawhLines ? B.B8.sawhLines + ' SAWH' : ''].filter(Boolean).join(' · ');
+      case 'B9': return fx(r.indicators.product_t / 1e6, 2) + ' Mt/anno';
+      case 'B10': return fx(B.B10.demand_MW, 0) + ' MW medi · ' + B.B10.substation_MVA + ' MVA';
+      case 'B11': return B.B11.asu + ' ASU · ' + fx(B.B11.o2_tpd, 0) + ' t/g O₂';
+      case 'B12': return fx(B.B12.fume_Nm3h / 1e3, 0) + ' kNm³/h fumi';
+    }
+    return '';
+  }
+  function streamVal(s) {
+    if (!s) return '–';
+    if (isNum(s.t_h)) return fx(s.t_h, s.t_h >= 100 ? 0 : 1) + ' t/h';
+    if (isNum(s.MW)) return fx(s.MW, 0) + ' MW';
+    if (isNum(s.Nm3h)) return s.Nm3h >= 1e5 ? fx(s.Nm3h / 1e3, 0) + ' kNm³/h' : fx(s.Nm3h, 0) + ' Nm³/h';
+    if (isNum(s.m3h)) return fx(s.m3h, 0) + ' m³/h';
+    return '–';
+  }
+  function streamCond(s) { return s && isNum(s.T) ? fx(s.T, 0) + ' °C' : ''; }
+  // geometria delle correnti: segmenti, posizione dell'etichetta
+  function geometry(I, list) {
+    var A = I.config.product === 'A', BF = I.config.route === 'BF-BOF', DRI = I.config.route === 'DRI-EAF', has = function (id) { return list.indexOf(id) >= 0; };
+    var G = {}, y0 = 115;
+    ['S01', 'S02', 'S03', 'S04', 'S05'].forEach(function (id) { if (has(id)) { G[id] = { segs: [[[12, y0], [220, y0]]], tag: [24, y0], label: { mode: 'left' } }; y0 += 30; } });
+    G.S06 = { segs: [[[370, 175], [450, 175]]], tag: [410, 175], label: { mode: 'gap' } };
+    G.S07 = BF ? { segs: [[[600, 175], [680, 175]]], tag: [640, 175], label: { mode: 'gap' } } : { segs: [[[370, 175], [680, 175]]], tag: [525, 175], label: { mode: 'gap' } };
+    G.S08 = { segs: [[[830, 175], [910, 175]]], tag: [870, 175], label: { mode: 'gap' } };
+    G.S09 = BF || DRI ? { segs: [[[330, 100], [330, 72], [985, 72], [985, 120]]], tag: [655, 72], label: { mode: 'above' } } : { segs: [[[370, 175], [910, 175]]], tag: [640, 175], label: { mode: 'gap' } };
+    G.S10 = { segs: [[[1060, 175], [1140, 175]]], tag: [1100, 175], label: { mode: 'gap' } };
+    G.S11 = { segs: [[[1290, 175], [1345, 175], [1345, 385], [1290, 385]]], tag: [1345, 280], label: { mode: 'right' } };
+    G.S12 = { segs: [[[1140, 385], [1060, 385]]], tag: [1100, 385], label: { mode: 'gap' } };
+    if (A) {
+      G.S13 = { segs: [[[910, 385], [830, 385]]], tag: [870, 385], label: { mode: 'gap' } };
+      G.S14 = { segs: [[[960, 440], [960, 478], [630, 478], [630, 420], [600, 420]]], tag: [795, 478], label: { mode: 'below' } };
+    } else {
+      G.S13 = { segs: [[[1215, 440], [1215, 498], [800, 498], [800, 440]]], tag: [1010, 498], label: { mode: 'below' } };
+      G.S14 = has('S15') ? { segs: [[[985, 330], [985, 300], [525, 300], [525, 330]]], tag: [755, 300], label: { mode: 'above' } } : { segs: [[[910, 385], [600, 385]]], tag: [755, 385], label: { mode: 'gap' } };
+      G.S17 = { segs: [[[710, 540], [710, 440]]], tag: [710, 510], label: { mode: 'right' }, end: { x: 710, y: 556, a: 'middle', t: 'acquistati' } };
+    }
+    G.S15 = { segs: [[[680, 385], [600, 385]]], tag: [640, 385], label: { mode: 'gap' } };
+    G.S16 = { segs: [[[525, 440], [525, 500]]], tag: [525, 470], label: { mode: 'left2' }, end: { x: 525, y: 516, a: 'middle', t: 'spedizione' } };
+    G.S18 = { segs: [[[720, 230], [720, 282], [400, 282], [400, 570]]], tag: [400, 420], label: { mode: 'left2' } };
+    G.S26 = { segs: [[[790, 30], [790, 120]]], tag: [790, 100], label: { mode: 'right' }, end: { x: 800, y: 34, a: 'start', t: 'idrogeno' } };
+    G.E1 = { segs: [[[30, 615], [190, 615]]], tag: [110, 615], label: { mode: 'gap' }, end: { x: 30, y: 640, a: 'start', t: 'rete AT' } };
+    G.E3 = { segs: [[[300, 570], [300, 525]]], tag: [300, 548], label: { mode: 'right' }, end: { x: 300, y: 516, a: 'middle', t: 'alle aree' } };
+    G.S19 = { segs: [[[660, 714], [660, 660]]], tag: [660, 690], label: { mode: 'right' } };
+    G.S21 = { segs: [[[830, 714], [830, 660]]], tag: [830, 690], label: { mode: 'right' } };
+    G.S20 = { segs: [[[750, 570], [750, 525]]], tag: [750, 548], label: { mode: 'right' }, end: { x: 750, y: 516, a: 'middle', t: 'alle aree' } };
+    G.S22 = { segs: [[[1150, 520], [1150, 570]]], tag: [1150, 545], label: { mode: 'right' }, end: { x: 1150, y: 512, a: 'middle', t: 'dalle aree' } };
+    G.S23 = { segs: [[[1300, 600], [1468, 600]]], tag: [1384, 600], label: { mode: 'above2' }, end: { x: 1468, y: 618, a: 'end', t: 'camino' } };
+    G.S24 = { segs: [[[1300, 640], [1468, 640]]], tag: [1384, 640], label: { mode: 'below2' }, end: { x: 1468, y: 682, a: 'end', t: 'recupero e vendita' } };
+    return G;
+  }
+  var diagram = { blocks: {}, streams: {} };
+  function pathD(pts) { return pts.map(function (p, i) { return (i ? 'L' : 'M') + p[0] + ' ' + p[1]; }).join(' '); }
+  function arrow(pts) {
+    var a = pts[pts.length - 2], b = pts[pts.length - 1], ux = Math.sign(b[0] - a[0]), uy = Math.sign(b[1] - a[1]), bk = [b[0] - ux * 10, b[1] - uy * 10];
+    return sv('polygon', { 'class': 's-head', points: [b, [bk[0] - uy * 4.5, bk[1] + ux * 4.5], [bk[0] + uy * 4.5, bk[1] - ux * 4.5]].map(function (p) { return p.join(','); }).join(' ') });
+  }
+  function diamond(g, x, y, id) {
+    g.appendChild(sv('rect', { 'class': 's-tag', x: x - 9, y: y - 9, width: 18, height: 18, transform: 'rotate(45 ' + x + ' ' + y + ')' }));
+    g.appendChild(sv('text', { 'class': 's-num', x: x, y: y + 3.5 }, id.replace(/^S0?/, '')));
+  }
+  function drawDiagram() {
+    var svg = clear($('pfd')); diagram = { blocks: {}, streams: {} };
+    var r = res(), I = r ? r.inputs : st.user, list = r ? Object.keys(r.streams) : [];
+    var blocks = E.blocksFor(I);
+    $('pfd-sub').textContent = describe(I) + (r ? '' : ' · nessun risultato valido');
+    // zone
+    [[200, 50, 1260, 215, 'Ferro e acciaio liquido', 0], [430, 285, 1030, 240, I.config.product === 'A' ? 'Colata e linea A – laminati piani' : 'Colata e linea B – tubi', 0], [170, 552, 1150, 128, 'Utilities, energia e ambiente', 1]].forEach(function (z) {
+      svg.appendChild(sv('rect', { 'class': 'zone', x: z[0], y: z[1], width: z[2], height: z[3], rx: 4 }));
+      svg.appendChild(sv('text', { 'class': 'bl', x: z[5] ? z[0] + z[2] - 8 : z[0] + 8, y: z[5] ? z[1] + z[3] - 6 : z[1] + 14, 'text-anchor': z[5] ? 'end' : 'start' }, z[4].toUpperCase()));
+    });
+    var G = geometry(I, list);
+    list.forEach(function (id) { if (G[id]) drawStream(svg, id, G[id], r.streams[id]); });
+    blocks.forEach(function (b) { drawBlock(svg, b, r, I); });
+    // correnti elencate sul blocco
+    if (r && r.streams.S25) drawChip(svg, 'S25', [350, 236], r.streams.S25, 'B1');
+    if (r && r.streams.E2) drawChip(svg, 'E2', [470, 645], r.streams.E2, 'B10');
+    svg.setAttribute('aria-label', 'Schema a blocchi: ' + blocks.map(function (b) { return b + ' ' + blockName(b, I); }).join(', '));
+    highlight();
+  }
+  function describe(I) {
+    var R = { 'BF-BOF': 'rotta BF-BOF', 'DRI-EAF': 'rotta DRI-EAF', EAF: 'forno elettrico a rottame' }[I.config.route];
+    return 'Configurazione ' + I.config.product + (I.config.product === 'A' ? ', laminati piani' : ', tubi') + ', ' + R + ', ' + fx(I.config.capacity_Mt, 2) + ' Mt/anno di acciaio liquido' + (I.config.product === 'A' && I.config.caster === 'thin' ? ', thin slab' : '');
+  }
+  function drawStream(svg, id, g0, s) {
+    var val = streamVal(s), cond = streamCond(s), nm = id === 'S01' && route() === 'DRI-EAF' ? 'Pellet DR' : (DIAG[id] || s.name);
+    var g = sv('g', { 'class': 'stream ph-' + s.cls, tabindex: '0', role: 'button', 'data-id': id, 'aria-label': 'Corrente ' + id + ', ' + s.name + ', ' + val + (cond ? ', ' + cond : '') });
+    g.appendChild(sv('title', {}, id + ' ' + s.name + ': ' + val + (cond ? ', ' + cond : '')));
+    g0.segs.forEach(function (pts) { g.appendChild(sv('path', { 'class': 's-hit', d: pathD(pts) })); g.appendChild(sv('path', { 'class': 's-line', d: pathD(pts) })); g.appendChild(arrow(pts)); });
+    var tx = g0.tag[0], ty = g0.tag[1], m = g0.label.mode;
+    diamond(g, tx, ty, id);
+    if (m === 'left') { g.appendChild(sv('text', { 'class': 's-name', x: 38, y: ty - 6 }, nm)); g.appendChild(sv('text', { 'class': 's-val', x: 214, y: ty - 6, 'text-anchor': 'end' }, val)); }
+    else if (m === 'gap') { g.appendChild(sv('text', { 'class': 's-val', x: tx, y: ty - 15, 'text-anchor': 'middle' }, val)); if (cond) g.appendChild(sv('text', { 'class': 's-cond', x: tx, y: ty + 24, 'text-anchor': 'middle' }, cond)); }
+    else if (m === 'above') { g.appendChild(sv('text', { 'class': 's-name', x: tx - 16, y: ty - 6, 'text-anchor': 'end' }, nm)); g.appendChild(sv('text', { 'class': 's-val', x: tx + 16, y: ty - 6 }, val)); }
+    else if (m === 'below') { g.appendChild(sv('text', { 'class': 's-name', x: tx - 16, y: ty + 18, 'text-anchor': 'end' }, nm)); g.appendChild(sv('text', { 'class': 's-val', x: tx + 16, y: ty + 18 }, val)); }
+    else if (m === 'right') { g.appendChild(sv('text', { 'class': 's-name', x: tx + 15, y: ty - 3 }, nm)); g.appendChild(sv('text', { 'class': 's-val', x: tx + 15, y: ty + 12 }, val + (cond ? '  ' + cond : ''))); }
+    else if (m === 'left2') { g.appendChild(sv('text', { 'class': 's-name', x: tx - 15, y: ty - 3, 'text-anchor': 'end' }, nm)); g.appendChild(sv('text', { 'class': 's-val', x: tx - 15, y: ty + 12, 'text-anchor': 'end' }, val)); }
+    else if (m === 'above2') { g.appendChild(sv('text', { 'class': 's-val', x: tx, y: ty - 15, 'text-anchor': 'middle' }, val)); }
+    else if (m === 'below2') { g.appendChild(sv('text', { 'class': 's-val', x: tx, y: ty + 24, 'text-anchor': 'middle' }, val)); }
+    if (g0.end) g.appendChild(sv('text', { 'class': 's-end', x: g0.end.x, y: g0.end.y, 'text-anchor': g0.end.a }, g0.end.t));
+    activate(g, function () { select('stream', id); });
+    svg.appendChild(g); diagram.streams[id] = g;
+  }
+  function drawChip(svg, id, at, s, b) {
+    var g = sv('g', { 'class': 'chip ph-' + s.cls, tabindex: '0', role: 'button', 'data-id': id, 'aria-label': 'Corrente ' + id + ', ' + s.name + ', ' + streamVal(s) + ', dentro il blocco ' + b });
+    g.appendChild(sv('title', {}, id + ' ' + s.name + ': ' + streamVal(s)));
+    diamond(g, at[0], at[1], id);
+    activate(g, function () { select('stream', id); });
+    svg.appendChild(g); diagram.streams[id] = g;
+  }
+  function drawBlock(svg, b, r, I) {
+    var p = BX[b], name = blockName(b, I), g = sv('g', { 'class': 'block' + (+b.slice(1) >= 10 ? ' aux' : ''), tabindex: '0', role: 'button', 'data-id': b, 'aria-label': 'Blocco ' + b + ', ' + name });
+    g.appendChild(sv('title', {}, b + ' ' + name));
+    g.appendChild(sv('rect', { 'class': 'blk-rect', x: p[0], y: p[1], width: p[2], height: p[3], rx: 2 }));
+    g.appendChild(sv('text', { 'class': 'blk-tag', x: p[0] + 7, y: p[1] + 15 }, b));
+    var cx = p[0] + p[2] / 2, cy = p[1] + p[3] / 2, words = name.split(' '), lines = [name];
+    if (name.length > 18 && p[2] < 200) { var h = Math.ceil(words.length / 2); lines = [words.slice(0, h).join(' '), words.slice(h).join(' ')]; }
+    var yy = cy - (lines.length - 1) * 9;
+    lines.forEach(function (ln, i) { g.appendChild(sv('text', { 'class': 'blk-name', x: cx, y: yy + i * 18 }, ln)); });
+    g.appendChild(sv('text', { 'class': 'blk-sub', x: cx, y: yy + lines.length * 18 }, blockSub(b, r, I)));
+    if (r && r.blockWarnings[b]) { var w = sv('text', { 'class': 'blk-note', x: p[0] + p[2] - 6, y: p[1] + 15 }, '⚠ ' + r.blockWarnings[b].length); w.appendChild(sv('title', {}, r.blockWarnings[b].join('; '))); g.appendChild(w); }
+    activate(g, function () { select('block', b); });
+    svg.appendChild(g); diagram.blocks[b] = g;
+  }
+  function highlight() {
+    Object.keys(diagram.blocks).forEach(function (k) { var on = st.sel.type === 'block' && st.sel.id === k; diagram.blocks[k].classList.toggle('sel', on); diagram.blocks[k].setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    Object.keys(diagram.streams).forEach(function (k) { var on = st.sel.type === 'stream' && st.sel.id === k; diagram.streams[k].classList.toggle('sel', on); diagram.streams[k].setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    document.querySelectorAll('[data-b]').forEach(function (n) { n.classList.toggle('sel', st.sel.type === 'block' && st.sel.id === n.getAttribute('data-b')); });
+    document.querySelectorAll('#streamtable tbody tr').forEach(function (tr) { tr.classList.toggle('selrow', st.sel.type === 'stream' && st.sel.id === tr.getAttribute('data-id')); });
+  }
+  function select(type, id, focus) {
+    st.sel = st.sel.type === type && st.sel.id === id ? { type: 'case', id: null } : { type: type, id: id };
+    highlight(); renderInspector();
+    if (focus) { var h = $('insp-h'); if (h) { h.setAttribute('tabindex', '-1'); h.focus(); } }
+  }
+
+  // ================================================================ input
+  function sectionOf(b) { return D.sections.filter(function (s) { return s.block === b; })[0]; }
+  function paramsOf(sid) { return D.params.filter(function (p) { return p.path.split('.')[0] === sid && (!p.only || p.only === product()) && (!p.routes || p.routes.indexOf(route()) >= 0); }); }
+  function control(p, scope) {
+    var id = 'in-' + scope + '-' + p.path.replace(/\./g, '-'), v = E.getPath(st.user, p.path), ctl;
+    if (p.options) {
+      ctl = el('select', { id: id });
+      p.options.forEach(function (o) { var op = el('option', { value: String(o), text: p.names ? p.names[String(o)] : String(o) }); if (o === v) op.selected = true; ctl.appendChild(op); });
+      ctl.addEventListener('change', function () { var raw = ctl.value, o = p.options.filter(function (x) { return String(x) === raw; })[0]; setValue(p, o, ctl); });
+    } else {
+      ctl = el('input', { id: id, type: 'number', step: 'any', value: String(v), inputmode: 'decimal' });
+      if (isNum(p.min)) ctl.setAttribute('min', p.min); if (isNum(p.max)) ctl.setAttribute('max', p.max);
+      ctl.addEventListener('change', function () { var x = ctl.value.trim() === '' ? NaN : Number(ctl.value.replace(',', '.')); setValue(p, x, ctl); });
+    }
+    (fieldReg[p.path] = fieldReg[p.path] || []).push(ctl);
+    markField(p, ctl);
+    return ctl;
+  }
+  function markField(p, ctl) {
+    var v = E.getPath(st.user, p.path), base = st.calc ? E.getPath(st.calc.user, p.path) : v;
+    ctl.classList.toggle('chg', JSON.stringify(v) !== JSON.stringify(base));
+    ctl.classList.toggle('bad', !!E.checkValue(p, v));
+    ctl.title = E.checkValue(p, v) || '';
+  }
+  function setValue(p, v, from) {
+    if (p.path === 'config.product' || p.path === 'config.route') return setConfig(p.path, v);
+    E.setPath(st.user, p.path, v);
+    (fieldReg[p.path] || []).forEach(function (c) { if (!c.isConnected) return; if (c !== from) c.value = String(v); markField(p, c); });
+    renderStale(); $('tb-case').textContent = st.caseId + (changedPaths().length ? ' (modificato)' : '');
+  }
+  // cambio di configurazione o rotta: si applicano i valori tipici della nuova scelta, il resto resta
+  function setConfig(path, v) {
+    E.setPath(st.user, path, v);
+    var pp = D.presets[path === 'config.product' ? 'product' : 'route'][v] || {};
+    Object.keys(pp).forEach(function (k) { E.setPath(st.user, k, clone(pp[k])); });
+    if (path === 'config.product' && v === 'B' && st.user.config.route === 'BF-BOF') { st.user.config.route = 'EAF'; Object.keys(D.presets.route.EAF).forEach(function (k) { E.setPath(st.user, k, clone(D.presets.route.EAF[k])); }); }
+    renderAll();
+  }
+  function sectionForm(sid, scope) {
+    var f = el('div', { cls: 'form' });
+    paramsOf(sid).forEach(function (p) {
+      var ctl = control(p, scope);
+      var defNow = E.getPath(E.defaultInputs(product(), route()), p.path);
+      var lab = el('label', { 'for': ctl.id }, [p.label, el('span', { cls: 'mk ' + p.marker, text: p.marker, title: p.marker === 'F' ? 'Dalla descrizione funzionale ' + p.source : p.marker === 'R' ? 'Regola pratica di settore' : 'Ipotesi per gli esempi' }),
+        el('span', { cls: 'rng', text: p.path + (p.options ? '' : ' · ' + (isNum(p.min) ? fx(p.min, p.min % 1 ? 3 : 0) : '') + '–' + (isNum(p.max) ? fx(p.max, p.max % 1 ? 3 : 0) : '')) + ' · default ' + (p.options ? (p.names ? p.names[String(defNow)] : defNow) : sig(defNow)) + (p.source ? ' · ' + p.source : '') })]);
+      if (p.note) lab.title = p.note;
+      f.appendChild(lab);
+      f.appendChild(el('span', { cls: 'ctl' }, [ctl, p.unit ? el('span', { cls: 'unit', text: p.unit }) : null]));
+    });
+    return f;
+  }
+  function renderInputs() {
+    Object.keys(fieldReg).forEach(function (k) { fieldReg[k] = fieldReg[k].filter(function (c) { return c.id.indexOf('in-inp-') !== 0 && c.isConnected; }); });
+    var box = clear($('inputs')), bl = E.blocksFor(st.user);
+    D.sections.forEach(function (s) {
+      var ps = paramsOf(s.id); if (!ps.length) return;
+      var un = s.block && !used(bl, s.block);
+      var d = el('details', { cls: 'grp' + (un ? ' unused' : '') }, [el('summary', null, [(s.block ? s.block + ' ' : '') + s.name + ' ', el('span', { cls: 'muted', text: '(' + ps.length + ' input' + (s.df ? ', ' + s.df : '') + (un ? ', non usato in questa configurazione' : '') + ')' })])]);
+      if (st.open['inp|' + s.id]) d.open = true;
+      d.addEventListener('toggle', function () { st.open['inp|' + s.id] = d.open; if (d.open && !d.querySelector('.form')) d.appendChild(sectionForm(s.id, 'inp')); });
+      if (d.open) d.appendChild(sectionForm(s.id, 'inp'));
+      box.appendChild(d);
+    });
+  }
+
+  // ================================================================ ispettore
+  function head(box, title, sub) { box.appendChild(el('div', { cls: 'head' }, [el('h2', { id: 'insp-h', text: title }), sub ? el('span', { cls: 'muted', text: sub }) : null])); }
+  function renderInspector() {
+    Object.keys(fieldReg).forEach(function (k) { fieldReg[k] = fieldReg[k].filter(function (c) { return c.id.indexOf('in-insp-') !== 0 && c.isConnected; }); });
+    var box = clear($('inspector')), r = res();
+    if (st.sel.type === 'stream') return inspectStream(box, st.sel.id, r);
+    if (st.sel.type === 'block') return inspectBlock(box, st.sel.id, r);
+    inspectCase(box, r);
+  }
+  function inspectCase(box, r) {
+    var cs = D.cases.cases[st.caseId];
+    head(box, 'Caso ' + st.caseId, 'seleziona un blocco o una corrente nello schema');
+    if (cs) box.appendChild(el('p', { cls: 'note', text: cs.title + '. ' + cs.notes }));
+    ['config', 'site'].forEach(function (sid, i) {
+      var s = D.sections.filter(function (q) { return q.id === sid; })[0], d = el('details', { cls: 'grp' }, [el('summary', { text: s.name })]);
+      if (i === 0 || st.open['insp|' + sid]) d.open = true;
+      d.addEventListener('toggle', function () { st.open['insp|' + sid] = d.open; });
+      d.appendChild(sectionForm(sid, 'insp')); box.appendChild(d);
+    });
+    if (!r) return;
+    var en = r.energy, LS = r.indicators.LS_t;
+    box.appendChild(el('p', { cls: 'sect', text: 'Energia primaria in ingresso' }));
+    var rows = [['Carbone (PCI 29 GJ/t)', en.coal_GJ], ['Gas naturale', en.ng_GJ], ['Idrogeno', en.h2_GJ], ['Energia elettrica dalla rete', en.grid_GJ], ['Elettrodi e carbone di carica', en.electrodes_GJ]].filter(function (x) { return x[1] > 0; })
+      .map(function (x) { return [x[0], fx(x[1] / LS, 2), fx(x[1] / en.total_GJ * 100, 1)]; });
+    var t = ['Totale', fx(en.total_GJ / LS, 2), '100,0']; t._cls = 'total'; rows.push(t);
+    box.appendChild(table(['Vettore', 'GJ/t acciaio', '% del totale'], rows, { num: [1, 2] }));
+    box.appendChild(el('p', { cls: 'note', text: 'Energia elettrica dalla rete contata come energia finale (3,6 GJ/MWh). Il gas di recupero è interno: non è un ingresso.' }));
+  }
+  function blockResults(r, b) {
+    var B = r.blocks, I = r.inputs, H = I.config.hours, k = r.indicators, x = [];
+    function add(a, v) { x.push([a, v]); }
+    if (b === 'B1') { B.B1.stocks.forEach(function (s) { add('Scorta di ' + s.name.toLowerCase(), fx(s.stock_t / 1e3, 0) + ' kt (' + fx(s.t_y / 1e6, 2) + ' Mt/anno)'); }); add('Superficie del parco', fx(B.B1.yard_m2 / 1e4, 1) + ' ha'); add('Rottame interno di ritorno', fx(B.B1.internalScrap / H, 1) + ' t/h'); add('Rottame acquistato', fx(B.B1.scrapBuy / H, 1) + ' t/h'); }
+    if (b === 'B2' && B.B2) { add('Coke prodotto', fx(B.B2.coke_t / 1e6, 2) + ' Mt/anno'); add('Carbone da coke', fx(B.B2.coal_t / 1e6, 2) + ' Mt/anno'); add('Batterie di forni a coke', B.B2.batteries); add('Agglomerato', fx(B.B2.sinter_t / 1e6, 2) + ' Mt/anno'); add('Superficie di griglia', fx(B.B2.strand_m2, 0) + ' m² su ' + B.B2.strands + ' nastri'); add('Gas di cokeria', fx(B.B2.cog_GJ / H / 3.6, 0) + ' MW'); }
+    if (b === 'B3' && B.B3.unit === 'BF') { add('Ghisa liquida', fx(B.B3.hm / 1e6, 2) + ' Mt/anno, ' + fx(B.B3.hm_tpd, 0) + ' t/giorno'); add('Altoforni', B.B3.n + ' × ' + fx(B.B3.V_m3, 0) + ' m³'); add('Gas d\'altoforno', fx(B.B10.bfg_GJ / H / 3.6, 0) + ' MW'); add('Coke e PCI', I.b3.coke_rate + ' + ' + I.b3.pci + ' kg/t ghisa'); add('TRT', fx(B.B10.trt_MW, 1) + ' MW'); }
+    if (b === 'B3' && B.B3.unit === 'DRI') { add('DRI prodotto', fx(B.B3.dri / 1e6, 2) + ' Mt/anno'); add('Moduli', B.B3.n); add('Gas naturale al DRI', fx(((r.ng.filter(function (g) { return g.block === 'B3'; })[0] || {}).MW || 0), 0) + ' MW'); if (B.B3.h2_t > 0) add('Idrogeno', fx(B.B3.h2_t * 1000 / H, 0) + ' kg/h'); if (B.B3.electrolyser_MW > 0) add('Elettrolizzatori', fx(B.B3.electrolyser_MW, 0) + ' MW'); }
+    if (b === 'B4') { var b4 = B.B4; add('Unità', b4.n + ' ' + b4.unit + ' da ' + b4.heat + ' t'); add('Colate al giorno', fx(b4.heats_day, 1)); add('Utilizzo', fx(b4.util * 100, 0) + ' %'); add('Energia elettrica', fx(b4.kWh_t, 0) + ' kWh/t spillata'); if (b4.MVA) { add('Potenza sotto arco', fx(b4.P_on_MW, 0) + ' MW per forno'); add('Trasformatore del forno', b4.MVA + ' MVA'); add('SVC/STATCOM', b4.svc_Mvar + ' Mvar'); }
+      add('Carica metallica', fx(k.charge_t_t, 3) + ' t/t acciaio liquido'); if (k.metallic.hm) add('Ghisa liquida', fx(k.metallic.hm / H, 0) + ' t/h'); if (k.metallic.dri) add('DRI', fx(k.metallic.dri / H, 0) + ' t/h'); if (k.metallic.hbi) add('HBI', fx(k.metallic.hbi / H, 0) + ' t/h'); add('Rottame alla carica', fx(k.metallic.scrap / H, 0) + ' t/h'); }
+    if (b === 'B5') { add('Forni siviera', B.B5.lf); add('Degasaggio ' + B.B5.degas_type, B.B5.degas); add('Ferroleghe', fx(B.B5.alloys / H, 1) + ' t/h'); }
+    if (b === 'B6') B.B6.formats.forEach(function (f) { add(f.kind, f.section + ', ' + fx(f.speed, 1) + ' m/min'); add(f.kind + ': linee e macchine', f.strands + ' linee su ' + f.machines + ' macchine'); add(f.kind + ': portata per linea', fx(f.tph_strand, 0) + ' t/h, utilizzo ' + fx(f.util * 100, 0) + ' %'); });
+    if (b === 'B7' && I.config.product === 'A') { add('Bramme al treno nastri', fx(B.B7.toHSM / 1e6, 2) + ' Mt/anno'); add('Bramme al treno lamiere', fx(B.B7.toPlate / 1e6, 2) + ' Mt/anno'); add('Coil a caldo', fx(B.B7.hrc / 1e6, 2) + ' Mt/anno'); add('Lamiere grosse', fx(B.B7.plates / 1e6, 2) + ' Mt/anno'); add('Forni di riscaldo', B.B7.furnaces); add('Scaglia', fx(B.B7.scale / H, 1) + ' t/h'); }
+    if (b === 'B7' && I.config.product === 'B') { add('Tondi al laminatoio', fx(B.B7.rounds / 1e6, 2) + ' Mt/anno'); add('Tubi grezzi', fx(B.B7.shells / 1e6, 2) + ' Mt/anno'); add('Laminatoi', B.B7.mills); }
+    if (b === 'B8' && I.config.product === 'A') { add('Coil al decapaggio', fx(B.B8.toCold / 1e6, 2) + ' Mt/anno'); add('Nastro a freddo', fx(B.B8.coldOut / 1e6, 2) + ' Mt/anno'); add('Zincati e preverniciati', fx(B.B8.coated / 1e6, 2) + ' Mt/anno'); add('Linee', B.B8.tcm + ' PL-TCM, ' + B.B8.anneal + ' ' + I.b8.anneal + ', ' + B.B8.cgl + ' CGL'); }
+    if (b === 'B8' && I.config.product === 'B') { add('Coil interno', fx(B.B8.coilInt / 1e6, 2) + ' Mt/anno'); add('Coil acquistato', fx(B.B8.coilBuy / 1e6, 2) + ' Mt/anno'); add('ERW', fx(B.B8.erw / 1e3, 0) + ' kt/anno su ' + B.B8.erwLines + ' linee'); add('SAW longitudinale', fx(B.B8.sawl / 1e3, 0) + ' kt/anno su ' + B.B8.sawlLines + ' linee'); add('SAW elicoidale', fx(B.B8.sawh / 1e3, 0) + ' kt/anno su ' + B.B8.sawhLines + ' linee'); }
+    if (b === 'B9') { r.products.forEach(function (p) { add(p.name, fx(p.t / 1e6, 3) + ' Mt/anno'); }); if (B.B9.qt) add('Q&T', fx(B.B9.qt / 1e3, 0) + ' kt/anno su ' + B.B9.qtLines + ' linee'); }
+    if (b === 'B10') { var t = B.B10; add('Domanda media', fx(t.demand_MW, 1) + ' MW'); add('Punta stimata', fx(t.peak_MW, 0) + ' MW'); add('Sottostazione', t.substation_MVA + ' MVA, ' + t.kV); add('Autoproduzione', fx(t.ownGen_MW, 1) + ' MW (centrale ' + fx(t.pp_MW, 1) + ', TRT ' + fx(t.trt_MW, 1) + ', CDQ ' + fx(t.cdq_MW, 1) + ')'); add(t.grid_MW >= 0 ? 'Prelievo dalla rete' : 'Cessione alla rete', fx(Math.abs(t.grid_MW), 1) + ' MW'); if (t.recGJ) add('Gas di recupero alla centrale', fx(t.recGJ / H / 3.6, 0) + ' MW'); }
+    if (b === 'B11') { var u = B.B11; add('Ossigeno', fx(u.o2_Nm3h, 0) + ' Nm³/h medi, ' + fx(u.o2_tpd, 0) + ' t/giorno di progetto'); add('ASU', u.asu); add('Azoto, argon', fx(u.n2_Nm3h, 0) + ', ' + fx(u.ar_Nm3h, 0) + ' Nm³/h'); add('Acqua ricircolata', fx(u.circ_m3h, 0) + ' m³/h'); add('Reintegro', fx(u.makeup_m3h, 0) + ' m³/h'); add('Gas naturale', fx(u.ng_Sm3h, 0) + ' Sm³/h (' + fx(u.ng_MW, 0) + ' MW)'); add('Calce', fx(u.lime_tpd, 0) + ' t/giorno, ' + u.kilns + ' forni'); }
+    if (b === 'B12') { add('Fumi captati', fx(B.B12.fume_Nm3h / 1e3, 0) + ' kNm³/h'); add('Polveri al camino', fx(B.B12.stack_dust_t_y, 0) + ' t/anno'); r.byproducts.forEach(function (p) { add(p.name, fx(p.kg_t, 0) + ' kg/t, ' + fx(p.t / 1e3, 0) + ' kt/anno'); }); }
+    return x;
+  }
+  function inspectBlock(box, b, r) {
+    var s = sectionOf(b), I = r ? r.inputs : st.user;
+    head(box, b + ' ' + blockName(b, I), s ? s.df : '');
+    if (!used(E.blocksFor(st.user), b)) box.appendChild(el('p', { cls: 'note', text: 'Questo blocco non fa parte della configurazione corrente.' }));
+    if (s && paramsOf(s.id).length) { var d = el('details', { cls: 'grp', open: true }, [el('summary', { text: 'Input di ' + b })]); d.appendChild(sectionForm(s.id, 'insp')); box.appendChild(d); }
+    if (!r) { box.appendChild(el('p', { cls: 'note', text: 'Nessun risultato valido: l\'ultimo calcolo è stato rifiutato.' })); return; }
+    var W = r.blockWarnings[b];
+    if (W) { var ul = el('ul'); W.forEach(function (w) { ul.appendChild(el('li', { text: w })); }); box.appendChild(el('div', { cls: 'dv-old' }, [el('strong', { text: 'Avvisi di ' + b }), ul])); }
+    var rows = blockResults(r, b);
+    if (rows.length) { box.appendChild(el('p', { cls: 'sect', text: 'Risultati di ' + b })); box.appendChild(kv(rows.map(function (x) { return [x[0], String(x[1])]; }))); }
+    var L = r.ledgers[b];
+    if (L) box.appendChild(el('p', { cls: 'note', text: 'Bilancio di massa di ' + b + ': ingressi ' + fx(L.t_in / I.config.hours, 1) + ' t/h, uscite ' + fx(L.t_out / I.config.hours, 1) + ' t/h' + (L.resLabel ? ', ' + L.resLabel.toLowerCase() + ' ' + fx(L.residual / I.config.hours, 1) + ' t/h' : '') + '. Dettaglio in Bilanci di massa.' }));
+    var ids = Object.keys(r.streams).filter(function (id) { var q = r.streams[id]; return q.from === b || q.to === b || (q.from && q.from.indexOf('–') > 0 && b >= 'B6' && b <= 'B9'); }).sort(Dc.sortId);
+    if (ids.length) { var lk = el('div', { cls: 'links' }); ids.forEach(function (id) { lk.appendChild(el('button', { type: 'button', text: id, title: r.streams[id].name, 'aria-label': 'Corrente ' + id + ', ' + r.streams[id].name, onclick: function () { select('stream', id, true); } })); }); box.appendChild(el('div', null, [el('p', { cls: 'sect', text: 'Correnti' }), lk])); }
+  }
+  function inspectStream(box, id, r) {
+    var s = r ? r.streams[id] : null;
+    head(box, 'Corrente ' + id, s ? s.name : '');
+    if (!s) { box.appendChild(el('p', { cls: 'note', text: r ? 'Questa corrente non fa parte dei risultati dell\'ultimo calcolo.' : 'Nessun risultato valido.' })); return; }
+    var H = r.inputs.config.hours, rows = [['Descrizione', s.name], ['Da', s.from || 'limite di batteria'], ['A', s.to || 'limite di batteria']];
+    if (isNum(s.t_h)) { rows.push(['Portata', fx(s.t_h, 2) + ' t/h']); rows.push(['Su base annua', fx(s.t_h * H / 1e6, 3) + ' Mt/anno']); rows.push(['Per tonnellata di acciaio liquido', fx(s.t_h * H / r.indicators.LS_t, 3) + ' t/t']); }
+    if (isNum(s.T)) rows.push(['Temperatura', fx(s.T, 0) + ' °C']);
+    if (isNum(s.MW)) rows.push(['Potenza', fx(s.MW, 1) + ' MW']);
+    if (isNum(s.Nm3h)) rows.push(['Portata volumetrica', fx(s.Nm3h, 0) + ' Nm³/h']);
+    if (isNum(s.Sm3h)) rows.push(['Portata di gas', fx(s.Sm3h, 0) + ' Sm³/h']);
+    if (isNum(s.m3h)) rows.push(['Portata d\'acqua', fx(s.m3h, 0) + ' m³/h']);
+    if (s.note) rows.push(['Nota', s.note]);
+    box.appendChild(kv(rows));
+    var lk = el('div', { cls: 'links' });
+    [s.from, s.to].filter(function (b) { return b && BX[b]; }).forEach(function (b) { lk.appendChild(el('button', { type: 'button', text: b, 'aria-label': 'Blocco ' + b, onclick: function () { select('block', b, true); } })); });
+    if (lk.firstChild) box.appendChild(el('div', null, [el('p', { cls: 'sect', text: 'Blocchi' }), lk]));
+  }
+
+  // ================================================================ pannelli dei risultati
+  function noRes(box) { box.appendChild(el('p', { cls: 'note', text: st.calc && !st.calc.ok ? 'Nessun risultato valido: l\'ultimo calcolo è stato rifiutato.' : 'Nessun risultato.' })); }
+  function renderBalances() {
+    var sel = $('bal-sel'), box = clear($('bal-body')), r = res();
+    if (!r) { clear(sel); noRes(box); return; }
+    var H = r.inputs.config.hours, keys = Object.keys(r.ledgers).filter(function (k) { return k !== 'Fe'; }).sort(function (a, b) { return +a.slice(1) - +b.slice(1); });
+    var opts = [['Fe', 'Ferro di stabilimento']].concat(keys.map(function (k) { return [k, k + ' ' + blockName(k, r.inputs)]; }));
+    if (!opts.some(function (o) { return o[0] === st.ledger; })) st.ledger = 'Fe';
+    clear(sel); opts.forEach(function (o) { sel.appendChild(el('option', { value: o[0], text: o[1] })); }); sel.value = st.ledger;
+    var L = r.ledgers[st.ledger], rows = L.items.map(function (it) { return [it.side === 'in' ? 'ingresso' : 'uscita', it.item, fx(it.t / H, 2), fx(it.t / 1e3, 0)]; });
+    var t1 = ['', 'Totale ingressi', fx(L.t_in / H, 2), fx(L.t_in / 1e3, 0)], t2 = ['', 'Totale uscite', fx(L.t_out / H, 2), fx(L.t_out / 1e3, 0)];
+    var t3 = ['', (st.ledger === 'Fe' ? 'Ferro non attribuito (fumi, ossidazione, perdite)' : (L.resLabel || 'Differenza')), fx(L.residual / H, 2), fx(L.residual / 1e3, 0) + ' (' + fx(L.residual / L.t_in * 100, 2) + ' %)'];
+    t1._cls = t2._cls = t3._cls = 'total';
+    box.appendChild(table(['Lato', 'Voce', 't/h', 'kt/anno'], rows.concat([t1, t2, t3]), { num: [2, 3], wrap: [1] }));
+    box.appendChild(el('p', { cls: 'note', text: st.ledger === 'Fe' ? 'Bilancio del ferro ai limiti di stabilimento con i tenori dei materiali (input B1 e costanti del modello). Il rottame interno circola dentro lo stabilimento e non compare. Una differenza oltre il 5 % o negativa genera un avviso.' : 'Masse dei solidi e del metallo. La differenza raccoglie ciò che il modello non traccia come massa: gas, ossigeno fissato o rimosso, umidità. Non è un errore di chiusura.' }));
+  }
+  function renderEmissions() {
+    var box = clear($('em-body')), r = res(); if (!r) { noRes(box); return; }
+    var c = r.co2, k = r.indicators, LS = k.LS_t;
+    box.appendChild(kv([['CO₂ diretta (scope 1)', fx(c.direct_t / 1e6, 3) + ' Mt/anno · ' + fx(k.co2_direct_t_t, 3) + ' t/t acciaio liquido'], ['CO₂ indiretta dalla rete (scope 2)', fx(c.indirect_t / 1e6, 3) + ' Mt/anno · ' + fx(c.indirect_t / LS, 3) + ' t/t (' + fx(r.inputs.site.grid_CO2, 2) + ' kg/kWh)'],
+      ['Totale', fx(k.co2_total_t_t, 3) + ' t/t acciaio liquido · ' + fx(k.co2_per_product, 3) + ' t/t prodotto'], ['Polveri al camino', fx(r.blocks.B12.stack_dust_t_y, 0) + ' t/anno']]));
+    var max = 0; Object.keys(c.byArea).forEach(function (a) { max = Math.max(max, Math.abs(c.byArea[a])); });
+    var rows = Object.keys(c.byArea).map(function (a) { var v = c.byArea[a], bar = el('div', { cls: 'bar' + (v < 0 ? ' neg' : '') }, [el('span', { style: 'width:' + (Math.abs(v) / max * 100).toFixed(1) + '%' })]); return [a, fx(v / LS, 3), fx(v / 1e3, 0), bar]; });
+    box.appendChild(el('p', { cls: 'sect', text: 'CO₂ diretta per area' }));
+    box.appendChild(table(['Area', 't/t', 'kt/anno', ''], rows, { num: [1, 2], wrap: [0] }));
+    var d = el('details', { cls: 'grp' }, [el('summary', { text: 'Per sorgente di carbonio (' + c.sources.length + ' voci)' })]);
+    d.appendChild(el('div', { cls: 'pad' }, [table(['Sorgente', 't CO₂/t', 'kt/anno'], c.sources.map(function (s) { return [s.name, fx(s.t / LS, 3), fx(s.t / 1e3, 0)]; }), { num: [1, 2], wrap: [0] })]));
+    box.appendChild(d);
+    box.appendChild(el('p', { cls: 'note', text: 'Bilancio del carbonio ai limiti di stabilimento: carbonio entrante meno carbonio nei prodotti e nei sottoprodotti della cokeria. Il gas di recupero bruciato nella centrale è già nel carbone. Utile per ETS e CBAM in prima stima (DF §10.1).' }));
+  }
+  function renderDF() {
+    var box = clear($('df-body')), r = res(); if (!r) { noRes(box); return; }
+    box.appendChild(table(['Indicatore', 'Calcolato', 'DF', 'Unità', 'Esito'], r.checks.map(function (c) { return [c.name, fx(c.value, c.d), c.range ? fx(c.range[0], c.d) + '–' + fx(c.range[1], c.d) : '–', c.unit, pill(c.ok)]; }), { num: [1, 2], wrap: [0] }));
+    box.appendChild(el('p', { cls: 'note', text: 'Campi della descrizione funzionale (§1 e §12.1), ordini di grandezza di letteratura. Per le rotte a forno elettrico le emissioni calcolate cadono nel campo della DF solo sommando la CO₂ indiretta della rete: il campo della DF sembra comprendere l\'energia elettrica.' }));
+  }
+  function renderAux() {
+    var box = clear($('aux-body')), r = res(); if (!r) { noRes(box); return; }
+    var LS = r.indicators.LS_t, H = r.inputs.config.hours, tot = r.loads.reduce(function (s, l) { return s + l.MWh; }, 0);
+    var rows = r.loads.map(function (l) { return [l.block + ' ' + l.item, fx(l.MW, 1), fx(l.kWh_t, 0)]; });
+    var t = ['Totale utenze', fx(tot / H, 1), fx(tot * 1000 / LS, 0)]; t._cls = 'total'; rows.push(t);
+    box.appendChild(el('p', { cls: 'sect', text: 'Energia elettrica' }));
+    box.appendChild(table(['Area', 'MW medi', 'kWh/t'], rows, { num: [1, 2] }));
+    var B10 = r.blocks.B10;
+    box.appendChild(kv([['Perdite e domanda totale', fx(B10.demand_MW, 1) + ' MW'], ['Autoproduzione', fx(B10.ownGen_MW, 1) + ' MW'], [B10.grid_MW >= 0 ? 'Prelievo dalla rete' : 'Cessione alla rete', fx(Math.abs(B10.grid_MW), 1) + ' MW']]));
+    if (r.ng.length) {
+      box.appendChild(el('p', { cls: 'sect', text: 'Gas naturale' }));
+      var g = r.ng.map(function (x) { return [x.block + ' ' + x.item, fx(x.Sm3h, 0), fx(x.MW, 1), fx(x.GJ_t, 2)]; }), gt = ['Totale', fx(r.blocks.B11.ng_Sm3h, 0), fx(r.indicators.ng_MW, 1), fx(r.indicators.ng_GJ_t, 2)]; gt._cls = 'total'; g.push(gt);
+      box.appendChild(table(['Utenza', 'Sm³/h', 'MW PCI', 'GJ/t'], g, { num: [1, 2, 3] }));
+    }
+    var u = r.blocks.B11;
+    box.appendChild(el('p', { cls: 'sect', text: 'Gas tecnici e acqua' }));
+    box.appendChild(kv([['Ossigeno', fx(u.o2_Nm3h, 0) + ' Nm³/h (' + fx(r.indicators.o2_Nm3_t, 0) + ' Nm³/t)'], ['Azoto', fx(u.n2_Nm3h, 0) + ' Nm³/h'], ['Argon', fx(u.ar_Nm3h, 0) + ' Nm³/h'], ['Acqua ricircolata', fx(u.circ_m3h, 0) + ' m³/h'], ['Reintegro', fx(u.makeup_m3h, 0) + ' m³/h (' + fx(r.indicators.water_m3_t, 2) + ' m³/t)']]));
+  }
+  function renderSizes() {
+    var box = clear($('sz-body')), r = res(); if (!r) { noRes(box); return; }
+    var bl = E.blocksFor(r.inputs);
+    bl.forEach(function (b) {
+      var rows = blockResults(r, b).slice(0, 7);
+      if (!rows.length) return;
+      var d = el('details', { cls: 'grp' }, [el('summary', null, [b + ' ' + blockName(b, r.inputs) + ' ', el('span', { cls: 'muted', text: blockSub(b, r, r.inputs) })])]);
+      if (st.open['sz|' + b]) d.open = true;
+      d.addEventListener('toggle', function () { st.open['sz|' + b] = d.open; });
+      d.appendChild(el('div', { cls: 'pad' }, [kv(rows.map(function (x) { return [x[0], String(x[1])]; }))]));
+      box.appendChild(d);
+    });
+  }
+  function renderStreams() {
+    var box = clear($('streamtable')), r = res(); if (!r) { noRes(box); return; }
+    var ids = Object.keys(r.streams).sort(Dc.sortId);
+    var t = el('table'), hr = el('tr');
+    ['Corrente', 'Descrizione', 'Da', 'A', 't/h', 'Mt/anno', 'Altro'].forEach(function (c, i) { hr.appendChild(el('th', { text: c, cls: i === 4 || i === 5 ? 'n' : null, scope: 'col' })); });
+    t.appendChild(el('thead', null, [hr]));
+    var tb = el('tbody'), H = r.inputs.config.hours;
+    ids.forEach(function (id) {
+      var s = r.streams[id], tr = el('tr', { 'data-id': id, tabindex: '0' });
+      [id, s.name, s.from || '—', s.to || '—', isNum(s.t_h) ? fx(s.t_h, 1) : '', isNum(s.t_h) ? fx(s.t_h * H / 1e6, 3) : '', Dc.other(s)].forEach(function (v, i) { tr.appendChild(el('td', { text: v, cls: i === 4 || i === 5 ? 'n' : (i === 6 ? 'wrap' : null) })); });
+      activate(tr, function () { select('stream', id); });
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb); box.appendChild(t);
+  }
+  function snapshot() { var r = res(); if (!r) return null; var k = r.indicators; return { caseId: st.caseId, desc: describe(r.inputs), k: k }; }
+  var CMP = [['Acciaio liquido', 'LS_t', 1e-6, 2, 'Mt/anno'], ['Prodotti finiti', 'product_t', 1e-6, 2, 'Mt/anno'], ['Resa sui prodotti', 'yield_products', 100, 1, '%'], ['Energia elettrica', 'elec_kWh_t', 1, 0, 'kWh/t'], ['Prelievo dalla rete', 'grid_MW', 1, 0, 'MW'],
+    ['Gas naturale', 'ng_GJ_t', 1, 2, 'GJ/t'], ['Energia primaria', 'energy_GJ_t', 1, 2, 'GJ/t'], ['CO₂ diretta', 'co2_direct_t_t', 1, 3, 't/t'], ['CO₂ con la rete', 'co2_total_t_t', 1, 3, 't/t'], ['Ossigeno', 'o2_Nm3_t', 1, 0, 'Nm³/t'], ['Acqua di reintegro', 'water_m3_t', 1, 2, 'm³/t'], ['Sottoprodotti', 'byproducts_kg_t', 1, 0, 'kg/t']];
+  function renderCompare() {
+    var box = clear($('compare')), cur = snapshot();
+    if (!st.A && !st.B) { box.appendChild(el('p', { cls: 'note', text: 'Tieni il caso corrente come A, cambia gli input, premi Aggiorna e tienilo come B: la tabella mostra le differenze. Senza B, il confronto è con il caso corrente.' })); return; }
+    var a = st.A || cur, b = st.B || cur;
+    if (!a || !b) { noRes(box); return; }
+    box.appendChild(el('p', { cls: 'note', text: 'A: ' + a.caseId + ' – ' + a.desc + '. B: ' + (st.B ? b.caseId + ' – ' + b.desc : 'caso corrente') + '.' }));
+    box.appendChild(table(['Indicatore', 'A', 'B', 'B − A', 'Unità'], CMP.map(function (c) {
+      var va = a.k[c[1]] * c[2], vb = b.k[c[1]] * c[2], d = vb - va, sp = el('span', { cls: Math.abs(d) < 1e-9 ? null : (d > 0 ? 'diff-up' : 'diff-dn'), text: (d > 0 ? '+' : '') + fx(d, c[3]) });
+      return [c[0], fx(va, c[3]), fx(vb, c[3]), sp, c[4]];
+    }), { num: [1, 2, 3] }));
+  }
+  function renderLog() {
+    var box = clear($('log'));
+    if (!st.log.length) { box.appendChild(el('p', { cls: 'note', text: 'Nessun ricalcolo.' })); return; }
+    box.appendChild(table(['Ora', 'Caso', 'Config.', 'Rotta', 'Mt/anno', 'kWh/t', 'CO₂ t/t', 'Input'], st.log.map(function (l) { return [l.time.toLocaleTimeString('it-IT'), l.caseId, l.product, l.route, fx(l.LS, 2), fx(l.kwh, 0), fx(l.co2, 2), l.hash]; }), { num: [4, 5, 6] }));
+  }
+
+  // ================================================================ vista assonometrica e planimetria
+  function renderIso() {
+    var box = clear($('iso-body')), r = res(); if (!r) { noRes(box); return; }
+    var Lo = Dc.layout(r), c30 = Math.cos(Math.PI / 6), s30 = 0.5, ex = 3;
+    var rects = Lo.rects.slice().sort(function (a, b) { return (a.x + a.w / 2 + a.y + a.d / 2) - (b.x + b.w / 2 + b.y + b.d / 2); });
+    function P(x, y, z) { return [(x - y) * c30, (x + y) * s30 - z * ex]; }
+    var xs = [], ys = [];
+    Lo.rects.forEach(function (q) { [[q.x, q.y, 0], [q.x + q.w, q.y, 0], [q.x, q.y + q.d, 0], [q.x + q.w, q.y + q.d, 0], [q.x, q.y, q.h], [q.x + q.w, q.y, q.h]].forEach(function (p) { var s = P(p[0], p[1], p[2]); xs.push(s[0]); ys.push(s[1]); }); });
+    var minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs), minY = Math.min.apply(null, ys), maxY = Math.max.apply(null, ys), W = 1400, sc = W / (maxX - minX), Hh = (maxY - minY) * sc + 60;
+    var svg = sv('svg', { viewBox: '0 0 ' + (W + 40) + ' ' + Math.ceil(Hh + 30), role: 'img', 'aria-label': 'Vista assonometrica schematica delle aree dello stabilimento' });
+    function Q(x, y, z) { var p = P(x, y, z); return ((p[0] - minX) * sc + 20).toFixed(1) + ',' + ((p[1] - minY) * sc + 40).toFixed(1); }
+    rects.forEach(function (q) {
+      var g = sv('g', { 'data-b': q.b, tabindex: '0', role: 'button', 'aria-label': q.b + ' ' + q.name });
+      g.appendChild(sv('title', {}, q.b + ' ' + q.name + ': ' + fx(q.ha, 1) + ' ha, altezza ' + q.h + ' m'));
+      var x = q.x, y = q.y, w = q.w, d = q.d, h = q.h;
+      g.appendChild(sv('polygon', { points: [Q(x, y + d, 0), Q(x + w, y + d, 0), Q(x + w, y + d, h), Q(x, y + d, h)].join(' '), fill: 'var(--iso-left)', stroke: 'currentColor', 'stroke-width': 0.8 }));
+      g.appendChild(sv('polygon', { points: [Q(x + w, y, 0), Q(x + w, y + d, 0), Q(x + w, y + d, h), Q(x + w, y, h)].join(' '), fill: 'var(--iso-right)', stroke: 'currentColor', 'stroke-width': 0.8 }));
+      g.appendChild(sv('polygon', { points: [Q(x, y, h), Q(x + w, y, h), Q(x + w, y + d, h), Q(x, y + d, h)].join(' '), fill: 'var(--iso-top)', stroke: 'currentColor', 'stroke-width': 0.8 }));
+      var c = Q(x + w / 2, y + d / 2, h).split(',');
+      g.appendChild(sv('text', { x: c[0], y: c[1], 'text-anchor': 'middle', 'font-size': 12, 'font-family': 'var(--mono)' }, q.b));
+      activate(g, function () { select('block', q.b); });
+      svg.appendChild(g);
+    });
+    svg.appendChild(sv('text', { x: 20, y: 20, 'font-size': 12, fill: 'var(--muted)' }, 'Altezze esagerate 3 volte. Edifici e impianti come volumi pieni: superfici di screening, non ingombri di progetto.'));
+    box.appendChild(svg);
+    highlight();
+  }
+  function renderPlot() {
+    var box = clear($('plot-body')), tb = clear($('plot-table')), r = res(); if (!r) { noRes(box); return; }
+    var Lo = Dc.layout(r), W = 1400, sc = W / (Lo.W + 120), Hh = (Lo.D + 120) * sc;
+    var svg = sv('svg', { viewBox: '0 0 ' + (W + 20) + ' ' + Math.ceil(Hh + 50), role: 'img', 'aria-label': 'Planimetria schematica delle aree' });
+    var ox = 10 + 60 * sc, oy = 10 + 60 * sc;
+    svg.appendChild(sv('rect', { x: 10, y: 10, width: (Lo.W + 120) * sc, height: (Lo.D + 120) * sc, fill: 'none', stroke: 'currentColor', 'stroke-dasharray': '6 4' }));
+    var depth1 = Lo.rects.filter(function (q) { return q.y === 0; })[0].d;
+    svg.appendChild(sv('rect', { x: ox, y: oy + depth1 * sc, width: Lo.W * sc, height: 30 * sc, fill: 'var(--rule)' }));
+    Lo.rects.forEach(function (q) {
+      var g = sv('g', { 'data-b': q.b, tabindex: '0', role: 'button', 'aria-label': q.b + ' ' + q.name + ', ' + fx(q.ha, 1) + ' ettari' });
+      g.appendChild(sv('title', {}, q.b + ' ' + q.name + ': ' + fx(q.ha, 1) + ' ha'));
+      g.appendChild(sv('rect', { x: ox + q.x * sc, y: oy + q.y * sc, width: q.w * sc, height: q.d * sc, fill: 'var(--panel)', stroke: 'currentColor', 'stroke-width': 1.2 }));
+      var cx = ox + (q.x + q.w / 2) * sc, cy = oy + (q.y + q.d / 2) * sc, vert = q.w * sc < 70;
+      var tf = vert ? 'rotate(-90 ' + cx + ' ' + cy + ')' : null;
+      g.appendChild(sv('text', { x: cx, y: cy - 4, 'text-anchor': 'middle', 'font-size': 12, 'font-family': 'var(--mono)', transform: tf }, q.b));
+      g.appendChild(sv('text', { x: cx, y: cy + 12, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--muted)', transform: tf }, fx(q.ha, 1) + ' ha'));
+      if (!vert && q.w * sc > 110) g.appendChild(sv('text', { x: cx, y: cy - 20, 'text-anchor': 'middle', 'font-size': 12 }, q.name));
+      activate(g, function () { select('block', q.b); });
+      svg.appendChild(g);
+    });
+    // scala grafica e nord
+    var bar = Math.pow(10, Math.floor(Math.log10(Lo.W / 4))), bx = 20, by = Hh + 30;
+    svg.appendChild(sv('rect', { x: bx, y: by, width: bar * sc, height: 6, fill: 'currentColor' }));
+    svg.appendChild(sv('text', { x: bx + bar * sc + 8, y: by + 7, 'font-size': 12 }, fx(bar, 0) + ' m'));
+    svg.appendChild(sv('path', { d: 'M ' + (W - 20) + ' ' + (by + 8) + ' l 8 -24 l 8 24 z', fill: 'currentColor' }));
+    svg.appendChild(sv('text', { x: W - 12, y: by - 20, 'font-size': 12, 'text-anchor': 'middle' }, 'N'));
+    box.appendChild(svg);
+    var rows = Lo.rects.map(function (q) { return [q.b, q.name, fx(q.ha, 1), fx(q.w, 0) + ' × ' + fx(q.d, 0), q.h + ' m']; });
+    var t = ['', 'Superficie delle aree', fx(Lo.built_ha, 1), '', '']; t._cls = 'total'; rows.push(t);
+    var t2 = ['', 'Lotto con fasce perimetrali di 60 m', fx(Lo.site_ha, 0), fx(Lo.W + 120, 0) + ' × ' + fx(Lo.D + 120, 0), '']; t2._cls = 'total'; rows.push(t2);
+    tb.appendChild(table(['Blocco', 'Area', 'ha', 'm × m', 'Altezza tipica'], rows, { num: [2] }));
+    tb.appendChild(el('p', { cls: 'note', text: 'Due fasce: le aree di processo nell\'ordine del flusso, i servizi oltre una strada di 30 m. Superfici da regole di screening per taglia (ettari per unità); da sostituire con il plot plan di progetto.' }));
+    highlight();
+  }
+
+  // ================================================================ elaborati
+  function gen(code) { var r = res(); if (!r) return null; var d = Dc.ALL.filter(function (x) { return x.code === code; })[0]; return { t: d.fn(r), hash: st.calc.hash, caseId: st.caseId, time: st.calc.time }; }
+  function meta(g) { return { Documento: 'SIM-ACC-01-' + g.t.code, Revisione: 'A, preliminare', Caso: g.caseId, 'Hash degli input': g.hash, Data: g.time.toLocaleDateString('it-IT'), Stato: 'D – da confermare con i licenziatari e la revisione tecnica' }; }
+  function renderDeliverables() {
+    var tabs = clear($('dv-tabs')), body = clear($('dv-body')), tools = clear($('dv-tools')), cur = st.calc ? st.calc.hash : null, stale = changedPaths().length > 0;
+    Dc.ALL.forEach(function (d) {
+      var g = st.dvGen[d.code], dot = g ? (g.hash === cur && !stale ? 'ok' : 'old') : '';
+      tabs.appendChild(el('button', { type: 'button', role: 'tab', 'aria-selected': st.dv === d.code ? 'true' : 'false', onclick: function () { st.dv = d.code; if (!st.dvGen[d.code]) st.dvGen[d.code] = gen(d.code); renderDeliverables(); } }, [d.code + ' · ' + d.title, el('span', { cls: 'dot ' + dot, 'aria-hidden': 'true' })]));
+    });
+    var g = st.dvGen[st.dv];
+    if (!g) { noRes(body); return; }
+    tools.appendChild(el('button', { type: 'button', text: 'Scarica CSV', onclick: function () { save('SIM-ACC-01-' + g.t.code + '.csv', Dc.toCSV(g.t)); } }));
+    tools.appendChild(el('button', { type: 'button', text: 'Scarica Markdown', onclick: function () { save('SIM-ACC-01-' + g.t.code + '.md', Dc.toMD(g.t, meta(g))); } }));
+    tools.appendChild(el('button', { type: 'button', text: 'Copia come Markdown', onclick: function () { copy(Dc.toMD(g.t, meta(g)), $('dv-msg')); } }));
+    tools.appendChild(el('button', { type: 'button', text: 'Pacchetto completo (.md)', onclick: function () { var r = res(); if (!r) return; save('SIM-ACC-01-pacchetto.md', Dc.ALL.map(function (d) { var gg = gen(d.code); return Dc.toMD(gg.t, meta(gg)); }).join('\n\n')); } }));
+    tools.appendChild(el('button', { type: 'button', text: 'Schema a blocchi (SVG)', onclick: function () { save('SIM-ACC-01-BFD.svg', svgFile($('pfd'))); } }));
+    var m = meta(g), hd = el('div', { cls: 'dv-head' });
+    Object.keys(m).forEach(function (k) { hd.appendChild(el('div', { cls: k === 'Stato' ? 'sd' : null }, [el('span', { cls: 'k', text: k }), m[k]])); });
+    body.appendChild(el('h3', { text: g.t.title }));
+    body.appendChild(hd);
+    if (g.hash !== cur || stale) body.appendChild(el('p', { cls: 'dv-old', text: 'Elaborato superato: gli input sono cambiati dopo la generazione. Premi Aggiorna per rigenerarlo.' }));
+    var num = []; g.t.rows.forEach(function (r) { r.forEach(function (v, i) { if (/^[−\-]?[\d.]+(,\d+)?$/.test(String(v)) && num.indexOf(i) < 0) num.push(i); }); });
+    var w = el('div', { cls: 'dv-tscroll' }); w.appendChild(table(g.t.cols, g.t.rows.map(function (r) { return r.slice(); }), { num: num, wrap: g.t.wrap || [2, 4, 5], cls: 'dvtable' }).firstChild); body.appendChild(w);
+    if (g.t.notes && g.t.notes.length) { var ul = el('ul', { cls: 'dv-notes' }); g.t.notes.forEach(function (n) { ul.appendChild(el('li', { text: n })); }); body.appendChild(ul); }
+  }
+  function svgFile(node) {
+    var c = node.cloneNode(true), cs = getComputedStyle(document.documentElement), css = '';
+    ['--bg', '--sheet', '--panel', '--ink', '--muted', '--rule', '--rule-strong', '--accent', '--accent-ink', '--accent-soft', '--solid', '--metal', '--semi', '--gas', '--tech', '--water', '--elec', '--flue', '--by'].forEach(function (k) { css += k + ':' + cs.getPropertyValue(k) + ';'; });
+    var rules = []; for (var i = 0; i < document.styleSheets.length; i++) { try { Array.prototype.forEach.call(document.styleSheets[i].cssRules, function (r) { if (/#pfd/.test(r.cssText)) rules.push(r.cssText.replace(/#pfd\s?/g, '')); }); } catch (e) { } }
+    c.setAttribute('xmlns', NS); c.removeAttribute('class');
+    var style = document.createElementNS(NS, 'style'); style.textContent = 'svg{' + css + 'background:' + cs.getPropertyValue('--sheet') + ';color:' + cs.getPropertyValue('--ink') + ';font-family:sans-serif}text{fill:currentColor}' + rules.join('\n');
+    c.insertBefore(style, c.firstChild);
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(c);
+  }
+
+  // ================================================================ file
+  var downloads = null;
+  try { if (window.claude && window.claude.use) window.claude.use('downloads').then(function (d) { downloads = d; }, function () { }); } catch (e) { }
+  function save(name, data) {
+    var msg = $('dv-msg');
+    if (downloads) {
+      downloads.save({ filename: name, data: data }).then(function () { msg.textContent = name + ' pronto.'; }, function (e) { msg.textContent = e && e.code === 'declined' ? 'Download annullato.' : 'Download non disponibile in questa vista (' + (e && e.code || 'errore') + ').'; });
+      return;
+    }
+    if (window.claude && window.claude.use) { msg.textContent = 'Download non disponibile in questa vista: usa Copia come Markdown.'; return; }
+    try { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data])); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500); msg.textContent = name + ' scaricato.'; } catch (e) { msg.textContent = 'Download non riuscito.'; }
+  }
+  function copy(text, msgEl) {
+    function fallback() { var t = $('case-text'); t.value = text; t.select(); msgEl.textContent = 'Testo selezionato nel riquadro del caso: copialo con Ctrl+C.'; }
+    try { navigator.clipboard.writeText(text).then(function () { msgEl.textContent = 'Copiato negli appunti.'; }, fallback); } catch (e) { fallback(); }
+  }
+  function caseJSON() { return JSON.stringify({ schema: 'acc-case/1', version: VERSION, caseId: st.caseId, inputs: st.user }, null, 1); }
+  function loadCase(text) {
+    var o; try { o = JSON.parse(text); } catch (e) { $('case-msg').textContent = 'Il testo non è un JSON valido.'; return; }
+    if (!o || o.schema !== 'acc-case/1' || !o.inputs) { $('case-msg').textContent = 'Non è un caso del simulatore (schema acc-case/1).'; return; }
+    try { st.user = E.completeInputs(o.inputs); } catch (e) { $('case-msg').textContent = 'Caso non valido: ' + e.message; return; }
+    st.caseId = o.caseId || 'caricato'; st.sel = { type: 'case', id: null }; $('case-msg').textContent = 'Caso caricato.'; refresh('caricato');
+  }
+
+  // ================================================================ verifiche e limiti
+  var VAL = ['Bilanci di massa per blocco con la voce per differenza esplicita; bilancio del ferro di stabilimento chiuso entro il 5 % nei cinque casi di riferimento (test automatico).', 'Indicatori dei casi di riferimento confrontati con la DF §12.1: carica metallica, energia elettrica all\'acciaieria, CO₂, resa liquido → HRC.', 'Test in Node del motore: monotonia rispetto a capacità, quota di DRI, carica a caldo, idrogeno; rifiuto degli input fuori campo.', 'Dimensioni principali confrontate con taglie industriali note: altoforni da 4.000–5.500 m³, forni elettrici da 150 t con trasformatori da 100–150 MVA, colate di bramme da 250 t/h per linea.'];
+  var ACC = ['Consumi specifici: ±10–20 % rispetto ai dati dei licenziatari, perché sono ordini di grandezza di letteratura.', 'CO₂ diretta: ±10 % sul carbonio in ingresso; la ripartizione per area è indicativa.', 'Quantità di apparecchiature: ±1 unità al limite di una taglia; superfici di planimetria ±30 %.'];
+  var WEAK = ['Nessun bilancio termico dell\'altoforno, del convertitore o del forno elettrico: consumi da coefficienti specifici, non da modelli di processo.', 'Gas di recupero: quote d\'uso interno fisse; nessuna rete gas con gasometri e torce, nessun bilancio orario.', 'La CO₂ indiretta usa un solo fattore di rete; la produzione esterna di pellet, calce acquistata e idrogeno acquistato è fuori dal perimetro.', 'Il campo di CO₂ della DF per DRI-EAF ed EAF sembra includere l\'energia elettrica: il confronto è mostrato sulla diretta e sulla somma.', 'Tubi saldati SAW longitudinali da coil come approssimazione della lamiera; nessun treno lamiere dedicato nella configurazione B.', 'Punta elettrica semplificata: forni ad arco tutti sotto arco insieme, altri carichi con un rapporto punta/media unico.'];
+  var FIELD = ['Configurazione A: 3–5 Mt/anno; B: 0,6–1,5 Mt/anno (DF §1). Fuori campo il calcolo procede con un avviso.', 'Rotte BF-BOF, DRI-EAF a gas naturale o idrogeno, EAF a rottame con HBI facoltativo.', 'Esercizio continuo 5.000–8.760 h/anno; valori medi annui, non transitori di avviamento o di fermata.', 'Studi di fattibilità, WBS, stima delle ore di ingegneria e battery limits in offerta EPC (DF §1).'];
+
+  // ================================================================ avvio
+  function init() {
+    var ps = $('preset');
+    D.cases.order.forEach(function (id) { ps.appendChild(el('option', { value: id, text: D.cases.cases[id].title })); });
+    ps.appendChild(el('option', { value: '', text: 'Caso personalizzato' }));
+    var pP = P['config.product'], pR = P['config.route'];
+    pP.options.forEach(function (o) { $('q-product').appendChild(el('option', { value: o, text: pP.names[o] })); });
+    pR.options.forEach(function (o) { $('q-route').appendChild(el('option', { value: o, text: pR.names[o] })); });
+    ps.addEventListener('change', function () { if (!ps.value) return; st.caseId = ps.value; st.user = presetUser(ps.value); st.sel = { type: 'case', id: null }; refresh('caso di riferimento'); });
+    $('q-product').addEventListener('change', function () { setConfig('config.product', this.value); });
+    $('q-route').addEventListener('change', function () { setConfig('config.route', this.value); });
+    $('btn-refresh').addEventListener('click', function () { refresh(); });
+    $('btn-reset').addEventListener('click', function () { if (!D.cases.cases[st.caseId]) st.caseId = 'A1'; st.user = presetUser(st.caseId); refresh('ripristino'); });
+    $('bal-sel').addEventListener('change', function () { st.ledger = this.value; renderBalances(); });
+    $('btn-keep-A').addEventListener('click', function () { st.A = snapshot(); renderCompare(); });
+    $('btn-keep-B').addEventListener('click', function () { st.B = snapshot(); renderCompare(); });
+    $('btn-save').addEventListener('click', function () { save('caso-acciaieria-' + st.caseId + '.json', caseJSON()); $('case-msg').textContent = $('dv-msg').textContent; });
+    $('btn-copy-case').addEventListener('click', function () { copy(caseJSON(), $('case-msg')); });
+    $('btn-load-case').addEventListener('click', function () { loadCase($('case-text').value); });
+    $('file-load').addEventListener('change', function () { var f = this.files[0]; if (!f) return; var rd = new FileReader(); rd.onload = function () { loadCase(String(rd.result)); }; rd.readAsText(f); this.value = ''; });
+    var th = store('acc-sim-theme') || 'auto';
+    $('theme').value = th; applyTheme(th);
+    $('theme').addEventListener('change', function () { applyTheme(this.value); store('acc-sim-theme', this.value); });
+    [['val-list', VAL], ['acc-list', ACC], ['weak-list', WEAK], ['field-list', FIELD]].forEach(function (x) { x[1].forEach(function (t) { $(x[0]).appendChild(el('li', { text: t })); }); });
+    $('tb-version').textContent = VERSION;
+    var saved = store(STORE);
+    try { if (saved && saved.schema === 'acc-case/1') { st.user = E.completeInputs(saved.inputs); st.caseId = saved.caseId || 'A1'; } } catch (e) { saved = null; }
+    if (!st.user) st.user = presetUser('A1');
+    refresh('apertura');
+    $('boot').hidden = true;
+  }
+  function applyTheme(t) { if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); }
+
+  window.AccPage = { init: init, state: st };
+  try { init(); } catch (e) { var b = $('boot'); if (b) { b.classList.add('failed'); b.appendChild(el('span', { text: ' Errore: ' + e.message })); } throw e; }
+})();
+
+</script>
+</body>
+</html>
