@@ -19,7 +19,7 @@ const FLUIDS = {
   CW: 'Acqua di circolazione', ED: 'Vapore di scarico TV', NG: 'Gas naturale (stazione)', RW: 'Acqua grezza', WW: 'Acque reflue',
   CH: 'Prodotti chimici', CC: 'Acqua ciclo chiuso', DM: 'Acqua demineralizzata', IA: 'Aria strumenti', SA: 'Aria servizi',
   SV: 'Acqua servizi', FF: 'Acqua antincendio', SM: 'Campioni', OW: 'Acque oleose', NI: 'Azoto', HY: 'Idrogeno', CO: 'Anidride carbonica',
-  AS: 'Vapore ausiliario', GS: 'Vapore tenute', DR: 'Drenaggi', VE: 'Sfiati / incondensabili', LO: 'Olio di lubrificazione',
+  AS: 'Vapore ausiliario', GS: 'Vapore tenute', DO: 'Gasolio', DR: 'Drenaggi', VE: 'Sfiati / incondensabili', LO: 'Olio di lubrificazione',
 };
 
 // ------------------------------------------------------------------ registro P&ID
@@ -255,6 +255,7 @@ export function documentCatalog(meta, M = null) {
     { id: 'pid208', number: `${P}-UT-PID-208`, title: 'P&ID acque reflue', short: 'Acque reflue', group: 'P&ID utilities e ausiliari', pid: PU.pid208 },
     { id: 'pid209', number: `${P}-UT-PID-209`, title: 'P&ID gas tecnici', short: 'Gas tecnici', group: 'P&ID utilities e ausiliari', pid: PU.pid209 },
     { id: 'pid210', number: `${P}-UT-PID-210`, title: 'P&ID caldaia e vapore ausiliario', short: 'Vapore ausiliario', group: 'P&ID utilities e ausiliari', pid: PU.pid210 },
+    { id: 'pid211', number: `${P}-UT-PID-211`, title: 'P&ID scarico, stoccaggio e trasferimento gasolio', short: 'Gasolio di riserva', group: 'P&ID utilities e ausiliari', pid: PU.pid211, when: !!(M && M.U.diesel) },
     { id: 'll', number: `${P}-PI-LST-001`, title: 'Line list', short: 'Line list', group: 'Liste', table: lineListTable, csv: true },
     { id: 'vl', number: `${P}-PI-LST-002`, title: 'Valve list – elenco valvole', short: 'Valve list', group: 'Liste', table: valveTable, csv: true },
     { id: 'il', number: `${P}-IC-LST-001`, title: 'Instrument list – elenco strumenti', short: 'Instrument list', group: 'Liste', table: instrumentTable, csv: true },

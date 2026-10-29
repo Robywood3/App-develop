@@ -32,10 +32,17 @@ export class PlantSim {
     this.gtLoad = 1;
     this.setpoint = 1;
     this.rampPerMin = 8; // %/min del carico base
+    this.speedNom = SPEED_NOM; // 3000 giri/min a 50 Hz, 3600 a 60 Hz
     this.speed = SPEED_NOM;
     this.stOnline = true;
     this.lag = null;
     this.events = [];
+  }
+
+  /** Velocità nominale dalla frequenza di rete (2 poli): 3000 giri/min a 50 Hz, 3600 a 60 Hz. */
+  setSpeedNom(rpm) {
+    if (this.speed === this.speedNom) this.speed = rpm;
+    this.speedNom = rpm;
   }
 
   log(msg, level = 'info') {
@@ -54,7 +61,7 @@ export class PlantSim {
 
   stop() {
     if (this.state !== 'IN_SERVIZIO' && this.state !== 'AVVIAMENTO') return;
-    if (this.gtLoad <= 0 && this.speed < SPEED_NOM) {
+    if (this.gtLoad <= 0 && this.speed < this.speedNom) {
       // arresto durante l'accelerazione: spegnimento diretto
       this.state = 'ARRESTO';
       this.phase = 'Decelerazione';
@@ -108,17 +115,17 @@ export class PlantSim {
     switch (this.state) {
       case 'FERMO':
         this.gtLoad = 0;
-        this.speed = Math.max(0, this.speed - (SPEED_NOM / T_COAST) * dt);
+        this.speed = Math.max(0, this.speed - (this.speedNom / T_COAST) * dt);
         break;
       case 'AVVIAMENTO': {
-        if (this.speed < SPEED_NOM) {
-          this.speed = Math.min(SPEED_NOM, (this.phaseT / T_ACCEL) * SPEED_NOM);
+        if (this.speed < this.speedNom) {
+          this.speed = Math.min(this.speedNom, (this.phaseT / T_ACCEL) * this.speedNom);
           if (this.phaseT >= T_IGNITION && this.phase === 'Lavaggio caldaia') {
             this.phase = 'Accensione e accelerazione';
             this.log('Accensione TG riuscita');
           }
-          if (this.phaseT >= T_IGNITION) fuelFrac = FSNL_FUEL * (0.4 + 0.6 * (this.speed / SPEED_NOM));
-          if (this.speed >= SPEED_NOM) {
+          if (this.phaseT >= T_IGNITION) fuelFrac = FSNL_FUEL * (0.4 + 0.6 * (this.speed / this.speedNom));
+          if (this.speed >= this.speedNom) {
             this.phase = 'Presa di carico';
             this.phaseT = 0;
             this.gtLoad = 0.03;
@@ -168,7 +175,7 @@ export class PlantSim {
           }
         } else {
           this.gtLoad = 0;
-          this.speed = Math.max(0, this.speed - (SPEED_NOM / T_COAST) * dt);
+          this.speed = Math.max(0, this.speed - (this.speedNom / T_COAST) * dt);
           if (this.speed <= 0) {
             this.state = 'FERMO';
             this.phase = '';
@@ -178,7 +185,7 @@ export class PlantSim {
         break;
       case 'BLOCCO':
         this.gtLoad = 0;
-        this.speed = Math.max(0, this.speed - (SPEED_NOM / T_COAST) * dt);
+        this.speed = Math.max(0, this.speed - (this.speedNom / T_COAST) * dt);
         if (this.speed <= 0) this.phase = 'In attesa di riconoscimento';
         break;
       default:

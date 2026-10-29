@@ -32,11 +32,15 @@ npm test
   e umidità dell'aria, temperatura dell'acqua di raffreddamento, post-combustione in
   condotto, pressione HP scorrevole o fissa, numero di TG in servizio, profilo
   giornaliero di temperatura.
-- **Progetto**: TG di classe E, F o H/J (portata, rapporto di compressione, TIT,
-  rendimenti, aria di raffreddamento, isoterma di scarico, campo IGV), disposizione
-  1+1 / 2+1 / 3+1, GVR a 1, 2 o 3 livelli con risurriscaldamento, pressioni e
-  temperature di ogni livello, pinch point, rendimenti TV, condensatore ad acqua o
-  aerocondensatore, composizione del gas naturale.
+- **Progetto**: TG di classe E, F o H/J generiche oppure modelli commerciali di
+  riferimento a 50 Hz (Siemens SGT5-9000HL/8000H/4000F/2000E, Mitsubishi M701JAC,
+  GE Vernova 9HA.01/9HA.02, Ansaldo GT36-S5) e a 60 Hz (SGT6-9000HL/8000H/5000F/2000E,
+  7HA.01/7HA.03), con i dati di catalogo del ciclo combinato e la rampa di carico;
+  parametri modificabili (portata, rapporto di compressione, TIT, rendimenti, aria di
+  raffreddamento, isoterma di scarico, campo IGV), disposizione 1+1 / 2+1 / 3+1, GVR a
+  1, 2 o 3 livelli con risurriscaldamento, pressioni e temperature di ogni livello,
+  pinch point, rendimenti TV, condensatore ad acqua o aerocondensatore, composizione
+  del gas naturale, gasolio di riserva.
 - **Mercato**: prezzo del gas (€/MWh PCS, convertito al PCI), CO₂ (EUA), O&M,
   prezzo dell'energia: costo marginale, clean spark spread, margine orario.
 - **Sala controllo**: avviamento a caldo (lavaggio, accensione, parallelo,
@@ -49,6 +53,9 @@ npm test
   (evaporazione, spurgo, reintegro, dosaggi) o dell'aerocondensatore, ciclo chiuso con
   le utenze, acqua grezza/demi/reflui, stazione gas (preriscaldo Joule-Thomson), aria
   compressa e gas tecnici, vapore ausiliario e chimici, potenza ausiliaria per sistema.
+  Dimensionamenti tarati sulle descrizioni BoP di riferimento per un ciclo combinato
+  da 800–850 MW (pompe MCW 2×50 %, ACW 2×100 % agli intercooler, ciclo chiuso ΔT 7 °C,
+  serbatoi acqua grezza/servizi/demi, aria a 11 bar a, gasolio 24 h).
 
 ## Documentazione di ingegneria
 
@@ -62,7 +69,7 @@ revisioni e codifica KKS semplificata:
 | `…-PR-PFD-002` | Casi di funzionamento: 100/75/50 % ISO, 35 °C e −5 °C (prestazioni, TG, GVR, emissioni, utilities) |
 | `…-PR-PFD-003…007` | PFD percorso aria/fumi (con composizione fumi), ciclo acqua-vapore (scambi per banco), sistemi di raffreddamento, bilancio idrico, gas combustibile e vapore ausiliario |
 | `…-PR-PID-101…112` | P&ID di processo: TG aria/lavaggio/scarico, gas combustibile, olio TG; GVR HP, IP+RH, LP+preriscaldatore; vapore principale e bypass; TV, tenute, condensatore e vuoto; condensato; acqua alimento; spurghi e drenaggi; olio TV |
-| `…-UT-PID-201…210` | P&ID utilities e ausiliari: stazione gas, acqua di circolazione e torre (o aerocondensatore), ciclo chiuso, aria compressa, acqua grezza/servizi/antincendio, acqua demi, dosaggi chimici e SWAS, acque reflue, gas tecnici, caldaia e vapore ausiliario |
+| `…-UT-PID-201…211` | P&ID utilities e ausiliari: stazione gas (knock-out drum, filtri, misura fiscale, riduzione), acqua di circolazione e torre con pompe MCW/ACW e dosaggi (o aerocondensatore), ciclo chiuso con intercooler o aerotermi, aria compressa, acqua grezza/pretrattamento/servizi/antincendio, acqua demi, dosaggi chimici e SWAS, acque reflue, gas tecnici, caldaia e vapore ausiliario, gasolio di riserva (se previsto) |
 | `…-PI-LST-001` | Line list (con colonna P&ID): DN per velocità limite, spessori ASME B31.1, classi ASME B16.34 / PN, materiali (CS, legati, inox, PE), condizioni di progetto e prova, coibentazione |
 | `…-PI-LST-002` | Valve list generata dai P&ID: tipo, DN, classe, materiale, attuatore, posizione di sicurezza, taratura PSV |
 | `…-IC-LST-001` | Instrument list generata dai P&ID: tag KKS, funzione ISA, servizio, campo, I/O e funzioni SIS |
@@ -88,17 +95,18 @@ firme) si modificano nella stessa sezione.
 
 | Componente | Modello |
 |---|---|
-| Acqua/vapore | IAPWS-IF97 regioni 1, 2, 4 (verificate con i valori di controllo IAPWS); campo p ≤ 165 bar |
+| Acqua/vapore | IAPWS-IF97 regioni 1, 2, 4 (verificate con i valori di controllo IAPWS); campo p ≤ 165 bar nei corpi cilindrici (HP fino a 155 bar, 610 °C) |
 | Aria e fumi | Miscele di gas ideali N₂, O₂, Ar, CO₂, H₂O con coefficienti di Shomate (NIST); aria umida |
 | Combustione | Combustione completa di CH₄…C₄H₁₀ con inerti; PCI/PCS da composizione |
-| Turbina a gas | Compressore e turbina con rendimenti isoentropici; raffreddamento statorico e rotorico; portata corretta e turbina in blocco sonico fuori progetto; regolazione IGV a temperatura di scarico costante, poi riduzione TIT; limite generatore |
+| Turbina a gas | Modelli commerciali tarati su potenza, rendimento e temperatura di scarico ISO di catalogo (60 Hz: portata ridotta della famiglia a 50 Hz); compressore e turbina con rendimenti isoentropici; raffreddamento statorico e rotorico; portata corretta e turbina in blocco sonico fuori progetto; regolazione IGV a temperatura di scarico costante, poi riduzione TIT; limite generatore |
 | GVR | Metodo dei pinch point per zone, economizzatori in parallelo, degasaggio nel corpo LP, vincoli di fattibilità degli economizzatori (spostamento del pinch con post-combustione), temperatura minima al camino con ricircolo condensato |
 | Turbina a vapore | Sezioni HP/IP/LP, legge del cono di Stodola (pressione scorrevole), rendimento a carico parziale, correzione di Baumann per l'umidità, perdita allo scarico |
 | Condensatore | Acqua: portata costante, salto termico e TTD proporzionali al carico termico; ACC: ITD proporzionale al carico termico |
 | Dinamica | Rampe TG, ritardo del primo ordine del ciclo a vapore (τ ≈ 4 min), sequenze di avviamento/arresto/blocco |
 
-Valori tipici al punto ISO (classe F, 1+1, 3 livelli + RH): circa 446 MW netti,
-rendimento netto 59,3 % PCI, camino 86 °C.
+Valori tipici al punto ISO (classe F, 1+1, 3 livelli + RH): circa 445 MW netti,
+rendimento netto 59,2 % PCI. Con SGT5-9000HL 1+1: 880 MW lordi (catalogo 880 MW),
+rendimento lordo 63,8 % (catalogo > 64 %, con HP a 177 bar).
 
 È uno strumento didattico e di prefattibilità: i risultati non sostituiscono i dati
 di garanzia dei costruttori.
@@ -121,7 +129,7 @@ js/docs/              elaborati di ingegneria
   utilities-eng.js    linee, utenze e apparecchiature dei sistemi utilities
   pidkit.js           kit P&ID: valvole, strumenti, gruppi tipici, registro
   pids-process.js     P&ID di processo (101-112)
-  pids-util.js        P&ID utilities e ausiliari (201-210)
+  pids-util.js        P&ID utilities e ausiliari (201-211)
   pfds.js             PFD complementari e casi di funzionamento
   sheet.js            foglio vettoriale, cartiglio, tabelle impaginate, SVG
   pdf.js              scrittore PDF (Helvetica, WinAnsi)

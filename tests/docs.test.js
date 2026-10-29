@@ -75,3 +75,25 @@ test('metriche Helvetica per allineamento testo', () => {
   assert.ok(Math.abs(textWidth('0', 1000) - 556) < 1e-9);
   assert.ok(textWidth('°C', 10) > 0);
 });
+
+test('gasolio di riserva e modello TG 60 Hz: P&ID 211, linee DO disegnate, 3600 giri/min', () => {
+  const cfg = defaultConfig('GE Vernova 7HA.03 (430 MW)', '3PRH');
+  cfg.nGT = 2;
+  cfg.backupFuel = 'diesel';
+  const des = designPlant(cfg);
+  const meta = defaultProjectMeta();
+  const M = engineeringModel(cfg, des, meta);
+  const cat = documentCatalog(meta, M);
+  const c211 = cat.find((c) => c.id === 'pid211');
+  assert.ok(c211, 'P&ID gasolio mancante');
+  for (const s of buildDocument(M, c211)) assert.ok(!/NaN|undefined/.test(sheetToSVG(s)));
+  const { reg } = pidRegistry(M);
+  for (const id of ['DO-U', 'DO-T', 'DO-A', 'ACWS', 'ACWR', 'NG-DR', 'SV-T']) assert.ok(reg.lineRefs.has(id), `${id} senza P&ID`);
+  assert.ok(M.layout.items.some((it) => it.tag === '0EGB10'));
+  const gt = M.eq.find((e) => /Turbina a gas/.test(e.desc || ''));
+  assert.ok(gt && /3600 giri\/min \(60 Hz\)/.test(Object.values(gt).join(' ')));
+  // senza gasolio il P&ID non compare
+  const cfg2 = defaultConfig('Classe F (~300 MW)', '3PRH');
+  const M2 = engineeringModel(cfg2, designPlant(cfg2), meta);
+  assert.ok(!documentCatalog(meta, M2).some((c) => c.id === 'pid211'));
+});

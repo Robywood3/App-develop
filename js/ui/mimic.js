@@ -405,7 +405,7 @@ export function updateMimic(ref, v) {
 
   // flussi animati: velocità proporzionale alla portata
   const flowOf = {
-    air: on ? 1 : v.speed / 3000 * 0.3,
+    air: on ? 1 : v.speed / (v.speedNom || 3000) * 0.3,
     gas: on ? 1 : v.fuelFrac > 0 ? 0.3 : 0,
     fuel: on || v.fuelFrac > 0 ? 1 : 0,
     hp: on ? r.bt.mLevelsTot[0] / Math.max(v.ref.hp, 1) : 0,

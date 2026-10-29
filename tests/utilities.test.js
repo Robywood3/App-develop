@@ -10,7 +10,7 @@ const point = (cond, Tamb = 15) => {
   const des = designPlant(cfg);
   const op = { ...defaultOperation(), ...ISO, Tamb, load: 1, nGTon: cfg.nGT, Tcw: cfg.steam.condenser.TcwDesign, ductT: 0, slidingHP: true };
   const r = plantPoint(cfg, des, op);
-  return { cfg, des, r, U: utilitiesBalance(cfg, des, r) };
+  return { cfg, des, r, op, U: utilitiesBalance(cfg, des, r) };
 };
 
 test('torre evaporativa: reintegro = evaporazione + spurgo + trascinamento', () => {
@@ -48,7 +48,9 @@ test('stazione gas: preriscaldo per compensare Joule-Thomson e portata coerente'
 });
 
 test('ciclo chiuso: portata coerente con il carico termico', () => {
-  const { U } = point('water', 30);
+  const { U, op } = point('water', 30);
   assert.ok(Math.abs(U.ccw.flow * 4.18 * U.ccw.dT - U.ccw.kW) < 1e-6);
-  assert.ok(U.ccw.Tsupply >= 30);
+  // ΔT minimo 6 °C tra mandata ciclo chiuso e acqua ausiliaria, salto termico 7 °C
+  assert.ok(U.ccw.Tsupply >= op.Tcw + 6 - 1e-9);
+  assert.equal(U.ccw.dT, 7);
 });

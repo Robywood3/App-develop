@@ -2,7 +2,7 @@
 // proprio GVR, una turbina a vapore comune, ausiliari, emissioni ed economia.
 
 import { fuelProperties, FUEL_PRESETS, fuelForTemperature, gasH, molarMass } from './gas.js';
-import { GT_PRESETS, gtDesign, gtAtLoad } from './gt.js';
+import { GT_PRESETS, GT_GROUPS, gtDesign, gtAtLoad } from './gt.js';
 import { solveBottoming, LEVEL_NAMES } from './bottoming.js';
 
 export const ISO = { Tamb: 15, pamb: 1.01325, rh: 0.6 };
@@ -29,17 +29,30 @@ const CLASS_STEAM_3PRH = {
   'Classe E (~170 MW)': { hp: 95, ip: 24, tsh: 540, trh: 540 },
 };
 
-export const LIMITS = { pHPmax: 150, TshMax: 600 };
+// Modelli commerciali: classi H/J/HA/HL (TIT ≥ 1580 °C) con vapore HP al limite del campo IF97
+// implementato (corpo cilindrico ≤ 165 bar); il riferimento OEM indica 177 bar/604 °C e RH 42 bar/610 °C.
+function classSteam(gtName) {
+  if (CLASS_STEAM_3PRH[gtName]) return CLASS_STEAM_3PRH[gtName];
+  const g = GT_PRESETS[gtName];
+  if (!g) return null;
+  // turbina a vapore di grande taglia (~300 MW, HP/IP + LP) e GVR con pinch ridotto
+  if (g.TIT >= 1580) return { hp: LIMITS.pHPmax, ip: 40, tsh: 600, trh: g.TETiso >= 700 ? 610 : 600, st: { etaHP: 0.89, etaIP: 0.925, etaLP: 0.905, pinch: 6 } };
+  if (g.TIT >= 1450) return CLASS_STEAM_3PRH['Classe F (~300 MW)'];
+  return CLASS_STEAM_3PRH['Classe E (~170 MW)'];
+}
+
+export const LIMITS = { pHPmax: 155, TshMax: 610 };
 
 /** Configurazione predefinita dell'impianto. */
 export function defaultConfig(gtName = 'Classe F (~300 MW)', type = '3PRH') {
   const s = JSON.parse(JSON.stringify(STEAM_DEFAULTS[type]));
-  const cls = CLASS_STEAM_3PRH[gtName];
+  const cls = classSteam(gtName);
   if (type === '3PRH' && cls) {
     s.levels[0] = { p: cls.hp, Tsh: cls.tsh };
     s.levels[1].p = cls.ip;
     s.Trh = cls.trh;
   }
+  const st = cls?.st;
   return {
     gtName,
     gt: { ...GT_PRESETS[gtName] },
@@ -49,7 +62,7 @@ export function defaultConfig(gtName = 'Classe F (~300 MW)', type = '3PRH') {
     steam: {
       type,
       levels: s.levels.map((l) => ({ ...l })),
-      pinch: s.pinch.slice(),
+      pinch: st ? s.pinch.map(() => st.pinch) : s.pinch.slice(),
       approach: s.approach.slice(),
       Trh: s.Trh,
       dTsh: 25,
@@ -58,15 +71,18 @@ export function defaultConfig(gtName = 'Classe F (~300 MW)', type = '3PRH') {
       hrsgLoss: 0.005,
       TstackMin: 70,
       TwPreMin: 55,
-      etaHP: 0.87,
-      etaIP: 0.91,
-      etaLP: 0.89,
+      etaHP: st?.etaHP ?? 0.87,
+      etaIP: st?.etaIP ?? 0.91,
+      etaLP: st?.etaLP ?? 0.89,
       etaMG: 0.985,
       etaPump: 0.8,
       pMinFracHP: 0.4,
       condenser: { type: 'water', TcwDesign: 18, dTcw: 10, TTD: 3, ITD: 28 },
     },
-    aux: { miscFrac: 0.004, trafoFrac: 0.003, gtAuxMW: 0.8, cwHeadBar: 2.5, fanFrac: 0.012 },
+    // ausiliari raffreddamento tarati sulle descrizioni BoP di riferimento: pompe MCW 2×50 % con 20 m,
+    // ventilatori torre ~0,55 % del calore scaricato, pompe ACW 30 m sugli intercooler del ciclo chiuso
+    aux: { miscFrac: 0.004, trafoFrac: 0.003, gtAuxMW: 0.8, cwHeadBar: 2.0, fanFrac: 0.012, ctFanFrac: 0.0055, acwHeadBar: 3.0, ccwFrac: 0.026 },
+    backupFuel: 'none',
   };
 }
 
@@ -158,7 +174,14 @@ export function plantPoint(cfg, des, op) {
   const cond = cfg.steam.condenser;
   let Pcool;
   if (cond.type === 'air') Pcool = cfg.aux.fanFrac * des.QcondD * Math.min(1.1, Math.max(0.4, bt.Qcond / des.QcondD));
-  else Pcool = (des.mcw * cfg.aux.cwHeadBar * 100) / 1000 / 0.85 / 1000; // MW, portata acqua costante
+  else {
+    const a = cfg.aux;
+    const Pmcw = (des.mcw * (a.cwHeadBar ?? 2.0) * 100) / 1000 / 0.85 / 1000; // MW, portata acqua costante
+    const Pfan = (a.ctFanFrac ?? 0) * des.QcondD; // ventilatori torre a velocità fissa
+    const mAcw = ((a.ccwFrac ?? 0) * gross * 1000) / (4.18 * 10); // kg/s acqua ausiliaria agli intercooler
+    const Pacw = (mAcw * (a.acwHeadBar ?? 3.0) * 100) / 1000 / 0.8 / 1000;
+    Pcool = Pmcw + Pfan + Pacw;
+  }
   const Pmisc = cfg.aux.miscFrac * gross + cfg.aux.gtAuxMW * nOn;
   const Paux = bt.Ppump + Pcool + Pmisc;
   const Ptrafo = cfg.aux.trafoFrac * gross;
@@ -223,4 +246,4 @@ function offlinePoint(cfg, op) {
   };
 }
 
-export { LEVEL_NAMES, GT_PRESETS, FUEL_PRESETS };
+export { LEVEL_NAMES, GT_PRESETS, GT_GROUPS, FUEL_PRESETS };

@@ -12,23 +12,57 @@ import { gasH, gasT, gasR, isentropicT, humidAir, mixStreams, fuelForTemperature
 const P_ISO = 1.01325;
 const T_ISO = 15;
 
-export const GT_PRESETS = {
+const GT_PRESETS_BASE = {
   'Classe F (~300 MW)': {
     mAirISO: 660, PR: 18.5, TIT: 1480, coolFrac: 0.19, etaC: 0.885, etaT: 0.905,
     dpInlet: 10, dpExhaust: 32, dpComb: 0.04, etaMG: 0.986, TETiso: 640, igvMin: 0.62,
-    Tfuel: 185, etaComb: 0.998, PmaxFactor: 1.12,
+    Tfuel: 185, etaComb: 0.998, PmaxFactor: 1.12, freq: 50,
   },
   'Classe H/J (~450 MW)': {
     mAirISO: 840, PR: 23.5, TIT: 1600, coolFrac: 0.2, etaC: 0.9, etaT: 0.915,
     dpInlet: 10, dpExhaust: 35, dpComb: 0.04, etaMG: 0.988, TETiso: 655, igvMin: 0.6,
-    Tfuel: 200, etaComb: 0.999, PmaxFactor: 1.1,
+    Tfuel: 200, etaComb: 0.999, PmaxFactor: 1.1, freq: 50,
   },
   'Classe E (~170 MW)': {
     mAirISO: 480, PR: 13, TIT: 1260, coolFrac: 0.14, etaC: 0.875, etaT: 0.895,
     dpInlet: 10, dpExhaust: 30, dpComb: 0.035, etaMG: 0.984, TETiso: 590, igvMin: 0.68,
-    Tfuel: 25, etaComb: 0.997, PmaxFactor: 1.12,
+    Tfuel: 25, etaComb: 0.997, PmaxFactor: 1.12, freq: 50,
   },
 };
+const H_BASE = GT_PRESETS_BASE['Classe H/J (~450 MW)'];
+
+// Modelli commerciali di riferimento (documento "Centrali a ciclo combinato", sez. 5 e 6).
+// 50 Hz: potenza, rendimento lordo e temperatura di scarico ISO da scheda OEM; portata d'aria,
+// TIT e rendimento di espansione ricavati per taratura (la portata fumi risulta ~4 % sopra il
+// dato di catalogo, che non include le perdite termiche verso i refrigeranti dell'aria di raffreddamento).
+// SGT5-8000H: rendimento 41 % e scarico 630 °C stimati. 60 Hz: stessa termodinamica della
+// "sorella" a 50 Hz con portata ridotta (pale più corte per contenere la forza centrifuga a 3600 giri/min).
+// ref: prestazioni dichiarate del ciclo combinato 1+1 / 2+1 (MW, % PCI) e base (lordo/netto).
+const GT_MODELS = {
+  'Siemens SGT5-9000HL (593 MW)': { ...H_BASE, mAirISO: 1041.2, PR: 24, TIT: 1670.5, etaT: 0.8973, TETiso: 700, freq: 50, rampMWmin: 85, ref: {cc11: 880, eta11: 64.0, basis: 'lordo', cc21: 1750} },
+  'Mitsubishi M701JAC (574 MW)': { ...H_BASE, mAirISO: 1035, PR: 23, TIT: 1628.6, etaT: 0.9089, TETiso: 675, freq: 50, rampMWmin: 66, ref: {cc11: 840, eta11: 64.0, basis: 'lordo'} },
+  'GE Vernova 9HA.02 (571 MW)': { ...H_BASE, mAirISO: 1015, PR: 23.8, TIT: 1634.4, etaT: 0.9129, TETiso: 670, freq: 50, rampMWmin: 88, ref: {cc11: 838, eta11: 64.1, basis: 'netto', cc21: 1680, eta21: 64.3} },
+  'GE Vernova 9HA.01 (448 MW)': { ...H_BASE, mAirISO: 834.3, PR: 21.8, TIT: 1600.3, etaT: 0.9093, TETiso: 670, freq: 50, rampMWmin: 65, ref: {cc11: 680, eta11: 63.7, basis: 'netto', cc21: 1363, eta21: 63.8} },
+  'Ansaldo GT36-S5 (563 MW)': { ...H_BASE, mAirISO: 1082, PR: 25, TIT: 1589.7, etaT: 0.8961, TETiso: 650, freq: 50, ref: {cc11: 800, eta11: 62.6, basis: 'netto', cc21: 1600, eta21: 62.8} },
+  'Siemens SGT5-8000H (450 MW)': { ...H_BASE, mAirISO: 925.8, PR: 19.2, TIT: 1529.6, etaT: 0.9008, TETiso: 660, freq: 50 },
+  'Siemens SGT5-4000F (329 MW)': { ...GT_PRESETS_BASE['Classe F (~300 MW)'], mAirISO: 713.5, freq: 50 },
+  'Siemens SGT5-2000E (198 MW)': { ...GT_PRESETS_BASE['Classe E (~170 MW)'], mAirISO: 556.3, freq: 50 },
+  'Siemens SGT6-9000HL (440 MW)': { ...H_BASE, mAirISO: 772.6, PR: 24, TIT: 1670.5, etaT: 0.8973, TETiso: 700, freq: 60 },
+  'Siemens SGT6-8000H (310 MW)': { ...H_BASE, mAirISO: 637.8, PR: 19.2, TIT: 1529.6, etaT: 0.9008, TETiso: 660, freq: 60 },
+  'Siemens SGT6-5000F (260 MW)': { ...GT_PRESETS_BASE['Classe F (~300 MW)'], mAirISO: 563.8, freq: 60 },
+  'Siemens SGT6-2000E (119 MW)': { ...GT_PRESETS_BASE['Classe E (~170 MW)'], mAirISO: 334.3, freq: 60 },
+  'GE Vernova 7HA.03 (430 MW)': { ...H_BASE, mAirISO: 764.4, PR: 23.8, TIT: 1634.4, etaT: 0.9129, TETiso: 670, freq: 60, ref: {eta11: 63.5, basis: 'netto'} },
+  'GE Vernova 7HA.01 (290 MW)': { ...H_BASE, mAirISO: 540, PR: 21.8, TIT: 1600.3, etaT: 0.9093, TETiso: 670, freq: 60, ref: {eta11: 63.0, basis: 'netto'} },
+};
+
+export const GT_PRESETS = { ...GT_PRESETS_BASE, ...GT_MODELS };
+
+/** Raggruppamento per il selettore: classi generiche e modelli commerciali per frequenza di rete. */
+export const GT_GROUPS = [
+  ['Classi generiche', Object.keys(GT_PRESETS_BASE)],
+  ['Modelli 50 Hz (3000 giri/min)', Object.keys(GT_MODELS).filter((k) => GT_MODELS[k].freq === 50)],
+  ['Modelli 60 Hz (3600 giri/min)', Object.keys(GT_MODELS).filter((k) => GT_MODELS[k].freq === 60)],
+];
 
 const NOZZLE_SHARE = 0.6; // quota dell'aria di raffreddamento miscelata prima dello statore
 

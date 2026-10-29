@@ -175,6 +175,8 @@ export function engineeringModel(cfg, des, meta) {
   const fuel = des.fuel;
   const cond = cfg.steam.condenser;
   const gtClass = cfg.gtName.replace(/\s*\(.*\)/, '');
+  const freq = cfg.gt.freq ?? 50; // frequenza di rete del modello di TG
+  const rpm = freq * 60;
   const units = Array.from({ length: N }, (_, i) => i + 1);
   const water = cond.type === 'water';
   const U = utilitiesBalance(cfg, des, r);
@@ -296,8 +298,8 @@ export function engineeringModel(cfg, des, meta) {
   if (cond.type === 'air') {
     L('ED', 0, 'ED', 'cw', '0MAC10 scarico LP', '0MAG10 aerocondensatore', lastSec.m, bt.pCond, bt.Tcond, 75, exhV, 'MAG', { pDes: 3.5, TDes: 120 });
   } else {
-    L('CWS', 0, 'CW', 'cw', '0PAC10 pompe circolazione', '0MAG10 ingresso condensatore', des.mcw, 2.5, op.Tcw, 2.5, 0.001, 'PAB', { pDes: 4.5, TDes: 50 });
-    L('CWR', 0, 'CW', 'cw', '0MAG10 uscita condensatore', '0PAE10 torre di raffreddamento', des.mcw, 1.8, op.Tcw + dTcwOp, 2.5, 0.001, 'PAB', { pDes: 4.5, TDes: 50 });
+    L('CWS', 0, 'CW', 'cw', '0PAC10 pompe circolazione', '0MAG10 ingresso condensatore', des.mcw, 2.5, op.Tcw, 3.0, 0.001, 'PAB', { pDes: 4.5, TDes: 50 });
+    L('CWR', 0, 'CW', 'cw', '0MAG10 uscita condensatore', '0PAE10 torre di raffreddamento', des.mcw, 1.8, op.Tcw + dTcwOp, 3.0, 0.001, 'PAB', { pDes: 4.5, TDes: 50 });
   }
   utilityLines({ L, U, cfg, des, N, units, pFG, fuel, bt, water });
   const lineById = Object.fromEntries(lines.map((l) => [l.id, l]));
@@ -350,12 +352,12 @@ export function engineeringModel(cfg, des, meta) {
   // raffreddamento principale
   let ctCells = 0, accCells = 0;
   if (cond.type === 'water') {
-    const Hcw = 25;
+    const Hcw = (cfg.aux.cwHeadBar ?? 2.0) * 10.2; // m (2×50 %, tarato sulle descrizioni BoP)
     const kWcw = (des.mcw * 1.05 * G * Hcw) / 0.86 / 1000 / 2;
     pumps.cw = { Q: (des.mcw * 3600) / 998 / 2, H: Hcw, kW: kWcw };
-    addLoad(kks(0, 'PAC', 10, 'AP', 1), 'Pompa acqua di circolazione 50 % (A/B/C)', 3, 2, kWcw, 'C', { equip: kks(0, 'PAC', 10) });
+    addLoad(kks(0, 'PAC', 10, 'AP', 1), 'Pompa acqua di circolazione MCW 50 % (A/B)', 2, 2, kWcw, 'C', { equip: kks(0, 'PAC', 10) });
     ctCells = Math.max(2, Math.ceil(des.QcondD / 26));
-    const kWfan = Math.max(55, (des.QcondD * 1000 * 0.0075) / ctCells);
+    const kWfan = Math.max(55, (des.QcondD * 1000 * (cfg.aux.ctFanFrac ?? 0.0055)) / ctCells);
     addLoad(kks(0, 'PAE', 10, 'AN', 1), `Ventilatore torre di raffreddamento (${ctCells} celle)`, ctCells, ctCells, kWfan, 'C', { equip: kks(0, 'PAE', 10) });
   } else {
     accCells = Math.max(4, Math.ceil(des.QcondD / 10));
@@ -448,9 +450,9 @@ export function engineeringModel(cfg, des, meta) {
 
   const tp = (sys) => (N > 1 ? `1..${N}${sys}` : `1${sys}`);
   eq.push({ group: 'Turbogas' });
-  E(tp('MBA10'), `Turbina a gas heavy duty ${gtClass}`, N > 1 ? `${N}` : '1', 'Monoalbero, 3000 giri/min, combustori DLN',
+  E(tp('MBA10'), `Turbina a gas heavy duty ${gtClass}`, N > 1 ? `${N}` : '1', `Monoalbero, ${rpm} giri/min (${freq} Hz), combustori DLN`,
     `P ISO ${f1(des.gtRef.Piso)} MW · η ${f1(des.gtRef.point.eta * 100)} % · β ${f1(cfg.gt.PR)} · aria ${f0(des.gtRef.point.mAir)} kg/s · scarico ${f1(des.gtRef.point.T4)} °C`, '', '', '', '');
-  E(tp('MKA10'), 'Generatore sincrono TG', `${N}`, `Raffreddamento ad ${gens[0].cooling}`, `${f0(MVAgt)} MVA · ${String(kVgt).replace('.', ',')} kV · cosφ 0,85 · 50 Hz`);
+  E(tp('MKA10'), 'Generatore sincrono TG', `${N}`, `Raffreddamento ad ${gens[0].cooling}`, `${f0(MVAgt)} MVA · ${String(kVgt).replace('.', ',')} kV · cosφ 0,85 · ${freq} Hz`);
   E(tp('MBL10'), 'Casa filtri aria aspirazione', `${N}`, 'Filtrazione a 3 stadi (G4/F9/E12), silenziatore', `Portata ${f0((gt.mAir * 3600) / 1.2)} m³/h · ΔP pulito ≤ ${cfg.gt.dpInlet} mbar`);
   E(tp('MBP10'), 'Skid valvole gas combustibile', `${N}`, 'Valvole di arresto/rapporto, regolazione, sfiato', `Portata ${f1(gt.mFuel * 3.6)} t/h · p alimentazione ${f1(pFG)} bar`, f1(pFG * 1.15), '60', 'AISI 316L');
   E(tp('EKG10'), 'Riscaldatore gas combustibile', `${N}`, 'Scambiatore a fascio tubiero, lato tubi acqua IP', `Duty ${f1((gt.mFuel * 2.3 * (cfg.gt.Tfuel - 15)) / 1000)} MW · gas 15 → ${cfg.gt.Tfuel} °C`, f1(pFG * 1.15), String(cfg.gt.Tfuel + 30), 'SA-516 70 / SA-213 TP316');
@@ -494,15 +496,15 @@ export function engineeringModel(cfg, des, meta) {
 
   eq.push({ group: 'Turbina a vapore e ciclo termico' });
   const stDesc = n === 3 ? 'HP + IP/LP, risurriscaldata' : n === 2 ? 'HP + LP a due pressioni' : 'monocorpo';
-  E('0MAA/MAB/MAC10', `Turbina a vapore a condensazione ${stDesc}`, '1', `Scarico ${cond.type === 'air' ? 'assiale verso ACC' : 'verso il basso'}, 3000 giri/min`,
+  E('0MAA/MAB/MAC10', `Turbina a vapore a condensazione ${stDesc}`, '1', `Scarico ${cond.type === 'air' ? 'assiale verso ACC' : 'verso il basso'}, ${rpm} giri/min`,
     `P ${f1(r.Pst)} MW · HP ${f1(sec0.pIn)} bar/${f0(sec0.Tin)} °C · ${f1(sec0.m)} kg/s${reheat ? ` · RH ${f1(bt.pRHout)} bar/${f0(bt.Trh)} °C` : ''} · scarico ${f1(bt.pCond * 1000)} mbar · area scarico ${f1(des.stRef.lpArea)} m²`);
-  E('0MKA10', 'Generatore sincrono TV', '1', `Raffreddamento ad ${gens[N].cooling}`, `${f0(MVAst)} MVA · ${String(kVst).replace('.', ',')} kV · cosφ 0,85`);
+  E('0MKA10', 'Generatore sincrono TV', '1', `Raffreddamento ad ${gens[N].cooling}`, `${f0(MVAst)} MVA · ${String(kVst).replace('.', ',')} kV · cosφ 0,85 · ${freq} Hz`);
   if (cond.type === 'water') {
     const Tin = op.Tcw, Tout = op.Tcw + dTcwOp;
     const lmtd = (Tout - Tin) / Math.log((bt.Tcond - Tin) / (bt.Tcond - Tout));
     const A = (bt.Qcond * 1e6) / (3000 * lmtd);
     E('0MAG10', 'Condensatore a superficie', '1', 'Due passaggi, tubi in titanio, pozzo caldo', `Duty ${f0(bt.Qcond)} MW · ${f1(bt.pCond * 1000)} mbar · superficie ~${f0(A)} m² · acqua ${f0(des.mcw * 3.6 / 1.0)} t/h`, '1,0 / FV', '80', 'Mantello CS, tubi Ti Gr.2');
-    E('0PAC10AP001..003', 'Pompe acqua di circolazione', '3 (3×50 %)', 'Verticali a pozzo umido', `Q ${f0(pumps.cw.Q)} m³/h · H ${pumps.cw.H} m · ${f0(pumps.cw.kW)} kW assorbiti`, '4,5', '50', 'Ghisa sferoidale / inox', loadKW(kks(0, 'PAC', 10, 'AP', 1)));
+    E('0PAC10AP001/002', 'Pompe acqua di circolazione (MCW)', '2 (2×50 %)', 'Verticali centrifughe, valvola combinata ritegno/regolazione in mandata', `Q ${f0(pumps.cw.Q)} m³/h · H ${f0(pumps.cw.H)} m · ${f0(pumps.cw.kW)} kW assorbiti`, '4,5', '50', 'Ghisa sferoidale / inox', loadKW(kks(0, 'PAC', 10, 'AP', 1)));
     E('0PAE10', 'Torre di raffreddamento evaporativa a tiraggio indotto', '1', `${ctCells} celle in linea, ventilatori assiali`, `Duty ${f0(des.QcondD)} MW · ΔT ${f1(cond.dTcw)} K · avvicinamento ~6 K`, '', '', 'Calcestruzzo / GRP');
   } else {
     E('0MAG10', 'Aerocondensatore (ACC)', '1', `${accCells} celle a A, ventilatori assiali`, `Duty ${f0(bt.Qcond)} MW · ITD ${cond.ITD} K · ${f1(bt.pCond * 1000)} mbar`, '1,0 / FV', '120', 'Tubi alettati in acciaio alluminato', loadKW(kks(0, 'MAG', 10, 'AN', 1)));
@@ -527,7 +529,7 @@ export function engineeringModel(cfg, des, meta) {
   const layout = buildLayout(cfg, des, r, meta, { ctCells, accCells, stackD, MVAgt, N, n });
 
   return {
-    meta, cfg, des, r, op, N, n, names, type, reheat, gtClass,
+    meta, cfg, des, r, op, N, n, names, type, reheat, gtClass, freq,
     streams, st, lines, lineById, eq, loads, electrical, pumps, layout,
     pFG, ctCells, accCells, stackD, U, water,
   };
@@ -607,7 +609,8 @@ function buildLayout(cfg, des, r, meta, { ctCells, accCells, stackD, MVAgt, N, n
   add({ tag: '0GCF10', name: 'Impianto demi', kind: 'box', x: xE + 22, y: Y0 + 4, w: 22, d: 14, h: 8, grp: 'bld' });
   add({ tag: '0SGA10', name: 'Serbatoio antincendio', kind: 'cyl', x: xE + 10, y: Y0 + 38, r: 9, h: 14, grp: 'tank' });
   add({ tag: '0SGA20', name: 'Pompe antincendio', kind: 'box', x: xE + 22, y: Y0 + 32, w: 14, d: 10, h: 6, grp: 'bld' });
-  add({ tag: '0PGB10', name: 'Aerotermi ciclo chiuso', kind: 'box', x: st.x + Lst - 30, y: st.y - 18, w: 26, d: 10, h: 6, grp: 'bop' });
+  if (cfg.steam.condenser.type === 'water') add({ tag: '0PGD10', name: 'Pompe e intercooler ciclo chiuso', kind: 'box', x: st.x + Lst - 30, y: st.y - 18, w: 26, d: 10, h: 6, grp: 'bop' });
+  else add({ tag: '0PGC10', name: 'Aerotermi ciclo chiuso', kind: 'box', x: st.x + Lst - 30, y: st.y - 18, w: 26, d: 10, h: 6, grp: 'bop' });
   add({ tag: '0XJA10', name: 'Diesel emergenza', kind: 'box', x: X0 - 52, y: st.y - 16, w: 12, d: 8, h: 5, grp: 'el' });
   add({ tag: '0AEA10', name: `GIS ${''}AT`, kind: 'box', x: X0 - 62, y: Y0 + 10, w: 30, d: Math.max(30, N * pitch - 20), h: 14, grp: 'el' });
   add({ tag: '0UYA', name: 'Uffici e magazzino', kind: 'box', x: X0 - 62, y: yTop + 6, w: 40, d: 20, h: 9, grp: 'bld' });
@@ -616,6 +619,13 @@ function buildLayout(cfg, des, r, meta, { ctCells, accCells, stackD, MVAgt, N, n
   add({ tag: '0QCA10', name: 'Dosaggi chimici e SWAS', kind: 'box', x: xE + 48, y: Y0 + 20, w: 14, d: 8, h: 4, grp: 'bld' });
   add({ tag: '0QJA10', name: 'Gas tecnici (N₂, H₂, CO₂)', kind: 'box', x: xE + 48, y: Y0 + 34, w: 12, d: 8, h: 3, grp: 'bop' });
   add({ tag: '0GMA10', name: 'Trattamento acque reflue', kind: 'box', x: xE, y: Y0 + 54, w: 24, d: 12, h: 3, grp: 'bop' });
+  if (cfg.backupFuel === 'diesel') {
+    // serbatoio gasolio (h 14 m) nel bacino di contenimento e baie di scarico autobotti
+    const U = utilitiesBalance(cfg, des, r);
+    const rT = Math.sqrt(U.diesel.tankM3 / (Math.PI * 14));
+    add({ tag: '0EGB10', name: 'Serbatoio gasolio', kind: 'cyl', x: xE + 76 + rT, y: Y0 + 12 + rT, r: rT, h: 14, grp: 'tank' });
+    add({ tag: '0EGA10', name: 'Scarico autobotti', kind: 'box', x: xE + 72, y: Y0 + 20 + 2 * rT, w: 18, d: 8, h: 3, grp: 'bop' });
+  }
 
   // confini
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;

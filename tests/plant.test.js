@@ -72,3 +72,27 @@ test('configurazione 2+1 con una sola TG in servizio', () => {
   assert.ok(one.bt.pAdm[0] < both.bt.pAdm[0], 'pressione scorrevole più bassa con una TG');
   assert.ok(one.Pst > 0.4 * both.Pst && one.Pst < 0.55 * both.Pst);
 });
+
+test('modelli TG di riferimento: prestazioni ISO da scheda OEM e taglie 60 Hz', () => {
+  const fuel = fuelProperties(FUEL_PRESETS['Gas naturale tipico (rete IT)']);
+  const cases = [
+    ['Siemens SGT5-9000HL (593 MW)', 593, 0.43, 670],
+    ['Mitsubishi M701JAC (574 MW)', 574, 0.434, 646],
+    ['GE Vernova 9HA.02 (571 MW)', 571, 0.44, 640],
+    ['Ansaldo GT36-S5 (563 MW)', 563, 0.43, 621],
+  ];
+  for (const [name, P, eta, T4] of cases) {
+    const ref = gtDesign({ ...GT_PRESETS[name], fuel });
+    assert.ok(Math.abs(ref.Piso - P) < 0.01 * P, `${name} P ${ref.Piso}`);
+    assert.ok(Math.abs(ref.point.eta - eta) < 0.003, `${name} eta ${ref.point.eta}`);
+    assert.ok(Math.abs(ref.T4iso - T4) < 3, `${name} T4 ${ref.T4iso}`);
+  }
+  // a 60 Hz la stessa famiglia ha taglia ridotta
+  const p60 = gtDesign({ ...GT_PRESETS['Siemens SGT6-9000HL (440 MW)'], fuel }).Piso;
+  assert.ok(Math.abs(p60 - 440) < 5 && GT_PRESETS['Siemens SGT6-9000HL (440 MW)'].freq === 60);
+  // ciclo combinato 1+1 SGT5-9000HL: ~880 MW lordi (scheda OEM)
+  const cfg = defaultConfig('Siemens SGT5-9000HL (593 MW)', '3PRH');
+  const r = plantPoint(cfg, designPlant(cfg), defaultOperation());
+  assert.ok(Math.abs(r.gross - 880) < 15, `lordo ${r.gross}`);
+  assert.ok(r.etaGross > 0.625, `eta lordo ${r.etaGross}`);
+});

@@ -1,6 +1,6 @@
 // Controller dell'interfaccia: stato, input, ciclo di simulazione e aggiornamento delle viste.
 
-import { defaultConfig, defaultOperation, designPlant, plantPoint, GT_PRESETS, FUEL_PRESETS, LIMITS } from '../engine/plant.js';
+import { defaultConfig, defaultOperation, designPlant, plantPoint, GT_PRESETS, GT_GROUPS, FUEL_PRESETS, LIMITS } from '../engine/plant.js';
 import { HRSG_TYPES, LEVEL_NAMES } from '../engine/bottoming.js';
 import { PlantSim, formatSimTime } from '../engine/dynamics.js';
 import { fmt } from './format.js';
@@ -46,6 +46,7 @@ function redesign() {
   notes.hidden = !S.des.notes.length;
   notes.textContent = S.des.notes.join(' ');
   if (S.op.nGTon > S.cfg.nGT) S.op.nGTon = S.cfg.nGT;
+  S.sim.setSpeedNom((S.cfg.gt.freq ?? 50) * 60);
   fillNGTon();
   updateBrand();
   syncDesignInputs();
@@ -90,7 +91,7 @@ function compose(ss, lag, fuelFrac) {
   const snap = S.sim.snapshot();
   const nOn = Math.min(S.op.nGTon, S.cfg.nGT);
   const base = {
-    ss, snap, stateLabel: snap.stateLabel, speed: snap.speed, stOnline: snap.stOnline,
+    ss, snap, stateLabel: snap.stateLabel, speed: snap.speed, speedNom: S.sim.speedNom, stOnline: snap.stOnline,
     fuelFrac, nOn, condType: S.cfg.steam.condenser.type,
     ref: { hp: S.des.stRef.mLevels[0] * S.cfg.nGT },
   };
@@ -127,7 +128,7 @@ function tick() {
     v = compose(ss, lag, 0);
     v.stateLabel = 'Stazionario';
     v.stOnline = ss.online;
-    v.speed = ss.online ? 3000 : 0;
+    v.speed = ss.online ? S.sim.speedNom : 0;
   } else {
     if (S.running) {
       const dt = (TICK_MS / 1000) * S.speed;
@@ -373,10 +374,26 @@ const GT_FIELDS = [
 ];
 const ST_FIELDS = [['d-etahp', 'etaHP'], ['d-etaip', 'etaIP'], ['d-etalp', 'etaLP'], ['d-tstack', 'TstackMin'], ['d-trh', 'Trh']];
 
+// Dati di catalogo del modello di TG accanto al punto ISO calcolato (verifica della taratura).
+function gtRefText(c) {
+  const g = GT_PRESETS[c.gtName];
+  const f = g.freq ?? 50;
+  const iso = S.des.gtRef;
+  const parts = [`${f} Hz · ${f * 60} giri/min`, `ISO calcolato ${fmt(iso.Piso, 0)} MW, η ${fmt(iso.point.eta * 100, 1)} %, scarico ${fmt(iso.T4iso, 0)} °C`];
+  if (g.ref) {
+    const cc = [g.ref.cc11 ? `1+1 ${g.ref.cc11} MW` : '', g.ref.cc21 ? `2+1 ${g.ref.cc21} MW` : ''].filter(Boolean).join(', ');
+    parts.push(`catalogo CC ${g.ref.basis}: ${cc ? cc + ', ' : ''}η ${fmt(g.ref.eta11, 1)} %`);
+  }
+  if (g.rampMWmin) parts.push(`rampa ${g.rampMWmin} MW/min`);
+  return parts.join(' · ');
+}
+
 function syncDesignInputs() {
   const c = S.cfg;
   $('d-gt').value = c.gtName;
+  setText('d-gt-ref', gtRefText(c));
   $('d-ngt').value = String(c.nGT);
+  $('d-backup').value = c.backupFuel;
   $('d-hrsg').value = c.steam.type;
   $('d-fuel').value = c.fuelName;
   for (const [id, key, k] of GT_FIELDS) $(id).value = +(c.gt[key] * k).toFixed(4);
@@ -432,19 +449,36 @@ function newConfig(gtName, type, keep) {
     c.fuelName = keep.fuelName;
     c.fuelComp = { ...keep.fuelComp };
     c.steam.condenser = { ...keep.steam.condenser };
+    c.backupFuel = keep.backupFuel;
   }
   return c;
 }
 
 function bindDesign() {
   const gtSel = $('d-gt');
-  for (const name of Object.keys(GT_PRESETS)) gtSel.add(new Option(name, name));
+  for (const [label, names] of GT_GROUPS) {
+    const og = document.createElement('optgroup');
+    og.label = label;
+    for (const name of names) og.appendChild(new Option(name, name));
+    gtSel.appendChild(og);
+  }
   const fSel = $('d-fuel');
   for (const name of Object.keys(FUEL_PRESETS)) fSel.add(new Option(name, name));
 
-  gtSel.addEventListener('change', () => { S.cfg = newConfig(gtSel.value, S.cfg.steam.type, S.cfg); scheduleRedesign(); });
+  gtSel.addEventListener('change', () => {
+    S.cfg = newConfig(gtSel.value, S.cfg.steam.type, S.cfg);
+    // gradiente di carico di catalogo (MW/min) riportato in %/min del carico base
+    const g = GT_PRESETS[gtSel.value];
+    if (g.rampMWmin) {
+      const ramp = $('in-ramp');
+      ramp.value = String(Math.round(Math.min(20, Math.max(1, (g.rampMWmin / parseFloat(gtSel.value.match(/\((\d+) MW\)/)[1])) * 100))));
+      ramp.dispatchEvent(new Event('input'));
+    }
+    scheduleRedesign();
+  });
   $('d-hrsg').addEventListener('change', (e) => { S.cfg = newConfig(S.cfg.gtName, e.target.value, S.cfg); scheduleRedesign(); });
   $('d-ngt').addEventListener('change', (e) => { S.cfg.nGT = parseInt(e.target.value, 10); S.op.nGTon = S.cfg.nGT; scheduleRedesign(); });
+  $('d-backup').addEventListener('change', (e) => { S.cfg.backupFuel = e.target.value; scheduleRedesign(); });
   fSel.addEventListener('change', () => { S.cfg.fuelName = fSel.value; S.cfg.fuelComp = { ...FUEL_PRESETS[fSel.value] }; scheduleRedesign(); });
   for (const [id, key, k] of GT_FIELDS) {
     $(id).addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) { S.cfg.gt[key] = v / k; scheduleRedesign(); } });
