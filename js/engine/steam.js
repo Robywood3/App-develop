@@ -1,8 +1,8 @@
-// Proprietà dell'acqua/vapore secondo IAPWS-IF97 (regioni 1, 2 e 4).
+// Proprietà dell'acqua/vapore secondo IAPWS-IF97 (regioni 1, 2, 3 e 4).
 // API pubblica in unità ingegneristiche: pressione [bar], temperatura [°C],
 // entalpia [kJ/kg], entropia [kJ/(kg·K)], volume specifico [m³/kg].
-// La regione 3 non è implementata: il campo di validità usato dal simulatore
-// è p ≤ 165 bar (sotto il punto in cui la saturazione entra in regione 3).
+// La regione 3 (equazione di Helmholtz in ρ, T) è risolta in densità per
+// iterazione; il campo usato dal simulatore è p ≤ 200 bar (subcritico).
 
 const R_W = 0.461526; // kJ/(kg·K)
 const TK = 273.15;
@@ -119,8 +119,108 @@ function tsatK(pMPa) {
   return (n[9] + D - Math.sqrt((n[9] + D) * (n[9] + D) - 4 * (n[8] + n[9] * D))) / 2;
 }
 
+// ---------------------------------------------------------------- Regione 3
+const R3_I = [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 8, 9, 9, 10, 10, 11];
+const R3_J = [0, 1, 2, 7, 10, 12, 23, 2, 6, 15, 17, 0, 2, 6, 7, 22, 26, 0, 2, 4, 16, 26, 0, 2, 4, 26, 1, 3, 26, 0, 2, 26, 2, 26, 2, 26, 0, 1, 26];
+const R3_N1 = 0.10658070028513e1;
+const R3_N = [
+  -0.15732845290239e2, 0.20944396974307e2, -0.76867707878716e1, 0.26185947787954e1, -0.2808078114862e1,
+  0.12053369696517e1, -0.84566812812502e-2, -0.12654315477714e1, -0.11524407806681e1, 0.88521043984318,
+  -0.64207765181607, 0.38493460186671, -0.85214708824206, 0.48972281541877e1, -0.30502617256965e1,
+  0.39420536879154e-1, 0.12558408424308, -0.2799932969871, 0.1389979956946e1, -0.2018991502357e1,
+  -0.82147637173963e-2, -0.47596035734923, 0.439840744735e-1, -0.44476435428739, 0.90572070719733,
+  0.70522450087967, 0.10770512626332, -0.32913623258954, -0.50871062041158, -0.22175400873096e-1,
+  0.94260751665092e-1, 0.16436278447961, -0.13503372241348e-1, -0.14834345352472e-1, 0.57922953628084e-3,
+  0.32308904703711e-2, 0.80964802996215e-4, -0.16557679795037e-3, -0.44923899061815e-4,
+];
+const RHO_C = 322, T_C = 647.096;
+
+// Energia libera di Helmholtz adimensionale e derivate in (δ, τ).
+function phi3(rho, T) {
+  const d = rho / RHO_C, t = T_C / T;
+  let f = R3_N1 * Math.log(d), fd = R3_N1 / d, fdd = -R3_N1 / (d * d), ft = 0, ftt = 0, fdt = 0;
+  for (let i = 0; i < 39; i++) {
+    const I = R3_I[i], J = R3_J[i], n = R3_N[i];
+    const dI = Math.pow(d, I), tJ = Math.pow(t, J);
+    f += n * dI * tJ;
+    if (I > 0) {
+      fd += n * I * Math.pow(d, I - 1) * tJ;
+      fdt += n * I * Math.pow(d, I - 1) * J * Math.pow(t, J - 1);
+      if (I > 1) fdd += n * I * (I - 1) * Math.pow(d, I - 2) * tJ;
+    }
+    if (J > 0) {
+      ft += n * dI * J * Math.pow(t, J - 1);
+      if (J > 1) ftt += n * dI * J * (J - 1) * Math.pow(t, J - 2);
+    }
+  }
+  return { d, t, f, fd, fdd, ft, ftt, fdt };
+}
+
+/** Regione 3 da densità [kg/m³] e temperatura [K]. */
+function region3(rho, T) {
+  const q = phi3(rho, T);
+  const { d, t } = q;
+  const p = (rho * R_W * T * d * q.fd) / 1000; // MPa
+  const den = 2 * d * q.fd + d * d * q.fdd;
+  return {
+    T, p, rho,
+    v: 1 / rho,
+    h: R_W * T * (t * q.ft + d * q.fd),
+    s: R_W * (t * q.ft - q.f),
+    cp: R_W * (-t * t * q.ftt + ((d * q.fd - d * t * q.fdt) ** 2) / den),
+    dpdrho: (R_W * T * den) / 1000,
+  };
+}
+
+// Densità in regione 3 alla pressione [MPa] e temperatura [K] (Newton smorzato dal valore iniziale).
+function rho3(pMPa, T, rho0) {
+  let rho = rho0;
+  for (let k = 0; k < 100; k++) {
+    const r = region3(rho, T);
+    const dp = r.dpdrho > 1e-6 ? r.dpdrho : 1e-6;
+    let step = (pMPa - r.p) / dp;
+    const lim = 0.2 * rho;
+    if (step > lim) step = lim;
+    if (step < -lim) step = -lim;
+    rho += step;
+    if (Math.abs(step) < 1e-10 * rho) break;
+  }
+  return rho;
+}
+
+// Frontiera regioni 2-3.
+function pB23(T) { return 0.34805185628969e3 - 0.11671859879975e1 * T + 0.10192970039326e-2 * T * T; }
+function tB23(pMPa) { return 0.57254459862746e3 + Math.sqrt((pMPa - 0.1391883977887e2) / 0.10192970039326e-2); }
+
+// Densità approssimate di liquido e vapore saturi (Wagner-Pruß, equazioni ausiliarie) come valori iniziali.
+function rhoSatGuess(T) {
+  const th = 1 - T / T_C;
+  const rl = RHO_C * (1 + 1.99274064 * th ** (1 / 3) + 1.09965342 * th ** (2 / 3) - 0.510839303 * th ** (5 / 3)
+    - 1.75493479 * th ** (16 / 3) - 45.5170352 * th ** (43 / 3) - 6.74694450e5 * th ** (110 / 3));
+  const rv = RHO_C * Math.exp(-2.0315024 * th ** (2 / 6) - 2.6830294 * th ** (4 / 6) - 5.38626492 * th ** (8 / 6)
+    - 17.2991605 * th ** (18 / 6) - 44.7586581 * th ** (37 / 6) - 63.9201063 * th ** (71 / 6));
+  return { rl, rv };
+}
+
+const T13 = 623.15;
+const P_SAT_T13 = 16.5291642526; // MPa, pressione di saturazione a 623,15 K
+
+/** Liquido monofase a (p, T) con T ≤ Tsat: regione 1 o 3. */
+function liquidPT(pMPa, T) {
+  if (T <= T13) return region1(pMPa, T);
+  const g = rhoSatGuess(Math.min(T, T_C - 0.5)).rl;
+  return region3(rho3(pMPa, T, Math.max(g, 1 / region1(pMPa, T13).v * 0.98)), T);
+}
+
+/** Vapore monofase a (p, T) con T ≥ Tsat: regione 2 o 3. */
+function vaporPT(pMPa, T) {
+  if (T <= T13 || pMPa <= pB23(T)) return region2(pMPa, T);
+  const r2 = region2(pMPa, tB23(pMPa));
+  return region3(rho3(pMPa, T, 1 / r2.v), T);
+}
+
 // ------------------------------------------------------------ API pubblica
-export const P_MAX_BAR = 165;
+export const P_MAX_BAR = 200;
 
 function mpa(pBar) {
   return pBar / 10;
@@ -140,8 +240,15 @@ export function psat(TC) {
 export function satP(pBar) {
   const p = mpa(pBar);
   const T = tsatK(p);
-  const L = region1(p, T);
-  const V = region2(p, T);
+  let L, V;
+  if (p <= P_SAT_T13) {
+    L = region1(p, T);
+    V = region2(p, T);
+  } else {
+    const g = rhoSatGuess(T);
+    L = region3(rho3(p, T, g.rl), T);
+    V = region3(rho3(p, T, g.rv), T);
+  }
   return { T: T - TK, hL: L.h, hV: V.h, sL: L.s, sV: V.s, vL: L.v, vV: V.v };
 }
 
@@ -150,7 +257,7 @@ export function propsPT(pBar, TC) {
   const p = mpa(pBar);
   const T = TC + TK;
   const ts = tsatK(p);
-  const r = T <= ts ? region1(p, T) : region2(p, T);
+  const r = T <= ts ? liquidPT(p, T) : vaporPT(p, T);
   return { T: TC, p: pBar, h: r.h, s: r.s, v: r.v, cp: r.cp, x: T <= ts ? 0 : 1 };
 }
 
@@ -185,16 +292,17 @@ const BY_S = { value: (r) => r.s, slope: (r, T) => r.cp / T };
 export function propsPH(pBar, h) {
   const p = mpa(pBar);
   const ts = tsatK(p);
-  const L = region1(p, ts);
-  const V = region2(p, ts);
+  const sat = satP(pBar);
+  const L = { h: sat.hL, s: sat.sL, v: sat.vL };
+  const V = { h: sat.hV, s: sat.sV, v: sat.vV };
   if (h < L.h) {
-    const T = solveT((t) => region1(p, t), h, BY_H, ts - (L.h - h) / 4.2, 273.15, ts);
-    const r = region1(p, T);
+    const T = solveT((t) => liquidPT(p, t), h, BY_H, ts - (L.h - h) / 4.2, 273.15, ts);
+    const r = liquidPT(p, T);
     return { T: T - TK, p: pBar, h, s: r.s, v: r.v, x: 0, phase: 'liquido' };
   }
   if (h > V.h) {
-    const T = solveT((t) => region2(p, t), h, BY_H, ts + (h - V.h) / 2.2, ts, 1073.15);
-    const r = region2(p, T);
+    const T = solveT((t) => vaporPT(p, t), h, BY_H, ts + (h - V.h) / 2.2, ts, 1073.15);
+    const r = vaporPT(p, T);
     return { T: T - TK, p: pBar, h, s: r.s, v: r.v, x: 1, phase: 'vapore' };
   }
   const x = (h - L.h) / (V.h - L.h);
@@ -205,16 +313,17 @@ export function propsPH(pBar, h) {
 export function propsPS(pBar, s) {
   const p = mpa(pBar);
   const ts = tsatK(p);
-  const L = region1(p, ts);
-  const V = region2(p, ts);
+  const sat = satP(pBar);
+  const L = { h: sat.hL, s: sat.sL, v: sat.vL };
+  const V = { h: sat.hV, s: sat.sV, v: sat.vV };
   if (s < L.s) {
-    const T = solveT((t) => region1(p, t), s, BY_S, ts - 10, 273.15, ts);
-    const r = region1(p, T);
+    const T = solveT((t) => liquidPT(p, t), s, BY_S, ts - 10, 273.15, ts);
+    const r = liquidPT(p, T);
     return { T: T - TK, p: pBar, h: r.h, s, v: r.v, x: 0, phase: 'liquido' };
   }
   if (s > V.s) {
-    const T = solveT((t) => region2(p, t), s, BY_S, ts + 50, ts, 1073.15);
-    const r = region2(p, T);
+    const T = solveT((t) => vaporPT(p, t), s, BY_S, ts + 50, ts, 1073.15);
+    const r = vaporPT(p, T);
     return { T: T - TK, p: pBar, h: r.h, s, v: r.v, x: 1, phase: 'vapore' };
   }
   const x = (s - L.s) / (V.s - L.s);
@@ -226,4 +335,4 @@ export function hPS(pBar, s) {
 }
 
 // Funzioni esposte per i test di verifica IAPWS (unità SI MPa/K).
-export const _internal = { region1, region2, psatMPa, tsatK };
+export const _internal = { region1, region2, region3, psatMPa, tsatK, pB23, tB23 };

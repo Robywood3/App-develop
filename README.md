@@ -39,8 +39,10 @@ npm test
   parametri modificabili (portata, rapporto di compressione, TIT, rendimenti, aria di
   raffreddamento, isoterma di scarico, campo IGV), disposizione 1+1 / 2+1 / 3+1, GVR a
   1, 2 o 3 livelli con risurriscaldamento, pressioni e temperature di ogni livello,
-  pinch point, rendimenti TV, condensatore ad acqua o aerocondensatore, composizione
-  del gas naturale, gasolio di riserva.
+  pinch point, rendimenti TV, evaporatore HP a corpo cilindrico o a passaggio singolo
+  (Benson), condensatore ad acqua con torre, ad acqua in ciclo aperto (mare/fiume) o
+  aerocondensatore, composizione del gas naturale, pressione della rete gas (20–60 bar,
+  con compressore gas quando non basta), gasolio di riserva.
 - **Mercato**: prezzo del gas (€/MWh PCS, convertito al PCI), CO₂ (EUA), O&M,
   prezzo dell'energia: costo marginale, clean spark spread, margine orario.
 - **Sala controllo**: avviamento a caldo (lavaggio, accensione, parallelo,
@@ -69,7 +71,7 @@ revisioni e codifica KKS semplificata:
 | `…-PR-PFD-002` | Casi di funzionamento: 100/75/50 % ISO, 35 °C e −5 °C (prestazioni, TG, GVR, emissioni, utilities) |
 | `…-PR-PFD-003…007` | PFD percorso aria/fumi (con composizione fumi), ciclo acqua-vapore (scambi per banco), sistemi di raffreddamento, bilancio idrico, gas combustibile e vapore ausiliario |
 | `…-PR-PID-101…112` | P&ID di processo: TG aria/lavaggio/scarico, gas combustibile, olio TG; GVR HP, IP+RH, LP+preriscaldatore; vapore principale e bypass; TV, tenute, condensatore e vuoto; condensato; acqua alimento; spurghi e drenaggi; olio TV |
-| `…-UT-PID-201…211` | P&ID utilities e ausiliari: stazione gas (knock-out drum, filtri, misura fiscale, riduzione), acqua di circolazione e torre con pompe MCW/ACW e dosaggi (o aerocondensatore), ciclo chiuso con intercooler o aerotermi, aria compressa, acqua grezza/pretrattamento/servizi/antincendio, acqua demi, dosaggi chimici e SWAS, acque reflue, gas tecnici, caldaia e vapore ausiliario, gasolio di riserva (se previsto) |
+| `…-UT-PID-201…211` | P&ID utilities e ausiliari: stazione gas (knock-out drum, filtri, misura fiscale, compressori se necessari, riduzione), acqua di circolazione con torre e pompe MCW/ACW e dosaggi, oppure a ciclo aperto con opera di presa, filtri a nastro e restituzione (o aerocondensatore), ciclo chiuso con intercooler o aerotermi, aria compressa, acqua grezza/pretrattamento/servizi/antincendio, acqua demi, dosaggi chimici e SWAS, acque reflue, gas tecnici, caldaia e vapore ausiliario, gasolio di riserva (se previsto) |
 | `…-PI-LST-001` | Line list (con colonna P&ID): DN per velocità limite, spessori ASME B31.1, classi ASME B16.34 / PN, materiali (CS, legati, inox, PE), condizioni di progetto e prova, coibentazione |
 | `…-PI-LST-002` | Valve list generata dai P&ID: tipo, DN, classe, materiale, attuatore, posizione di sicurezza, taratura PSV |
 | `…-IC-LST-001` | Instrument list generata dai P&ID: tag KKS, funzione ISA, servizio, campo, I/O e funzioni SIS |
@@ -95,7 +97,7 @@ firme) si modificano nella stessa sezione.
 
 | Componente | Modello |
 |---|---|
-| Acqua/vapore | IAPWS-IF97 regioni 1, 2, 4 (verificate con i valori di controllo IAPWS); campo p ≤ 165 bar nei corpi cilindrici (HP fino a 155 bar, 610 °C) |
+| Acqua/vapore | IAPWS-IF97 regioni 1, 2, 3 e 4 (verificate con i valori di controllo IAPWS); campo subcritico fino a 200 bar (HP fino a 185 bar, 610 °C) |
 | Aria e fumi | Miscele di gas ideali N₂, O₂, Ar, CO₂, H₂O con coefficienti di Shomate (NIST); aria umida |
 | Combustione | Combustione completa di CH₄…C₄H₁₀ con inerti; PCI/PCS da composizione |
 | Turbina a gas | Modelli commerciali tarati su potenza, rendimento e temperatura di scarico ISO di catalogo (60 Hz: portata ridotta della famiglia a 50 Hz); compressore e turbina con rendimenti isoentropici; raffreddamento statorico e rotorico; portata corretta e turbina in blocco sonico fuori progetto; regolazione IGV a temperatura di scarico costante, poi riduzione TIT; limite generatore |
@@ -105,8 +107,29 @@ firme) si modificano nella stessa sezione.
 | Dinamica | Rampe TG, ritardo del primo ordine del ciclo a vapore (τ ≈ 4 min), sequenze di avviamento/arresto/blocco |
 
 Valori tipici al punto ISO (classe F, 1+1, 3 livelli + RH): circa 445 MW netti,
-rendimento netto 59,2 % PCI. Con SGT5-9000HL 1+1: 880 MW lordi (catalogo 880 MW),
-rendimento lordo 63,8 % (catalogo > 64 %, con HP a 177 bar).
+rendimento netto 59,2 % PCI. Con SGT5-9000HL 1+1 (HP 173 bar, Benson): circa 883 MW
+lordi (catalogo 880 MW).
+
+### Confronto con l'impianto di riferimento di Ostiglia (1+1 classe H, caldaia Benson)
+
+| Grandezza | Simulatore | Ostiglia |
+|---|---|---|
+| Potenza TG + TV | 593 + 290 MW | ~600 + 290 MW |
+| Vapore HP | 157 kg/s · 173 bar · 600 °C | 162 kg/s · 173 bar · 600 °C |
+| Vapore RH caldo | 170 kg/s · 40 bar · 610 °C | 171 kg/s · 40 bar · 610 °C |
+| Fumi al camino | 1070 kg/s · 77 °C | 1070 kg/s · 76 °C |
+| Collettori gas / HP / CRH / HRH / FW | DN350 / 400 / 600 / 650 / 300 | DN350 / 400 / 600 / 650 / 300 |
+| Collettori CCW / aria strumenti / aria servizi / demi | DN700 / 100 / 80 / 200 | DN700 / 100 / 80 / 200 |
+| Pompe alimento | 759 m³/h · 2190 m · 5,3 MW | 714 m³/h · 2200 m · 5,0 MW |
+| Pompe condensato | 750 m³/h · 223 m · 580 kW | 767 m³/h · 226 m · 620 kW |
+| Ciclo chiuso | 22 MW, pompe 3×50 % | 23,6 MW, pompe 3 × 1640 m³/h |
+| Compressori / essiccatori aria | 3 × 1450 / 2 × 2250 Nm³/h | 3 × 1450 / 2 × 2250 Nm³/h |
+| Demi | 30 m³/h, serbatoi 2 × 3000 m³ | 30 m³/h, 2 × 3000 m³ |
+| Caldaia ausiliaria | 20 t/h | 20 t/h |
+| Compressore gas (rete 41 bar) | ~1,7 MW a 29 kg/s | 1,8 MW a 33 kg/s |
+
+Dove le descrizioni BoP generiche e Ostiglia differiscono (aria compressa, demi con
+caldaia Benson, caldaia ausiliaria) prevale il dato d'impianto reale.
 
 È uno strumento didattico e di prefattibilità: i risultati non sostituiscono i dati
 di garanzia dei costruttori.

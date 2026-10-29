@@ -29,7 +29,7 @@ export function pid201(M, reg, doc) {
   const sh = p.sh;
   const g = M.U.gas;
   const y = 104;
-  p.off(52, y, 'left', 'GASDOTTO', null, { w: 30, sub: `${F(g.pIn, 0)} bar · ${F(g.Tin, 0)} °C` });
+  p.off(52 - 30, y, 'right', 'GASDOTTO', null, { w: 30, sub: `${F(g.pIn, 0)} bar · ${F(g.Tin, 0)} °C` });
   p.line('NG-IN', [[52, y], [100, y]], { label: false });
   sh.line(58, y - 3, 58, y + 3, ST.med).line(59.5, y - 3, 59.5, y + 3, ST.med);
   sh.text(59, y + 6.5, 'giunto isolante', { size: 1.2, anchor: 'middle' });
@@ -64,6 +64,25 @@ export function pid201(M, reg, doc) {
   p.refEq('0EKA10CF001');
   p.inst(152, y - 14, 'FQ', { line: 'NG-IN', to: [152, y - 2], service: 'misura fiscale gas (ultrasuoni, 2 linee 2×100 %)', range: `0 – ${F(Math.ceil(g.Sm3h * 1.2 / 1000) * 1000, 0)}`, unit: 'Sm³/h' });
   p.inst(166, y - 14, 'AT', { line: 'NG-IN', to: [166, y], service: 'gascromatografo (PCS, Wobbe, composizione)', range: '35 – 45', unit: 'MJ/Sm³' });
+  if (g.compressor) {
+    // compressori gas 2×100 % (rete sotto la pressione richiesta): derivati a valle della misura, rientro a monte delle linee di regolazione
+    const k = g.compressor, yc = 136;
+    p.dot(171, y);
+    sh.path([[171, y], [171, yc], [184, yc]], ST.med);
+    p.valve(175.5, y, { line: 'NG-IN', act: 'mot', service: 'by-pass compressori gas (rete sufficiente)', s: 1.6, showTag: false });
+    sym.compressor(sh, 190, yc, 5);
+    p.refEq('0EKB10AN001/002');
+    sh.text(190, yc + 9, '0EKB10AN001/002', { size: 1.3, anchor: 'middle', bold: true });
+    sh.text(190, yc + 11.4, `compressori gas 2×100 % · ${F(k.kW, 0)} kW`, { size: 1.1, anchor: 'middle' });
+    hxSmall(sh, 206, yc);
+    sh.text(206, yc + 6, 'refrig. finale', { size: 1.05, anchor: 'middle' });
+    sh.path([[195, yc], [203, yc]], ST.med);
+    p.line('NG-CP', [[209, yc], [234, yc], [234, y]], { seg: 0, at: 0.5 });
+    p.inst(218, yc + 12, 'PT', { line: 'NG-CP', to: [218, yc], service: 'pressione mandata compressori gas' });
+    p.inst(227, yc + 12, 'TT', { line: 'NG-CP', to: [227, yc], service: 'temperatura gas a valle refrigerante' });
+    p.inst(180, yc - 14, 'FIC', { line: 'NG-CP', to: [184, yc - 2], service: 'antipompaggio compressori gas (ricircolo)' });
+    p.dot(234, y);
+  }
   sh.text(152, y + 7, '0EKA10CF001/002', { size: 1.3, anchor: 'middle', bold: true });
   // riscaldatori a bagno d'acqua
   parallelPair(p, 180, 226, y, 14, 'NG-H', {
@@ -129,7 +148,9 @@ export function pid201(M, reg, doc) {
   sh.path([[160, 157], [160, 150]], ST.norm);
   sh.text(161, 151, 'sfiato in zona sicura', { size: 1.1 });
   return p.finish([
-    `Portata gas di progetto ${F(g.Sm3h, 0)} Sm³/h (PCI ${F(g.lhvMJSm3, 2)} MJ/Sm³); riduzione da ${F(g.pIn, 0)} a ${F(g.pOut, 1)} bar con preriscaldo a ${F(g.preheatT, 0)} °C per compensare l'effetto Joule-Thomson (${F(g.dTjt, 1)} K).`,
+    g.compressor
+      ? `Portata gas di progetto ${F(g.Sm3h, 0)} Sm³/h (PCI ${F(g.lhvMJSm3, 2)} MJ/Sm³); rete a ${F(g.pIn, 0)} bar sotto la pressione richiesta dai TG (${F(g.pOut, 1)} bar + perdite): compressori 2×100 % da ${F(g.compressor.pSuc, 0)} a ${F(g.compressor.pDis, 0)} bar, ${F(g.compressor.kW, 0)} kW, con refrigerante finale; con rete sufficiente si usa il by-pass e la riduzione.`
+      : `Portata gas di progetto ${F(g.Sm3h, 0)} Sm³/h (PCI ${F(g.lhvMJSm3, 2)} MJ/Sm³); riduzione da ${F(g.pIn, 0)} a ${F(g.pOut, 1)} bar con preriscaldo a ${F(g.preheatT, 0)} °C per compensare l'effetto Joule-Thomson (${F(g.dTjt, 1)} K).`,
     'Knock-out drum e filtri a cartuccia 2×100 % (3 µm) a monte della misura fiscale 2×100 % non by-passabile (codice di rete); linee di riduzione con SSV, monitor e regolatore attivo (UNI EN 12186). Gas consegnato ai TG con margine ≥ 20 K sul punto di rugiada.',
   ]);
 }
@@ -137,6 +158,7 @@ export function pid201(M, reg, doc) {
 // ------------------------------------------------------------------ PID-202 acqua di circolazione / ACC
 export function pid202(M, reg, doc) {
   if (!M.water) return pid202acc(M, reg, doc);
+  if (M.once) return pid202once(M, reg, doc);
   const p = new Pid(M, reg, doc, { title: 'Acqua di circolazione e torre di raffreddamento' });
   const sh = p.sh;
   const cw = M.U.cooling;
@@ -177,7 +199,8 @@ export function pid202(M, reg, doc) {
   // pompe acqua ausiliaria ACW 2×100 % agli intercooler del ciclo chiuso
   const ap = p.pumps(244, 172, { n: 2, pitch: 28, tag: '0PAC20AP', sucLine: 'ACWS', disLine: 'ACWS', service: 'pompe acqua ausiliaria ACW', strainer: false });
   sh.path([[230, ty + th + 20], [230, ap.yS], [ap.xS0, ap.yS]], ST.med);
-  p.line('ACWS', [[ap.xD1, ap.yD], [372, ap.yD]], { seg: 0, at: 0.86 });
+  p.line('ACWS', [[ap.xD1, ap.yD], [290, ap.yD]], { label: false });
+  p.line('ACWS', [[330, ap.yD], [372, ap.yD]], { seg: 0, at: 0.6 });
   parallelPair(p, 290, 330, ap.yD, 7, 'ACWS', {
     service: 'filtro autopulente ACW',
     draw: (yy) => sym.filter(sh, 305, yy - 3, 10, 6),
@@ -216,6 +239,100 @@ export function pid202(M, reg, doc) {
   return p.finish([
     `Portata acqua di circolazione ${F(cw.cwM3h, 0)} m³/h (pompe MCW 2×50 %), acqua ausiliaria ${F(M.U.ccw.acwM3h, 0)} m³/h (pompe ACW 2×100 %); evaporazione ${F(cw.evapM3h, 0)} m³/h, spurgo ${F(cw.blowdownM3h, 0)} m³/h, reintegro ${F(cw.makeupM3h, 0)} m³/h con ${cw.coc} cicli di concentrazione.`,
     `Dosaggi: ipoclorito a shock ${F(cw.hypo, 1)} kg/h (residuo 0,1–0,2 ppm, 2–3 volte al giorno), acido solforico ${F(cw.acid, 1)} kg/h su pH, inibitore ${F(cw.antiscalant, 1)} kg/h sul reintegro comandato dalla portata di spurgo.`,
+  ]);
+}
+
+// Ciclo aperto (descrizione di riferimento "MCW and ACW system, once through type"): presa a mare/fiume
+// con griglie di guardia, sgrigliatori e filtri a nastro su 2 corsie 2×100 %, pompe MCW 2×50 % e ACW 2×100 %,
+// biocida, filtri autopulenti, pozzo di carico e restituzione.
+function pid202once(M, reg, doc) {
+  const p = new Pid(M, reg, doc, { title: 'Acqua di circolazione a ciclo aperto: presa, pompe e restituzione' });
+  const sh = p.sh;
+  const cw = M.U.cooling;
+  // opera di presa: due corsie
+  p.off(16, 112, 'right', 'MARE / FIUME', null, { w: 26, sub: `${F(cw.Tin, 0)} °C` });
+  const lanes = [96, 128];
+  for (const ly of lanes) {
+    sh.rect(46, ly - 9, 104, 18, { s: '#000000', w: 0.5, f: W });
+    for (let i = 0; i < 7; i++) sh.line(58, ly - 8 + i * 2.6, 61, ly - 8 + i * 2.6, ST.thin); // griglia di guardia
+    sh.line(59.5, ly - 9, 59.5, ly + 9, ST.thin);
+    for (let i = 0; i < 9; i++) sh.line(76 + (i % 2), ly - 8.5 + i * 2, 79, ly - 8.5 + i * 2, ST.thin); // griglia + sgrigliatore
+    sh.line(78, ly - 9, 78, ly + 9, ST.med);
+    sh.rect(94, ly - 7, 10, 14, { s: '#000000', w: 0.4, f: W }); // filtro a nastro
+    sh.line(94, ly - 7, 104, ly + 7, ST.thin); sh.line(104, ly - 7, 94, ly + 7, ST.thin);
+    sh.rect(120, ly - 9, 3, 18, ST.dash); // paratoia (stop log)
+  }
+  sh.path([[42, 112], [46, 112]], ST.med);
+  sh.path([[44, 96], [44, 128]], ST.med);
+  sh.path([[44, 96], [46, 96]], ST.med); sh.path([[44, 128], [46, 128]], ST.med);
+  sh.text(59.5, 82, 'griglie di guardia', { size: 1.1, anchor: 'middle' });
+  sh.text(78, 79, 'griglie e sgrigliatori', { size: 1.1, anchor: 'middle' });
+  sh.text(99, 82, 'filtri a nastro', { size: 1.1, anchor: 'middle' });
+  sh.text(121.5, 82, 'stop log', { size: 1.1, anchor: 'middle' });
+  p.refEq('0PAA10'); p.refEq('0PAB10'); p.refEq('0PAB20');
+  sh.text(98, 144, '0PAA10 / 0PAB10 / 0PAB20 opera di presa 2 × 100 %', { size: 1.35, anchor: 'middle', bold: true });
+  sh.text(98, 146.6, `${F(cw.intakeM3h, 0)} m³/h per corsia (+10 %)`, { size: 1.15, anchor: 'middle' });
+  p.inst(86, 66, 'LDT', { to: [99, 88], service: 'livello differenziale filtri a nastro (avvio lavaggio)', sys: '0PAB20' });
+  p.inst(136, 66, 'LT', { to: [136, 88], service: 'livello vasca pompe', sys: '0PAB10' });
+  p.inst(36, 76, 'TT', { to: [36, 108], service: 'temperatura acqua alla presa', sys: '0PAA10' });
+  // vasca pompe
+  sh.rect(150, 84, 26, 56, { s: '#000000', w: 0.5, f: W });
+  sh.text(163, 82, 'vasca pompe', { size: 1.1, anchor: 'middle' });
+  sh.path([[150, 96], [150, 96]], ST.med);
+  // biocida a monte delle griglie
+  const bx = 24, by = 150;
+  sh.rect(bx, by, 56, 26, ST.dash);
+  sh.text(bx + 1.5, by + 3.5, '0PAX10 BIOCIDA (NaClO)', { size: 1.25, bold: true });
+  p.refEq('0PAX10');
+  vvessel(sh, bx + 4, by + 6, 9, 14);
+  pumpSym(sh, bx + 24, by + 14, { r: 2.4, out: 'right' });
+  sh.line(bx + 13, by + 14, bx + 21.6, by + 14, ST.norm);
+  sh.text(bx + 30, by + 22, 'continuo + shock', { size: 1.1 });
+  p.line('CHH', [[bx + 26.4, by + 14], [bx + 50, by + 14], [bx + 50, 140], [52, 140], [52, 137]], { seg: 1, at: 0.5, label: false });
+  p.valve(bx + 40, by + 14, { line: 'CHH', kind: 'check', s: 1.4, service: 'non ritorno dosaggio biocida' });
+  // pompe MCW 2×50 %
+  const pp = p.pumps(198, 152, { n: 2, pitch: 34, tag: '0PAC10AP', sucLine: 'CWS', disLine: 'CWS', service: 'pompe acqua di circolazione MCW', strainer: false });
+  sh.path([[172, 140], [172, pp.yS], [pp.xS0, pp.yS]], ST.thick);
+  // filtri autopulenti condensatore 2×50 % e mandata al condensatore
+  p.line('CWS', [[pp.xD1, pp.yD], [262, pp.yD]], { label: false });
+  p.line('CWS', [[300, pp.yD], [372, pp.yD]], { seg: 0, at: 0.5 });
+  parallelPair(p, 262, 300, pp.yD, 8, 'CWS', {
+    service: 'filtro autopulente condensatore', valves: false,
+    draw: (yy) => sym.filter(sh, 276, yy - 3.5, 10, 7),
+  });
+  p.refEq('0PAD20AT001'); p.refEq('0PAD20AT002');
+  sh.text(281, pp.yD - 11, '0PAD20AT001/002 debris filter 2×50 %', { size: 1.2, anchor: 'middle', bold: true });
+  p.off(372, pp.yD, 'right', 'AL CONDENSATORE', 'pid108', { w: 34 });
+  p.inst(320, pp.yD - 12, 'FT', { line: 'CWS', to: [320, pp.yD], service: 'portata acqua di circolazione' });
+  p.inst(330, pp.yD - 12, 'PT', { line: 'CWS', to: [330, pp.yD], service: 'pressione mandata pompe MCW' });
+  p.inst(340, pp.yD - 12, 'AT', { line: 'CWS', to: [340, pp.yD], service: 'cloro residuo acqua di circolazione', range: '0 – 1', unit: 'mg/l' });
+  // pompe ACW 2×100 % agli intercooler del ciclo chiuso
+  const ap = p.pumps(198, 206, { n: 2, pitch: 30, tag: '0PAC20AP', sucLine: 'ACWS', disLine: 'ACWS', service: 'pompe acqua ausiliaria ACW', strainer: false });
+  sh.path([[166, 140], [166, ap.yS], [ap.xS0, ap.yS]], ST.med);
+  p.line('ACWS', [[ap.xD1, ap.yD], [262, ap.yD]], { label: false });
+  p.line('ACWS', [[300, ap.yD], [372, ap.yD]], { seg: 0, at: 0.5 });
+  parallelPair(p, 262, 300, ap.yD, 7, 'ACWS', {
+    service: 'filtro autopulente ACW',
+    draw: (yy) => sym.filter(sh, 276, yy - 3, 10, 6),
+  });
+  p.refEq('0PAC20AT001'); p.refEq('0PAC20AT002');
+  sh.text(281, ap.yD - 10, '0PAC20AT001/002 filtri 200–300 µm', { size: 1.2, anchor: 'middle', bold: true });
+  p.off(372, ap.yD, 'right', 'AGLI INTERCOOLER', 'pid203', { w: 32 });
+  // restituzione: pozzo di carico e scarico al corpo idrico
+  p.off(402, 52, 'left', 'DAL CONDENSATORE', 'pid108', { w: 34 });
+  p.line('CWR', [[368, 52], [262, 52]], { seg: 0, at: 0.4 });
+  p.inst(330, 40, 'TT', { line: 'CWR', to: [330, 52], service: 'temperatura acqua restituita (limite autorizzativo)' });
+  p.off(402, 66, 'left', 'RITORNO ACW', 'pid203', { w: 30 });
+  p.line('ACWR', [[372, 66], [262, 66], [262, 58]], { seg: 0, at: 0.4 });
+  sh.rect(232, 44, 30, 24, { s: '#000000', w: 0.5, f: W });
+  sh.path([[232, 56], [262, 56]], ST.dash);
+  p.refEq('0PAR10');
+  sh.text(247, 72, '0PAR10 pozzo di carico', { size: 1.3, anchor: 'middle', bold: true });
+  sh.path([[232, 60], [200, 60]], ST.thick);
+  p.off(200, 60, 'left', 'RESTITUZIONE', null, { w: 30, sub: 'al corpo idrico' });
+  return p.finish([
+    `Ciclo aperto: portata acqua di circolazione ${F(cw.cwM3h, 0)} m³/h (pompe MCW 2×50 %), acqua ausiliaria ${F(M.U.ccw.acwM3h, 0)} m³/h (pompe ACW 2×100 %); salto termico ${F(cw.Tout - cw.Tin, 1)} K al corpo idrico (dato garantito per i vincoli ambientali).`,
+    `Biocida ${F(cw.hypo, 1)} kg/h in continuo (0,5 mg/l) più shock se consentito; con acqua di mare ipoclorito da elettroclorazione e materiali duplex/super duplex. Pulizia tubi condensatore a palline (0MAG15) ed evacuazione casse d'acqua (0MAG16) sul P&ID del condensatore.`,
   ]);
 }
 
@@ -593,8 +710,8 @@ export function pid207(M, reg, doc) {
   const rows = [
     ['0QCA10', 'CH-NH3', 'ammoniaca', `${F(ch.ammonia, 2)} kg/h NH₃ · pompe ${F(pl.ammonia, 1)} l/h`, 'MANDATA POMPE CD', 'pid109'],
     ['0QCB10', 'CH-OS', 'deossigenante', `${F(ch.scavenger * 1000, 0)} g/h · pompe ${F(pl.scavenger, 1)} l/h`, 'MANDATA POMPE CD', 'pid109'],
-    ['0QCC10', 'CH-PO4-1', 'fosfati HP', `${F(ch.phosphate * 1000, 0)} g/h Na₃PO₄ · pompe ${F(pl.phosphateHP, 1)} l/h`, 'CORPO HP', 'pid104'],
   ];
+  if (has(M, 'CH-PO4-1')) rows.push(['0QCC10', 'CH-PO4-1', 'fosfati HP', `${F(ch.phosphate * 1000, 0)} g/h Na₃PO₄ · pompe ${F(pl.phosphateHP, 1)} l/h`, 'CORPO HP', 'pid104']);
   if (has(M, 'CH-PO4IP-1')) rows.push(['0QCC20', 'CH-PO4IP-1', 'fosfati IP', `set dedicato · pompe ${F(pl.phosphateIP, 1)} l/h`, 'CORPO IP', 'pid105']);
   rows.forEach(([tag, id, nm, rate, txt, tgt], r) => {
     const y0 = 30 + r * 33;
@@ -621,7 +738,8 @@ export function pid207(M, reg, doc) {
     sh.text(134, y0 + 12, 'colonna di taratura', { size: 1.0 });
     p.off(372, y0 + 20, 'right', txt, tgt, { w: 30 });
   });
-  if (M.N > 1) sh.text(150, 163, `Fosfati: un set di pompe dosatrici per GVR (linee CH-PO4-1…${M.N}, CH-PO4IP-1…${M.N}).`, { size: 1.3 });
+  if (M.N > 1) sh.text(150, 163, `Fosfati: un set di pompe dosatrici per GVR (linee ${M.benson ? '' : `CH-PO4-1…${M.N}, `}CH-PO4IP-1…${M.N}).`, { size: 1.3 });
+  if (M.benson) sh.text(150, 159.5, 'Evaporatore HP Benson: nessun dosaggio di fosfati in HP (trattamento volatile).', { size: 1.3 });
   // SWAS
   const px0 = 120, px1 = 330, py0 = 166, py1 = 234;
   sh.rect(px0, py0, px1 - px0, py1 - py0, ST.dash);
@@ -630,7 +748,7 @@ export function pid207(M, reg, doc) {
   const samples = [
     ['SMP-CD', 'CONDENSATO', 'pid109', ['AT|conducibilità cationica', 'AT|ossigeno disciolto', 'AT|sodio']],
     ['SMP-FW', 'ACQUA ALIMENTO', 'pid110', ['AT|pH', 'AT|conducibilità specifica', 'AT|ossigeno disciolto']],
-    ['SMP-HPD', 'ACQUA CORPO HP', 'pid104', ['AT|conducibilità specifica', 'AT|pH', 'AT|fosfati']],
+    ['SMP-HPD', M.benson ? 'SEPARATORE HP' : 'ACQUA CORPO HP', 'pid104', ['AT|conducibilità specifica', 'AT|pH', 'AT|fosfati']],
     ['SMP-HPS', 'VAPORE HP', 'pid104', ['AT|conducibilità cationica', 'AT|silice', 'AT|sodio']],
   ];
   samples.forEach(([id, txt, tgt, an], i) => {

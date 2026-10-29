@@ -55,7 +55,7 @@ export function pid101(M, reg, doc) {
   // IGV
   p.inst(156, 106, 'ZT', { to: [150, 111], service: 'posizione IGV', sys: '1MBA10', range: '0 – 100', unit: '%' });
   // gas ai combustori
-  p.off(176, 46, 'left', 'GAS COMBUSTIBILE', 'pid102', { w: 34 });
+  p.off(176 - 34, 46, 'right', 'GAS COMBUSTIBILE', 'pid102', { w: 34 });
   p.line('FG-1', [[176, 46], [187, 46], [187, 84]], { seg: 1, at: 0.4 });
   p.inst(205, 90, 'BE', { to: [198, 90], service: 'rivelazione fiamma (2oo4)', sys: '1MBA10', sis: true, range: 'on/off', unit: '' });
   // mandata compressore: pressione e temperatura
@@ -140,7 +140,7 @@ export function pid102(M, reg, doc) {
   const p = new Pid(M, reg, doc, { title: 'Turbogas – sistema gas combustibile', typical: true });
   const sh = p.sh;
   const y = 84;
-  p.off(52, y, 'left', 'GAS DA STAZIONE', 'pid201', { w: 32 });
+  p.off(52 - 32, y, 'right', 'GAS DA STAZIONE', 'pid201', { w: 32 });
   p.line('FG-1', [[52, y], [110, y]], { label: false });
   p.line('FG-1', [[144, y], [184, y]], { at: 0.45 });
   sh.line(212, y, 228, y, ST.med);
@@ -199,7 +199,7 @@ export function pid102(M, reg, doc) {
   p.off(250, 30, 'right', 'SFIATO', 'pid201', { w: 20 });
   sh.path([[258, y - 22], [258, 36], [270, 36], [270, 30]], ST.norm);
   // spurgo azoto
-  p.off(256, 168, 'left', 'AZOTO', 'pid209', { w: 20 });
+  p.off(256 - 20, 168, 'right', 'AZOTO', 'pid209', { w: 20 });
   p.line('N2-FG', [[256, 168], [278, 168], [278, y + 34]], { label: false, seg: 1 });
   p.valve(278, y + 52, { line: 'N2-FG', kind: 'ball', dir: 'v', service: 'spurgo azoto', s: 1.6 });
   p.valve(278, y + 44, { line: 'N2-FG', kind: 'ball', dir: 'v', act: 'sol', fail: 'FC', service: 'spurgo azoto', s: 1.6 });
@@ -437,8 +437,32 @@ export function pidHRSG(M, reg, doc, level) {
   const offR = (y, text, id) => p.off(XR + 30, y, 'left', text, id, { w: 30 });
   const dw = 54, dh = 14, dy = 96;
   let dx = null;
+  // ---- evaporatore HP Benson: separatore verticale di avviamento al posto del corpo cilindrico
+  const benson = level === 'HP' && M.benson && eva;
+  const sepY = 90, sepH = 34;
+  if (benson) {
+    dx = eva.cx - dw / 2;
+    const sys = '1HAD10';
+    const sx = eva.cx - 6, sw = 12;
+    vvessel(sh, sx, sepY, sw, sepH);
+    p.refEq(`${sys}BB001`);
+    sh.text(sx + sw + 3, sepY + 14, `${sys}BB001`, { size: 1.6, bold: true });
+    sh.text(sx + sw + 3, sepY + 16.6, 'separatore di avviamento (Benson)', { size: 1.2 });
+    p.inst(sx - 8, sepY + 24, 'LT', { to: [sx, sepY + 24], service: 'livello separatore HP (avviamento e basso carico)', sys });
+    p.inst(sx + sw + 9, sepY + 4, 'PT', { line: 'MS-1', to: [sx + sw, sepY + 4], service: 'pressione separatore HP', sys });
+    p.inst(sx + sw + 18, sepY + 4, 'TT', { line: 'MS-1', to: [sx + sw, sepY + 7], service: 'temperatura uscita evaporatore (surriscaldamento Benson)', sys });
+    sh.line(eva.cx - 3, sepY + 1, eva.cx - 3, sepY - 4, ST.norm);
+    p.ventDrain(eva.cx - 3, sepY - 4, 'vent', { line: 'VEH-1', double: true });
+    // risalita dall'evaporatore a passaggio singolo
+    const side = eva.wi < eva.cx ? sx : sx + sw;
+    p.pipe([[eva.wi, nozTop], [eva.wi, sepY + 26], [side, sepY + 26]], { st: ST.med, arrow: true });
+    // drenaggio del separatore all'avviamento (regolato sul livello) verso serbatoio spurghi / condensatore
+    p.line('SEPD-1', [[eva.cx, sepY + sepH], [eva.cx, 128], [eva.cx + 48, 128]], { seg: 1, at: 0.75 });
+    p.valve(eva.cx + 16, 128, { line: 'SEPD-1', ctl: true, fail: 'FC', service: 'drenaggio separatore HP su livello (avviamento)', s: 1.8, tagSide: -1 });
+    p.off(eva.cx + 48, 128, 'right', 'DRENAGGIO SEPARATORE', 'pid111', { w: 34 });
+  }
   // ---- corpo cilindrico, discesa, risalita, spurghi
-  if (eva) {
+  if (eva && !benson) {
     dx = eva.cx - dw / 2;
     const sys = `1HAD${(lvIdx + 1) * 10}`;
     const steamLine = level === 'HP' ? 'MS-1' : level === 'IP' ? 'IP-1' : 'LP-1';
@@ -471,14 +495,19 @@ export function pidHRSG(M, reg, doc, level) {
     p.line(feedLine, [[XR, yF], [xEnd, yF], [xEnd, cold ? nozTop : dy + dh]], { seg: 1, at: 0.5 });
     orifice(sh, 364, yF);
     p.inst(364, yF - 12, 'FT', { line: feedLine, to: [364, yF - 2], service: `portata acqua alimento ${lv}` });
-    p.ctrlStation(338, yF, { line: feedLine, fn: 'LIC', service: `livello corpo ${lv} (3 elementi)`, ctrlY: yF - 17 });
+    p.ctrlStation(338, yF, benson ? { line: feedLine, fn: 'FIC', service: 'portata acqua alimento HP (controllo Benson: carico e surriscaldamento uscita evaporatore)', ctrlY: yF - 17 }
+      : { line: feedLine, fn: 'LIC', service: `livello corpo ${lv} (3 elementi)`, ctrlY: yF - 17 });
     p.valve(312, yF, { line: feedLine, kind: 'check', service: `non ritorno alimento ${lv}` });
     p.valve(299, yF, { line: feedLine, act: 'mot', service: `intercettazione alimento ${lv}` });
     p.inst(288, yF - 10, 'TT', { line: feedLine, to: [288, yF], service: `temperatura acqua alimento ${lv}` });
     for (let i = ecos.length - 1; i > 0; i--) p.pipe([[ecos[i].wo, nozTop], [ecos[i].wo, 162], [ecos[i - 1].wi, 162], [ecos[i - 1].wi, nozTop]], { arrow: true, st: ST.med });
     if (ecos.length) {
       const hot = ecos[0];
-      p.pipe([[hot.wo, nozTop], [hot.wo, 140], [dx + dw - 3, 140], [dx + dw - 3, dy + dh]], { arrow: true, st: ST.med });
+      if (benson) {
+        // ECO caldo -> collettore inferiore dell'evaporatore (nessuna discesa da corpo cilindrico)
+        const xL = eva.gapL + 1.5;
+        p.pipe([[hot.wo, nozTop], [hot.wo, 140], [dx + 4, 140], [dx + 4, cy0 - 5], [xL, cy0 - 5], [xL, cy1 - 3], [eva.wo, cy1 - 3], [eva.wo, cy1 - 7]], { arrow: true, st: ST.med });
+      } else p.pipe([[hot.wo, nozTop], [hot.wo, 140], [dx + dw - 3, 140], [dx + dw - 3, dy + dh]], { arrow: true, st: ST.med });
       p.ventDrain(hot.wo, 140, 'vent', { line: feedLine });
       p.ventDrain(cold.wi, 168, 'drain', { line: feedLine, dir: 'h' });
       if (level === 'IP' || (level === 'HP' && !M.reheat)) {
@@ -492,8 +521,8 @@ export function pidHRSG(M, reg, doc, level) {
   // ---- vapore
   if (level === 'HP') {
     const sh2 = by('SH2')[0], sh1 = by('SH1')[0];
-    const xs = dx + dw / 2 + 6;
-    p.pipe([[xs, dy], [xs, 78], [sh1.wi, 78], [sh1.wi, nozTop]], { arrow: true, st: ST.med });
+    const xs = benson ? eva.cx + 3 : dx + dw / 2 + 6;
+    p.pipe([[xs, benson ? sepY : dy], [xs, 78], [sh1.wi, 78], [sh1.wi, nozTop]], { arrow: true, st: ST.med });
     p.pipe([[sh1.wo, nozTop], [sh1.wo, 66], [sh2.wi, 66], [sh2.wi, nozTop]], { arrow: true, st: ST.med });
     const xd = (sh1.wo + sh2.wi) / 2;
     sh.rect(xd - 3.5, 64, 7, 4, { s: '#000000', w: 0.35, f: W });
@@ -609,7 +638,7 @@ export function pidHRSG(M, reg, doc, level) {
     }
   }
   const notes = {
-    HP: [`Pressione corpo HP ${F(bt.pDrum[0], 1)} bar(a), produzione ${F(bt.mLevels[0] * 3.6, 0)} t/h a ${F(bt.Tsh[0], 0)} °C per GVR. Desurriscaldatore interstadio per il controllo della temperatura di uscita; acqua alimento in controcorrente ai fumi.`, 'Sfiato di avviamento con silenziatore per il controllo della pressione durante avviamenti e transitori; drenaggi dei collettori inferiori dei surriscaldatori. Dosaggio fosfati e campionamento acqua di corpo: vedi P&ID chimici e campionamento.'],
+    HP: [`${M.benson ? 'Evaporatore HP a passaggio singolo (Benson), pressione al separatore' : 'Pressione corpo HP'} ${F(bt.pDrum[0], 1)} bar(a), produzione ${F(bt.mLevels[0] * 3.6, 0)} t/h a ${F(bt.Tsh[0], 0)} °C per GVR. Desurriscaldatore interstadio per il controllo della temperatura di uscita; acqua alimento in controcorrente ai fumi.`, 'Sfiato di avviamento con silenziatore per il controllo della pressione durante avviamenti e transitori; drenaggi dei collettori inferiori dei surriscaldatori. Dosaggio fosfati e campionamento acqua di corpo: vedi P&ID chimici e campionamento.'],
     IP: [`Corpo IP ${F(bt.pDrum[1] ?? 0, 1)} bar(a); il vapore IP si unisce al risurriscaldato freddo a monte di RH1. Temperatura RH caldo ${F(bt.Trh, 0)} °C regolata con desurriscaldatore interstadio.`],
     LP: [M.n > 1 ? `Corpo ${lv} con testa degasante integrata a ${F(bt.pDrum[M.n - 1], 1)} bar(a); alimenta le pompe dell'acqua alimento dei livelli superiori.` : 'Il preriscaldatore (con degasaggio nel condensatore) alimenta l\'aspirazione delle pompe acqua alimento HP.', 'Ricircolo del preriscaldatore per mantenere la temperatura di ingresso acqua sopra il punto di rugiada acida dei fumi (≥ 55 °C); by-pass per il controllo della temperatura al camino.'],
   };
@@ -625,12 +654,12 @@ export function pid107(M, reg, doc) {
   const xIn = 52;
   // ---- vapore HP
   const yHP = 46;
-  p.off(xIn, yHP, 'left', 'VAPORE HP GVR1', 'pid104', { w: 30 });
+  p.off(xIn - 30, yHP, 'right', 'VAPORE HP GVR1', 'pid104', { w: 30 });
   p.line('MS-1', [[xIn, yHP], [hdr ? 150 : 260, yHP]], { seg: 0, at: 0.3 });
   if (hdr) {
     for (let u = 2; u <= N; u++) {
       const y2 = yHP + (u - 1) * 8;
-      p.off(xIn, y2, 'left', `VAPORE HP GVR${u}`, 'pid104', { w: 30 });
+      p.off(xIn - 30, y2, 'right', `VAPORE HP GVR${u}`, 'pid104', { w: 30 });
       sh.path([[xIn, y2], [150, y2], [150, yHP]], ST.thick);
     }
     p.dot(150, yHP);
@@ -677,7 +706,7 @@ export function pid107(M, reg, doc) {
     p.off(300, y - 24, 'right', 'VAPORE AUSILIARIO', 'pid210', { w: 32 });
     // RH caldo
     y = 140;
-    p.off(xIn, y, 'left', 'RH CALDO GVR1', 'pid105', { w: 30 });
+    p.off(xIn - 30, y, 'right', 'RH CALDO GVR1', 'pid105', { w: 30 });
     p.line('HRH-1', [[xIn, y], [hdr ? 150 : 340, y]], { seg: 0, at: 0.3 });
     if (hdr) { p.dot(150, y); p.line('HRH-H', [[150, y], [340, y]], { seg: 0, at: 0.3 }); }
     p.off(340, y, 'right', 'ALLA TV (IP)', 'pid108', { w: 30 });
@@ -697,7 +726,7 @@ export function pid107(M, reg, doc) {
   // ---- vapore LP
   if (n > 1) {
     const yL = reheat ? 176 : 120;
-    p.off(xIn, yL, 'left', 'VAPORE LP GVR1', 'pid106', { w: 30 });
+    p.off(xIn - 30, yL, 'right', 'VAPORE LP GVR1', 'pid106', { w: 30 });
     p.line('LP-1', [[xIn, yL], [hdr ? 110 : 260, yL]], { seg: 0, at: 0.4 });
     if (hdr) { p.dot(110, yL); p.line('LP-H', [[110, yL], [260, yL]], { seg: 0, at: 0.6 }); }
     p.off(260, yL, 'right', 'ALLA TV (LP)', 'pid108', { w: 30 });
@@ -990,9 +1019,10 @@ export function pid111(M, reg, doc) {
   sym.silencer(sh, tx + 15, ty - 22, 6, 10);
   sh.text(tx + 20, ty - 26, 'sfiato vapore flash', { size: 1.25 });
   // ingressi
-  const ins = [['BD-1', 'SPURGO CONTINUO HP', 'pid104']];
+  // con evaporatore HP Benson: nessuno spurgo HP, drenaggio del separatore all'avviamento
+  const ins = M.benson ? [] : [['BD-1', 'SPURGO CONTINUO HP', 'pid104']];
   for (let k = 1; k < M.n; k++) ins.push([`CBD-${M.names[k]}-1`, `SPURGO CONTINUO ${M.names[k]}`, k === M.n - 1 ? 'pid106' : 'pid105']);
-  ins.push(['IBD-1', 'SPURGO INTERMITT. HP', 'pid104']);
+  ins.push(M.benson ? ['SEPD-1', 'DRENAGGIO SEPARATORE HP', 'pid104'] : ['IBD-1', 'SPURGO INTERMITT. HP', 'pid104']);
   ins.push(['DRH-1', 'DRENAGGI SH HP', 'pid104']);
   ins.forEach(([id, txt, tgt], i) => {
     const y = 80 + i * 12;

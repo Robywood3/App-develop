@@ -132,7 +132,7 @@ export function casesTable(M) {
   add('Emissioni di CO₂', 't/h', (c) => c.r.co2, 1);
   add('Emissione specifica di CO₂', 'kg/MWh', (c) => c.r.co2Spec, 0);
   add('Gas naturale', 'Sm³/h', (c) => c.U.gas.Sm3h, 0);
-  if (M.water) add('Reintegro torre', 'm³/h', (c) => c.U.cooling.makeupM3h, 0);
+  if (M.tower) add('Reintegro torre', 'm³/h', (c) => c.U.cooling.makeupM3h, 0);
   add('Acqua grezza totale', 'm³/h', (c) => c.U.rawWaterM3h, 0);
   add('Acqua demi (reintegro ciclo)', 'm³/h', (c) => c.U.demi.demiM3h, 1);
   add('Acque reflue', 'm³/h', (c) => c.U.ww.totalM3h, 1);
@@ -278,14 +278,28 @@ export function pfdSteamSheets(M, doc) {
 // ------------------------------------------------------------------ sistemi di raffreddamento
 export function pfdCoolingSheets(M, doc) {
   const U = M.U, cw = U.cooling, cc = U.ccw;
-  const sh = newSheet(M, doc, 'Sistemi di raffreddamento', `Raffreddamento principale (${M.water ? 'torre evaporativa' : 'aerocondensatore'}) e ciclo chiuso ausiliari`);
+  const sh = newSheet(M, doc, 'Sistemi di raffreddamento', `Raffreddamento principale (${M.once ? 'ciclo aperto mare/fiume' : M.water ? 'torre evaporativa' : 'aerocondensatore'}) e ciclo chiuso ausiliari`);
   let k = 1;
   const S = [];
   const add = (desc, fluid, m, p, T, note = '', vol = true) => { S.push([k, desc, fluid, f(m, 1), vol ? f(m3h(m), 0) : f(m * 3.6, 1), f(p, 2), f(T, 1), note]); return k++; };
-  if (M.water) {
+  let acwBack = null;
+  if (M.once) {
+    // ciclo aperto: presa a mare/fiume, pompe MCW, condensatore, pozzo di carico e restituzione
+    const cond = block(sh, 40, 60, 48, 28, '0MAG10', 'Condensatore', [`${f(cw.Qcond, 1)} MW`, `${f(M.r.bt.pCond * 1000, 0)} mbar`]);
+    const intake = block(sh, 170, 40, 60, 32, '0PAA10/0PAB10', 'Opera di presa', ['griglie, sgrigliatori, filtri a nastro', `2 corsie × ${f(cw.intakeM3h, 0)} m³/h`]);
+    const pumps = block(sh, 170, 110, 60, 22, '0PAC10', 'Pompe acqua circolazione', ['2×50 %']);
+    const outf = block(sh, 40, 22, 48, 22, '0PAR10', 'Pozzo di carico', ['restituzione al corpo idrico']);
+    flow(sh, [[280, 52], [intake.r, 52]], { num: add('Acqua da mare/fiume', 'Acqua', cw.cwFlow + cc.acwFlow, 1.0, cw.Tin, 'presa'), st: ST.med });
+    flow(sh, [[intake.cx, intake.b], [intake.cx, pumps.y]], { side: 1 });
+    flow(sh, [[pumps.x, pumps.cy], [cond.cx, pumps.cy], [cond.cx, cond.b]], { num: add('Acqua fredda al condensatore', 'Acqua', cw.cwFlow, 2.0, cw.Tin), at: 0.5 });
+    flow(sh, [[cond.cx, cond.y], [cond.cx, outf.b]], { num: add('Acqua calda alla restituzione', 'Acqua', cw.cwFlow, 1.5, cw.Tout), side: 1 });
+    flow(sh, [[outf.r, outf.cy], [130, outf.cy]], { label: `al corpo idrico · ΔT ${f(cw.Tout - cw.Tin, 1)} K`, side: -1 });
+    acwBack = { pumps, path: (c) => [[c.cx, c.y], [c.cx, 100], [96, 100], [96, outf.cy + 6], [outf.r, outf.cy + 6]] };
+  } else if (M.water) {
     const cond = block(sh, 40, 60, 48, 28, '0MAG10', 'Condensatore', [`${f(cw.Qcond, 1)} MW`, `${f(M.r.bt.pCond * 1000, 0)} mbar`]);
     const tower = block(sh, 170, 40, 60, 32, '0PAE10', 'Torre evaporativa', [`${M.ctCells} celle`, `evaporazione ${f(cw.fEvap * 100, 0)} % del calore`]);
-    const pumps = block(sh, 170, 110, 60, 22, '0PAC10', 'Pompe acqua circolazione', ['3×50 %']);
+    const pumps = block(sh, 170, 110, 60, 22, '0PAC10', 'Pompe acqua circolazione', ['2×50 %']);
+    acwBack = { pumps, path: (c) => [[c.cx, c.y], [c.cx, 100], [tower.cx + 20, 100], [tower.cx + 20, tower.b]] };
     flow(sh, [[cond.r, 66], [tower.x, 66]], { num: add('Acqua calda dal condensatore', 'Acqua', cw.cwFlow, 1.8, cw.Tout), at: 0.4 });
     flow(sh, [[tower.cx, tower.b], [tower.cx, pumps.y]], { side: 1 });
     flow(sh, [[pumps.x, pumps.cy], [cond.cx, pumps.cy], [cond.cx, cond.b]], { num: add('Acqua fredda al condensatore', 'Acqua', cw.cwFlow, 2.5, cw.Tin), at: 0.5 });
@@ -300,16 +314,23 @@ export function pfdCoolingSheets(M, doc) {
     flow(sh, [[acc.cx, acc.b], [acc.cx, 110], [40, 110]], { num: add('Condensato ACC', 'Acqua', st.m, M.r.bt.pCond, M.r.bt.Tcond, '', false) });
     sh.text(acc.cx, 30, `aria ambiente ${f(M.op.Tamb, 0)} °C`, { size: 1.4, anchor: 'middle' });
   }
-  // ciclo chiuso
+  // ciclo chiuso: intercooler a piastre su acqua ausiliaria (raffreddamento ad acqua) o aerotermi
   const yc = 150;
-  const cooler = block(sh, 270, yc - 30, 46, 22, '0PGC10', 'Aerotermi', [`${f(cc.kW / 1000, 2)} MW`]);
-  const pp = block(sh, 270, yc + 6, 46, 18, '0PGB10', 'Pompe ciclo chiuso', ['2×100 %']);
+  const cooler = M.water ? block(sh, 270, yc - 30, 46, 22, '0PGD10', 'Intercooler a piastre', [`2×100 % · ${f(cc.kW / 1000, 2)} MW`])
+    : block(sh, 270, yc - 30, 46, 22, '0PGC10', 'Aerotermi', [`${f(cc.kW / 1000, 2)} MW`]);
+  const pp = block(sh, 270, yc + 6, 46, 18, '0PGB10', 'Pompe ciclo chiuso', [`${cc.pumpN}×${cc.pumpPct} %`]);
+  if (acwBack) {
+    // acqua ausiliaria: pompe ACW 2×100 % dalla vasca/presa agli intercooler, ritorno a torre o restituzione
+    const { pumps } = acwBack;
+    flow(sh, [[pumps.r, pumps.y + 5], [258, pumps.y + 5], [258, cooler.y + 6], [cooler.x, cooler.y + 6]], { num: add('Acqua ausiliaria agli intercooler (pompe ACW 0PAC20)', 'Acqua', cc.acwFlow, 3.5, cw.Tin), at: 0.5, st: ST.norm });
+    flow(sh, acwBack.path(cooler), { num: add('Ritorno acqua ausiliaria', 'Acqua', cc.acwFlow, 1.8, cw.Tin + cc.acwDT), at: 0.5, st: ST.norm });
+  }
   const users = block(sh, 336, yc - 30, 60, 54, null, 'Utenze ciclo chiuso', cc.users.filter((u) => u.kW > 0).slice(0, 14).map((u) => `${u.tag} ${f(u.kW, 0)} kW`));
   flow(sh, [[pp.r, pp.cy], [users.x, pp.cy]], { num: add('Ciclo chiuso mandata', 'Acqua demi', cc.flow, 6, cc.Tsupply), at: 0.5 });
   flow(sh, [[users.x, cooler.cy], [cooler.r, cooler.cy]], { num: add('Ciclo chiuso ritorno', 'Acqua demi', cc.flow, 4, cc.Treturn), at: 0.5 });
   flow(sh, [[cooler.cx, cooler.b], [cooler.cx, pp.y]], {});
   table(sh, FRAME.x0 + 4, 196, streamCols, S, { title: 'TABELLA CORRENTI (portate volumetriche in m³/h)', rh: 2.8, size: 1.45 });
-  notesBox(sh, 'NOTE', [M.water ? `Reintegro torre ${f(cw.makeupM3h, 0)} m³/h = evaporazione + spurgo + trascinamento.` : 'Aerocondensatore: nessun consumo di acqua per il raffreddamento principale.', `Ciclo chiuso: ΔT ${cc.dT} K, temperatura di mandata ${f(cc.Tsupply, 0)} °C.`]);
+  notesBox(sh, 'NOTE', [M.once ? `Ciclo aperto: nessun reintegro; portata di presa ${f(cw.intakeM3h, 0)} m³/h per corsia, biocida ${f(cw.hypo, 1)} kg/h in continuo.` : M.water ? `Reintegro torre ${f(cw.makeupM3h, 0)} m³/h = evaporazione + spurgo + trascinamento.` : 'Aerocondensatore: nessun consumo di acqua per il raffreddamento principale.', `Ciclo chiuso: ΔT ${cc.dT} K, temperatura di mandata ${f(cc.Tsupply, 0)} °C.`]);
   return [sh];
 }
 
@@ -319,7 +340,8 @@ export function pfdWaterSheets(M, doc) {
   const sh = newSheet(M, doc, 'Bilancio idrico di impianto', 'Portate medie al punto di progetto [m³/h]');
   const v = (kgs) => f(m3h(kgs), 1);
   const raw = block(sh, 24, 90, 40, 24, '0GAA10', 'Acqua grezza', [`${v(U.rawWater)} m³/h`]);
-  const tower = M.water ? block(sh, 120, 34, 50, 24, '0PAE10', 'Torre', [`reintegro ${v(cw.makeup)}`]) : null;
+  const tower = M.tower ? block(sh, 120, 34, 50, 24, '0PAE10', 'Torre', [`reintegro ${v(cw.makeup)}`]) : null;
+  if (M.once) sh.text(120, 44, `Raffreddamento a ciclo aperto: ${f(cw.cwM3h, 0)} m³/h prelevati e restituiti al corpo idrico (non nel bilancio).`, { size: 1.4 });
   const demi = block(sh, 120, 90, 50, 24, '0GCF', 'Impianto demi', [`RO ${v(d.roFeed)} → EDI ${v(d.roPermeate)}`]);
   const serv = block(sh, 120, 140, 50, 20, '0GHA10', 'Acqua servizi', ['servizi, lavaggi']);
   const cycle = block(sh, 220, 90, 56, 24, null, 'Ciclo acqua-vapore', [`reintegro ${v(d.cycleMakeup)}`]);
@@ -341,11 +363,11 @@ export function pfdWaterSheets(M, doc) {
   flow(sh, [[ww.r, ww.cy], [out.x, ww.cy]], {});
   // bilancio
   const inTot = U.rawWater;
-  const outAtm = (M.water ? cw.evap + cw.drift : 0) + d.losses + d.sampling;
+  const outAtm = (M.tower ? cw.evap + cw.drift : 0) + d.losses + d.sampling;
   const outWW = w.total + w.sanitary;
   const rows = [
     { group: 'Ingressi' }, ['Acqua grezza', v(inTot)],
-    { group: 'Uscite' }, ['Evaporazione e trascinamento torre', M.water ? v(cw.evap + cw.drift) : '—'], ['Perdite ciclo e campionamenti', v(d.losses + d.sampling)], ['Scarico acque reflue', v(outWW)],
+    { group: 'Uscite' }, ['Evaporazione e trascinamento torre', M.tower ? v(cw.evap + cw.drift) : '—'], ['Perdite ciclo e campionamenti', v(d.losses + d.sampling)], ['Scarico acque reflue', v(outWW)],
     ['Usi non restituiti (lavaggi, ciclo chiuso, servizi)', v(Math.max(0, inTot - outAtm - outWW))],
   ];
   table(sh, 290, 82, [['Bilancio', 66, 'l'], ['m³/h', 18, 'r']], rows, { title: 'BILANCIO INGRESSI / USCITE', rh: 3 });
@@ -368,7 +390,14 @@ export function pfdFuelSheets(M, doc) {
   const y = 60;
   const st = block(sh, 70, y - 14, 46, 28, '0EKA10', 'Filtri e misura fiscale', [`${f(g.Sm3h, 0)} Sm³/h`]);
   const ht = block(sh, 140, y - 14, 46, 28, '0EKA20', 'Riscaldatori', [`${f(g.heaterKW, 0)} kW`, `${f(g.Tin, 0)} → ${f(g.preheatT, 0)} °C`]);
-  const rd = block(sh, 210, y - 14, 46, 28, '0EKA30', 'Riduzione', [`${f(g.pIn, 0)} → ${f(g.pOut, 1)} bar`, `ΔT J-T ${f(g.dTjt, 1)} K`]);
+  const kc = g.compressor;
+  const rd = block(sh, 210, y - 14, 46, 28, '0EKA30', kc ? 'Regolazione' : 'Riduzione', kc ? [`${f(kc.pDis, 0)} → ${f(g.pOut, 1)} bar`] : [`${f(g.pIn, 0)} → ${f(g.pOut, 1)} bar`, `ΔT J-T ${f(g.dTjt, 1)} K`]);
+  if (kc) {
+    // rete sotto la pressione richiesta: compressori fra misura e regolazione (riscaldatori by-passati in esercizio)
+    const cp = block(sh, 140, y + 22, 46, 24, '0EKB10', 'Compressori gas 2×100 %', [`${f(kc.pSuc, 0)} → ${f(kc.pDis, 0)} bar · ${f(kc.kW, 0)} kW`, `refrigerante a 45 °C`]);
+    flow(sh, [[st.cx, st.b], [st.cx, cp.cy], [cp.x, cp.cy]], { num: add('Gas all\'aspirazione compressori', 'Gas naturale', g.mFuel, kc.pSuc, g.Tin), side: 1 });
+    flow(sh, [[cp.r, cp.cy], [rd.cx, cp.cy], [rd.cx, rd.b]], { num: add('Gas compresso', 'Gas naturale', g.mFuel, kc.pDis, 45), side: 1 });
+  }
   const gt = block(sh, 320, y - 14, 60, 28, `1MBP10${M.N > 1 ? '…' : ''}`, `Skid gas TG (${M.N})`, [`riscald. prestazione ${f(g.perfHeaterKW / M.N, 0)} kW/TG`, `${f(M.cfg.gt.Tfuel, 0)} °C ai bruciatori`]);
   flow(sh, [[24, y], [st.x, y]], { num: add('Gas da gasdotto', 'Gas naturale', g.mFuel, g.pIn, g.Tin), at: 0.4 });
   flow(sh, [[st.r, y], [ht.x, y]], {});
@@ -380,7 +409,8 @@ export function pfdFuelSheets(M, doc) {
   const hdr = block(sh, 180, ya, 60, 28, '0QHB10', 'Collettore vapore ausiliario', [`in esercizio: ${s.source}`]);
   const gland = block(sh, 300, ya - 16, 70, 18, null, 'Tenute TV', [`${f(s.gland * 3.6, 1)} t/h`]);
   const oth = block(sh, 300, ya + 14, 70, 18, null, M.water ? 'Polmonazione, riscaldamenti' : 'Eiettori ACC, riscaldamenti', []);
-  flow(sh, [[rd.cx, rd.b], [rd.cx, 96], [95, 96], [95, boiler.y]], { label: 'gas caldaia (avviamento)', side: 1, st: ST.norm });
+  const yb = kc ? 114 : 96;
+  flow(sh, [[rd.cx + (kc ? 12 : 0), rd.b], [rd.cx + (kc ? 12 : 0), yb], [95, yb], [95, boiler.y]], { label: 'gas caldaia (avviamento)', side: 1, st: ST.norm });
   flow(sh, [[boiler.r, boiler.cy], [hdr.x, boiler.cy]], { num: add('Vapore caldaia ausiliaria', 'Vapore', s.boilerCapacity, s.p, s.T, 'all\'avviamento') });
   flow(sh, [[210, 100], [210, hdr.y]], { num: add(M.reheat ? 'Vapore da RH freddo' : 'Vapore da linea HP', 'Vapore', s.boilerCapacity, M.reheat ? M.r.bt.pAdm[1] : M.r.bt.pAdm[0], M.reheat ? M.r.bt.sections[0].Tout : M.r.bt.Tsh[0], 'in esercizio, riduzione'), side: 1 });
   flow(sh, [[hdr.r, hdr.y + 8], [270, hdr.y + 8], [270, gland.cy], [gland.x, gland.cy]], { num: add('Vapore tenute TV', 'Vapore', s.gland, 4, 220) });

@@ -185,9 +185,14 @@ function utilitiesTable(M) {
   r('Pressione di consegna / ai TG', `${n(U.gas.pIn, 0)} / ${n(U.gas.pOut, 1)}`, 'bar a');
   r('Potenza riscaldatori stazione', U.gas.heaterKW, 'kW', `preriscaldo a ${n(U.gas.preheatT, 0)} °C`, 0);
   r('Potenza riscaldatori di prestazione', U.gas.perfHeaterKW, 'kW', `gas a ${M.cfg.gt.Tfuel} °C`, 0);
-  g(M.water ? 'Raffreddamento principale (torre)' : 'Raffreddamento principale (aerocondensatore)');
+  if (U.gas.compressor) r('Compressore gas', U.gas.compressor.kW, 'kW', `${n(U.gas.compressor.pSuc, 0)} → ${n(U.gas.compressor.pDis, 0)} bar a`, 0);
+  g(M.once ? 'Raffreddamento principale (ciclo aperto)' : M.water ? 'Raffreddamento principale (torre)' : 'Raffreddamento principale (aerocondensatore)');
   r('Calore scaricato', U.cooling.Qcond, 'MW');
-  if (M.water) {
+  if (M.once) {
+    r('Portata acqua di circolazione', U.cooling.cwM3h, 'm³/h', `ΔT ${n(U.cooling.Tout - U.cooling.Tin, 1)} K al corpo idrico`, 0);
+    r('Portata di presa (con margine)', U.cooling.intakeM3h, 'm³/h', '', 0);
+    r('Ipoclorito di sodio (continuo)', U.cooling.hypo, 'kg/h', '0,5 mg/l', 2);
+  } else if (M.water) {
     r('Portata acqua di circolazione', U.cooling.cwM3h, 'm³/h', '', 0);
     r('Evaporazione', U.cooling.evapM3h, 'm³/h', '', 1);
     r('Spurgo', U.cooling.blowdownM3h, 'm³/h', `${U.cooling.coc} cicli di concentrazione`, 1);
@@ -246,7 +251,7 @@ export function documentCatalog(meta, M = null) {
     { id: 'pid111', number: `${P}-PR-PID-111`, title: 'P&ID spurghi e drenaggi GVR', short: 'Spurghi e drenaggi', group: 'P&ID processo', pid: PP.pid111 },
     { id: 'pid112', number: `${P}-PR-PID-112`, title: 'P&ID turbina a vapore: olio di lubrificazione e sollevamento', short: 'TV olio', group: 'P&ID processo', pid: (m, r, d) => PP.pidLubeOil(m, r, d, { machine: 'TV' }) },
     { id: 'pid201', number: `${P}-UT-PID-201`, title: 'P&ID stazione gas naturale', short: 'Stazione gas', group: 'P&ID utilities e ausiliari', pid: PU.pid201 },
-    { id: 'pid202', number: `${P}-UT-PID-202`, title: M && !M.water ? 'P&ID aerocondensatore e vuoto' : 'P&ID acqua di circolazione e torre', short: M && !M.water ? 'Aerocondensatore' : 'Acqua circolazione e torre', group: 'P&ID utilities e ausiliari', pid: PU.pid202 },
+    { id: 'pid202', number: `${P}-UT-PID-202`, title: M && !M.water ? 'P&ID aerocondensatore e vuoto' : M && M.once ? 'P&ID acqua di circolazione a ciclo aperto (presa e restituzione)' : 'P&ID acqua di circolazione e torre', short: M && !M.water ? 'Aerocondensatore' : M && M.once ? 'Circolazione a ciclo aperto' : 'Acqua circolazione e torre', group: 'P&ID utilities e ausiliari', pid: PU.pid202 },
     { id: 'pid203', number: `${P}-UT-PID-203`, title: 'P&ID acqua di raffreddamento a ciclo chiuso', short: 'Ciclo chiuso', group: 'P&ID utilities e ausiliari', pid: PU.pid203 },
     { id: 'pid204', number: `${P}-UT-PID-204`, title: 'P&ID aria compressa', short: 'Aria compressa', group: 'P&ID utilities e ausiliari', pid: PU.pid204 },
     { id: 'pid205', number: `${P}-UT-PID-205`, title: 'P&ID acqua grezza, servizi e antincendio', short: 'Acqua grezza e antincendio', group: 'P&ID utilities e ausiliari', pid: PU.pid205 },

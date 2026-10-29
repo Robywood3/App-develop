@@ -310,28 +310,35 @@ export function renderUtilities(box, r, cfg, des) {
   const card = (title, rows) => `<div class="ut-card"><h3>${title}</h3><dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></div>`;
   const c = U.cooling;
   const cards = [];
-  cards.push(card(c.type === 'torre' ? 'Torre di raffreddamento' : 'Aerocondensatore', c.type === 'torre' ? [
+  if (c.type === 'aperto') cards.push(card('Acqua di circolazione a ciclo aperto', [
+    ['Calore scaricato', `${fmt(c.Qcond, 1)} MW`], ['Acqua di circolazione', `${fmt(c.cwM3h, 0)} m³/h`], ['Temperature', `${fmt(c.Tin, 1)} → ${fmt(c.Tout, 1)} °C`],
+    ['Opera di presa', `2 corsie × ${fmt(c.intakeM3h, 0)} m³/h`], ['Pompe MCW / ACW', `2×50 % / 2×100 % (${fmt(U.ccw.acwM3h, 0)} m³/h)`],
+    ['Biocida in continuo', `${fmt(c.hypo, 1)} kg/h`], ['Consumo di acqua', 'nessuno (restituita al corpo idrico)'],
+  ]));
+  else cards.push(card(c.type === 'torre' ? 'Torre di raffreddamento' : 'Aerocondensatore', c.type === 'torre' ? [
     ['Calore scaricato', `${fmt(c.Qcond, 1)} MW`], ['Acqua di circolazione', `${fmt(c.cwM3h, 0)} m³/h`], ['Temperature', `${fmt(c.Tin, 1)} → ${fmt(c.Tout, 1)} °C`],
     ['Evaporazione', `${fmt(c.evapM3h, 0)} m³/h`], ['Spurgo', `${fmt(c.blowdownM3h, 0)} m³/h (COC ${c.coc})`], ['Reintegro', `${fmt(c.makeupM3h, 0)} m³/h`],
     ['Pompe MCW / ACW', `2×50 % / 2×100 % (${fmt(U.ccw.acwM3h, 0)} m³/h)`],
     ['Ipoclorito / acido / inibitore', `${fmt(c.hypo, 1)} / ${fmt(c.acid, 1)} / ${fmt(c.antiscalant, 1)} kg/h`],
   ] : [['Calore scaricato', `${fmt(c.Qcond, 1)} MW`], ['Aria ambiente', `${fmt(c.Tair, 1)} °C`], ['Consumo di acqua', 'nessuno']]));
   cards.push(card('Ciclo chiuso', [
-    ['Carico termico', `${fmt(U.ccw.kW, 0)} kW`], ['Portata', `${fmt(U.ccw.m3h, 0)} m³/h`], ['Mandata / ritorno', `${fmt(U.ccw.Tsupply, 0)} / ${fmt(U.ccw.Treturn, 0)} °C`],
+    ['Carico termico', `${fmt(U.ccw.kW, 0)} kW`], ['Portata', `${fmt(U.ccw.m3h, 0)} m³/h (pompe ${U.ccw.pumpN}×${U.ccw.pumpPct} %)`], ['Mandata / ritorno', `${fmt(U.ccw.Tsupply, 0)} / ${fmt(U.ccw.Treturn, 0)} °C`],
     ...U.ccw.users.filter((u) => u.kW > 0).sort((a, b) => b.kW - a.kW).slice(0, 4).map((u) => [u.name, `${fmt(u.kW, 0)} kW`]),
   ]));
   const d = U.demi;
   cards.push(card('Acqua', [
     ['Acqua grezza', `${fmt(U.rawWaterM3h, 0)} m³/h`], ['Acqua demi (media)', `${fmt(d.demiM3h, 1)} m³/h`], ['Reintegro ciclo', `${fmt((d.cycleMakeup * 3600) / 998, 2)} m³/h`],
     ['Spurgo continuo GVR', `${fmt((d.hrsgBD * 3600) / 998, 2)} m³/h`], ['Concentrati RO/EDI', `${fmt(((d.roReject + d.ediReject) * 3600) / 998, 2)} m³/h`], ['Acque reflue', `${fmt(U.ww.totalM3h, 1)} m³/h`],
-    ['Serbatoi grezza / servizi / demi', `${fmt(U.pret.rawTankM3, 0)} / ${fmt(U.pret.serviceTankM3, 0)} / ${fmt(d.tankM3, 0)} m³`],
+    ['Serbatoi grezza / servizi / demi', `${fmt(U.pret.rawTankM3, 0)} / ${fmt(U.pret.serviceTankM3, 0)} / ${d.tankN > 1 ? `${d.tankN}×${fmt(d.tankM3 / d.tankN, 0)}` : fmt(d.tankM3, 0)} m³`],
+    ['Impianto demi', `${fmt(d.plantM3h, 0)} m³/h`],
   ]));
   cards.push(card('Gas naturale', [
     ['Portata', `${fmt(U.gas.Sm3h, 0)} Sm³/h`], ['PCI / PCS', `${fmt(U.gas.lhvMJSm3, 2)} / ${fmt(U.gas.hhvMJSm3, 2)} MJ/Sm³`], ['Riduzione', `${fmt(U.gas.pIn, 0)} → ${fmt(U.gas.pOut, 1)} bar`],
     ['Preriscaldo stazione', `${fmt(U.gas.heaterKW, 0)} kW (a ${fmt(U.gas.preheatT, 0)} °C)`], ['Riscaldatori di prestazione', `${fmt(U.gas.perfHeaterKW, 0)} kW`],
+    ...(U.gas.compressor ? [['Compressore gas', `${fmt(U.gas.compressor.pSuc, 0)} → ${fmt(U.gas.compressor.pDis, 0)} bar · ${fmt(U.gas.compressor.kW, 0)} kW`]] : []),
   ]));
   cards.push(card('Aria compressa e gas tecnici', [
-    ['Aria strumenti / servizi', `${fmt(U.air.instrument, 0)} / ${fmt(U.air.service, 0)} Nm³/h`], ['Compressori', `2 × ${fmt(U.air.compressorNm3h, 0)} Nm³/h a ${fmt(U.air.pressure, 0)} bar a`],
+    ['Aria strumenti / servizi', `${fmt(U.air.instrument, 0)} / ${fmt(U.air.service, 0)} Nm³/h`], ['Compressori', `${U.air.compressorN} × ${fmt(U.air.compressorNm3h, 0)} Nm³/h a ${fmt(U.air.pressure, 0)} bar a`],
     ['Essiccatori heatless', `2 × ${fmt(U.air.dryerNm3h, 0)} Nm³/h (−40 °C)`],
     ['Azoto in esercizio', `${fmt(U.gases.n2Nm3d, 0)} Nm³/giorno`], ['Idrogeno generatori', `${fmt(U.gases.h2Nm3d, 0)} Nm³/giorno`],
   ]));

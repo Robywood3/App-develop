@@ -202,6 +202,18 @@
             <label for="d-fuel">Combustibile</label>
             <select id="d-fuel"></select>
           </div>
+          <div class="field">
+            <label for="d-hpevap">Evaporatore HP</label>
+            <select id="d-hpevap">
+              <option value="drum">A corpo cilindrico</option>
+              <option value="benson">A passaggio singolo (Benson)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="d-pgas">Pressione rete gas <span class="u">bar a</span></label>
+            <input type="number" id="d-pgas" min="20" max="60" step="1">
+          </div>
+          <p class="hint" id="d-pgas-hint"></p>
         </div>
 
         <details class="field-group" open>
@@ -236,7 +248,8 @@
           <div class="field">
             <label for="d-cond">Tipo di condensatore</label>
             <select id="d-cond">
-              <option value="water">Ad acqua (torre / circuito aperto)</option>
+              <option value="water">Ad acqua con torre evaporativa</option>
+              <option value="once">Ad acqua a ciclo aperto (mare / fiume)</option>
               <option value="air">Aerocondensatore (ACC)</option>
             </select>
           </div>

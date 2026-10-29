@@ -4,6 +4,7 @@
 import { fuelProperties, FUEL_PRESETS, fuelForTemperature, gasH, molarMass } from './gas.js';
 import { GT_PRESETS, GT_GROUPS, gtDesign, gtAtLoad } from './gt.js';
 import { solveBottoming, LEVEL_NAMES } from './bottoming.js';
+import { gasStation } from './utilities.js';
 
 export const ISO = { Tamb: 15, pamb: 1.01325, rh: 0.6 };
 
@@ -29,19 +30,19 @@ const CLASS_STEAM_3PRH = {
   'Classe E (~170 MW)': { hp: 95, ip: 24, tsh: 540, trh: 540 },
 };
 
-// Modelli commerciali: classi H/J/HA/HL (TIT ≥ 1580 °C) con vapore HP al limite del campo IF97
-// implementato (corpo cilindrico ≤ 165 bar); il riferimento OEM indica 177 bar/604 °C e RH 42 bar/610 °C.
+// Modelli commerciali: classi H/J/HA/HL (TIT ≥ 1580 °C) con vapore HP a 170–173 bar, 600 °C e RH 40 bar
+// fino a 610 °C (riferimenti: 177 bar/604 °C e RH 42 bar/610 °C da catalogo, 173 bar/600 °C a Ostiglia).
 function classSteam(gtName) {
   if (CLASS_STEAM_3PRH[gtName]) return CLASS_STEAM_3PRH[gtName];
   const g = GT_PRESETS[gtName];
   if (!g) return null;
   // turbina a vapore di grande taglia (~300 MW, HP/IP + LP) e GVR con pinch ridotto
-  if (g.TIT >= 1580) return { hp: LIMITS.pHPmax, ip: 40, tsh: 600, trh: g.TETiso >= 700 ? 610 : 600, st: { etaHP: 0.89, etaIP: 0.925, etaLP: 0.905, pinch: 6 } };
+  if (g.TIT >= 1580) return { hp: g.TETiso >= 700 ? 173 : 170, ip: 43, tsh: 600, trh: g.TETiso >= 700 ? 610 : 600, st: { etaHP: 0.89, etaIP: 0.925, etaLP: 0.905, pinch: 6, pinchHP: 4, approachHP: 3, hpEvap: 'benson' } };
   if (g.TIT >= 1450) return CLASS_STEAM_3PRH['Classe F (~300 MW)'];
   return CLASS_STEAM_3PRH['Classe E (~170 MW)'];
 }
 
-export const LIMITS = { pHPmax: 155, TshMax: 610 };
+export const LIMITS = { pHPmax: 185, TshMax: 610 };
 
 /** Configurazione predefinita dell'impianto. */
 export function defaultConfig(gtName = 'Classe F (~300 MW)', type = '3PRH') {
@@ -62,8 +63,10 @@ export function defaultConfig(gtName = 'Classe F (~300 MW)', type = '3PRH') {
     steam: {
       type,
       levels: s.levels.map((l) => ({ ...l })),
-      pinch: st ? s.pinch.map(() => st.pinch) : s.pinch.slice(),
-      approach: s.approach.slice(),
+      pinch: st ? s.pinch.map((v, k) => (k === 0 ? st.pinchHP : st.pinch)) : s.pinch.slice(),
+      approach: st ? s.approach.map((v, k) => (k === 0 ? st.approachHP : v)) : s.approach.slice(),
+      // evaporatore HP a corpo cilindrico o a passaggio singolo (Benson, senza spurgo continuo HP)
+      hpEvap: st?.hpEvap ?? 'drum',
       Trh: s.Trh,
       dTsh: 25,
       dpSH: 0.06,
@@ -77,12 +80,13 @@ export function defaultConfig(gtName = 'Classe F (~300 MW)', type = '3PRH') {
       etaMG: 0.985,
       etaPump: 0.8,
       pMinFracHP: 0.4,
-      condenser: { type: 'water', TcwDesign: 18, dTcw: 10, TTD: 3, ITD: 28 },
+      condenser: { type: 'water', cooling: 'tower', TcwDesign: 18, dTcw: 10, TTD: 3, ITD: 28 },
     },
-    // ausiliari raffreddamento tarati sulle descrizioni BoP di riferimento: pompe MCW 2×50 % con 20 m,
-    // ventilatori torre ~0,55 % del calore scaricato, pompe ACW 30 m sugli intercooler del ciclo chiuso
-    aux: { miscFrac: 0.004, trafoFrac: 0.003, gtAuxMW: 0.8, cwHeadBar: 2.0, fanFrac: 0.012, ctFanFrac: 0.0055, acwHeadBar: 3.0, ccwFrac: 0.026 },
+    // ausiliari raffreddamento tarati sulle descrizioni BoP di riferimento: torre con pompe MCW 2×50 % da 20 m,
+    // ventilatori ~0,55 % del calore scaricato, pompe ACW 30 m; ciclo aperto con pompe MCW 12 m e ACW 20 m
+    aux: { miscFrac: 0.004, trafoFrac: 0.003, gtAuxMW: 0.8, cwHeadBar: 2.0, cwHeadOnceBar: 1.2, fanFrac: 0.012, ctFanFrac: 0.0055, acwHeadBar: 3.0, acwHeadOnceBar: 2.0, ccwFrac: 0.026 },
     backupFuel: 'none',
+    gasSupplyBar: 50, // pressione di consegna della rete gas (20-60 bar; sotto la richiesta dei TG serve il compressore)
   };
 }
 
@@ -96,7 +100,7 @@ export function defaultOperation() {
 
 /**
  * Corregge i parametri di progetto fuori campo (in loco) e restituisce gli avvisi.
- * Il modello IF97 implementato copre p ≤ 165 bar nei corpi cilindrici.
+ * Il modello IF97 implementato copre p ≤ 200 bar nei corpi cilindrici (regione 3 inclusa).
  */
 export function sanitizeConfig(cfg) {
   const notes = [];
@@ -176,13 +180,17 @@ export function plantPoint(cfg, des, op) {
   if (cond.type === 'air') Pcool = cfg.aux.fanFrac * des.QcondD * Math.min(1.1, Math.max(0.4, bt.Qcond / des.QcondD));
   else {
     const a = cfg.aux;
-    const Pmcw = (des.mcw * (a.cwHeadBar ?? 2.0) * 100) / 1000 / 0.85 / 1000; // MW, portata acqua costante
-    const Pfan = (a.ctFanFrac ?? 0) * des.QcondD; // ventilatori torre a velocità fissa
+    const once = cond.cooling === 'once';
+    const Pmcw = (des.mcw * (once ? a.cwHeadOnceBar ?? 1.2 : a.cwHeadBar ?? 2.0) * 100) / 1000 / 0.85 / 1000; // MW, portata acqua costante
+    const Pfan = once ? 0 : (a.ctFanFrac ?? 0) * des.QcondD; // ventilatori torre a velocità fissa
     const mAcw = ((a.ccwFrac ?? 0) * gross * 1000) / (4.18 * 10); // kg/s acqua ausiliaria agli intercooler
-    const Pacw = (mAcw * (a.acwHeadBar ?? 3.0) * 100) / 1000 / 0.8 / 1000;
+    const Pacw = (mAcw * (once ? a.acwHeadOnceBar ?? 2.0 : a.acwHeadBar ?? 3.0) * 100) / 1000 / 0.8 / 1000;
     Pcool = Pmcw + Pfan + Pacw;
   }
-  const Pmisc = cfg.aux.miscFrac * gross + cfg.aux.gtAuxMW * nOn;
+  // compressore gas se la pressione di rete non basta
+  const gst = gasStation(cfg, gt.p2, (gt.mFuel + mFuelDB) * nOn);
+  const PgasComp = gst.compressor ? gst.compressor.kW / 1000 : 0;
+  const Pmisc = cfg.aux.miscFrac * gross + cfg.aux.gtAuxMW * nOn + PgasComp;
   const Paux = bt.Ppump + Pcool + Pmisc;
   const Ptrafo = cfg.aux.trafoFrac * gross;
   const net = gross - Paux - Ptrafo;
@@ -227,7 +235,7 @@ export function plantPoint(cfg, des, op) {
     mFuelDB: mFuelDB * nOn,
     bt,
     Pgt, Pst, gross, Paux, Ptrafo, net,
-    aux: { pumps: bt.Ppump, cooling: Pcool, misc: Pmisc },
+    aux: { pumps: bt.Ppump, cooling: Pcool, misc: Pmisc, gasComp: PgasComp },
     Qfuel, QfuelGT, QfuelDB, mFuelTot,
     eta, etaGross: gross / Qfuel, heatRate: 3600 / eta,
     co2, co2Spec: co2Spec * 1000, // kg/MWh

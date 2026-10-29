@@ -166,8 +166,14 @@ export function pfdSheets(M, doc) {
     pline(sh, [[lpx1, 157], [366, 157]], {});
     diamond(sh, 354, 152, s.cwIn);
     diamond(sh, 342, 157, s.cwOut);
-    sh.path([[366, 166], [370, 148], [386, 148], [390, 166]], { s: '#000000', w: 0.45, f: W }, true);
-    sh.text(378, 170, 'Torre di raffreddamento', { size: 1.6, anchor: 'middle' });
+    if (M.once) {
+      // ciclo aperto: presa e restituzione al corpo idrico
+      for (let i = 0; i < 3; i++) sh.path(Array.from({ length: 9 }, (_, j) => [368 + j * 2.6, 152 + i * 4 + (j % 2 ? -1 : 1)]), ST.norm);
+      sh.text(378, 170, 'Mare / fiume (ciclo aperto)', { size: 1.6, anchor: 'middle' });
+    } else {
+      sh.path([[366, 166], [370, 148], [386, 148], [390, 166]], { s: '#000000', w: 0.45, f: W }, true);
+      sh.text(378, 170, 'Torre di raffreddamento', { size: 1.6, anchor: 'middle' });
+    }
   }
   // riepilogo prestazioni
   const r = M.r;

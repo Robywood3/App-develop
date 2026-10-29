@@ -4,6 +4,7 @@ import { defaultConfig, defaultOperation, designPlant, plantPoint, GT_PRESETS, G
 import { HRSG_TYPES, LEVEL_NAMES } from '../engine/bottoming.js';
 import { PlantSim, formatSimTime } from '../engine/dynamics.js';
 import { fmt } from './format.js';
+import { gasStation } from '../engine/utilities.js';
 import { sparkline, redrawAll } from './charts.js';
 import { buildMimic, updateMimic, mimicSignature } from './mimic.js';
 import { renderTQ, renderTS, computeCurves, renderCurves, renderTrend, renderStreams, renderBalance, renderUtilities } from './views.js';
@@ -402,7 +403,13 @@ function syncDesignInputs() {
   $('f-trh').hidden = c.steam.type !== '3PRH';
   $('d-etaip').closest('.field').hidden = c.steam.type !== '3PRH';
   const cd = c.steam.condenser;
-  $('d-cond').value = cd.type;
+  $('d-cond').value = cd.type === 'water' && cd.cooling === 'once' ? 'once' : cd.type;
+  $('d-hpevap').value = c.steam.hpEvap ?? 'drum';
+  $('d-pgas').value = c.gasSupplyBar;
+  const gst = gasStation(c, S.des.gtRef.point.p2, S.des.gtRef.point.mFuel * c.nGT);
+  setText('d-pgas-hint', gst.compressor
+    ? `Richiesti ${fmt(gst.pOut, 1)} bar ai TG + perdite: compressore gas ${fmt(gst.compressor.pSuc, 0)} → ${fmt(gst.compressor.pDis, 0)} bar, ${fmt(gst.compressor.kW, 0)} kW.`
+    : `Richiesti ${fmt(gst.pOut, 1)} bar ai TG: riduzione senza compressore.`);
   $('d-tcwd').value = cd.TcwDesign;
   $('d-dtcw').value = cd.dTcw;
   $('d-ttd').value = cd.TTD;
@@ -450,6 +457,7 @@ function newConfig(gtName, type, keep) {
     c.fuelComp = { ...keep.fuelComp };
     c.steam.condenser = { ...keep.steam.condenser };
     c.backupFuel = keep.backupFuel;
+    c.gasSupplyBar = keep.gasSupplyBar;
   }
   return c;
 }
@@ -491,7 +499,17 @@ function bindDesign() {
     S.cfg.steam.pinch = S.cfg.steam.pinch.map(() => v);
     scheduleRedesign();
   });
-  $('d-cond').addEventListener('change', (e) => { S.cfg.steam.condenser.type = e.target.value; scheduleRedesign(); });
+  $('d-cond').addEventListener('change', (e) => {
+    const v = e.target.value;
+    S.cfg.steam.condenser.type = v === 'once' ? 'water' : v;
+    S.cfg.steam.condenser.cooling = v === 'once' ? 'once' : 'tower';
+    scheduleRedesign();
+  });
+  $('d-hpevap').addEventListener('change', (e) => { S.cfg.steam.hpEvap = e.target.value; scheduleRedesign(); });
+  $('d-pgas').addEventListener('change', (e) => {
+    const v = parseFloat(e.target.value);
+    if (Number.isFinite(v)) { S.cfg.gasSupplyBar = Math.min(60, Math.max(20, v)); scheduleRedesign(); }
+  });
   for (const [id, key] of [['d-tcwd', 'TcwDesign'], ['d-dtcw', 'dTcw'], ['d-ttd', 'TTD'], ['d-itd', 'ITD']]) {
     $(id).addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) { S.cfg.steam.condenser[key] = v; scheduleRedesign(); } });
   }

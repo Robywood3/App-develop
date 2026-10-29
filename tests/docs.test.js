@@ -97,3 +97,38 @@ test('gasolio di riserva e modello TG 60 Hz: P&ID 211, linee DO disegnate, 3600 
   const M2 = engineeringModel(cfg2, designPlant(cfg2), meta);
   assert.ok(!documentCatalog(meta, M2).some((c) => c.id === 'pid211'));
 });
+
+test('taratura su Ostiglia (1+1 classe H, Benson): vapore, collettori, pompe e ausiliari', () => {
+  const cfg = defaultConfig('Siemens SGT5-9000HL (593 MW)', '3PRH');
+  cfg.gasSupplyBar = 41;
+  const M = engineeringModel(cfg, designPlant(cfg), defaultProjectMeta());
+  const { r, U } = M, bt = r.bt;
+  assert.equal(cfg.steam.hpEvap, 'benson');
+  assert.ok(Math.abs(r.Pgt + r.Pst - 890) < 20, `lordo ${r.Pgt + r.Pst}`); // Ostiglia ~600 + 290 MW
+  assert.ok(Math.abs(bt.pAdm[0] - 173) < 0.5 && Math.abs(bt.Tsh[0] - 600) < 1); // 173 bar / 600 °C
+  assert.ok(bt.mLevels[0] > 150 && bt.mLevels[0] < 165, `HP ${bt.mLevels[0]}`); // 162 kg/s
+  assert.ok(Math.abs(bt.pRHout - 40) < 1.5 && Math.abs(bt.Trh - 610) < 1); // 40 bar / 610 °C
+  assert.ok(bt.Tstack > 70 && bt.Tstack < 85); // 76 °C
+  const dn = (id) => M.lineById[id].DN;
+  for (const [id, ref] of [['FG-1', 350], ['MS-1', 400], ['CRH-1', 600], ['HRH-1', 650], ['FW-1', 300], ['CCS', 700], ['IA-H', 100], ['SA-H', 80], ['DM-H', 200]]) {
+    assert.equal(dn(id), ref, `${id} DN${dn(id)} invece di DN${ref}`);
+  }
+  assert.ok(Math.abs(M.pumps.fw1.H - 2200) < 150, `BFWP ${M.pumps.fw1.H} m`);
+  assert.ok(Math.abs(M.pumps.cd.H - 226) < 25, `CEP ${M.pumps.cd.H} m`);
+  assert.equal(U.air.compressorN, 3); assert.equal(U.air.compressorNm3h, 1450); assert.equal(U.air.dryerNm3h, 2250);
+  assert.equal(U.demi.plantM3h, 30); assert.equal(U.demi.tankM3, 6000); assert.equal(U.demi.tankN, 2);
+  assert.ok(Math.abs(U.auxSteam.boilerCapacity * 3.6 - 20) < 2.1);
+  assert.ok(U.ccw.kW > 20000 && U.ccw.kW < 26000 && U.ccw.pumpN === 3, `CCW ${U.ccw.kW}`); // 23,6 MW, 3 pompe
+  assert.ok(U.gas.compressor && U.gas.compressor.kW > 1400 && U.gas.compressor.kW < 2200, 'compressore gas ~1800 kW');
+  // ciclo aperto separato dalla torre: niente torre, reintegro né spurgo; presa e restituzione documentate
+  cfg.steam.condenser.cooling = 'once';
+  const M2 = engineeringModel(cfg, designPlant(cfg), defaultProjectMeta());
+  assert.equal(M2.U.cooling.type, 'aperto');
+  assert.equal(M2.U.cooling.makeup, 0);
+  assert.ok(!M2.lineById.CTM && !M2.eq.some((e) => e.tag === '0PAE10'));
+  assert.ok(M2.eq.some((e) => e.tag === '0PAB20') && M2.layout.items.some((it) => it.tag === '0PAR10'));
+  const cat = documentCatalog(M2.meta, M2);
+  for (const c of cat.filter((x) => ['pid104', 'pid201', 'pid202', 'pfd5', 'pfd6', 'pfd7'].includes(x.id))) {
+    for (const s of buildDocument(M2, c)) assert.ok(!/NaN|undefined/.test(sheetToSVG(s)), c.id);
+  }
+});
