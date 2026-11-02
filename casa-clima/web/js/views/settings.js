@@ -1,7 +1,7 @@
 // Pagina "Impostazioni": generale, stanze, pacchetti YAML, sicurezza.
 import { icon } from '../icons.js';
 import { store, api } from '../store.js';
-import { esc, toast, copyText, confirmBox, relTime } from '../ui.js';
+import { esc, toast, copyText, confirmBox, relTime, openModal, closeModal } from '../ui.js';
 import { scheduleRender } from '../app.js';
 
 const TABS = [
@@ -108,6 +108,23 @@ async function security() {
   </div>`;
 }
 
+function askText(title, label) {
+  return new Promise((resolve) => {
+    const m = openModal(`<div class="modal-head"><h2>${esc(title)}</h2></div>
+      <form class="form"><div class="field"><label for="ask-text">${esc(label)}</label><input class="input" id="ask-text" autocomplete="off" required></div>
+      <div class="row"><span class="spacer"></span><button type="button" class="btn" data-no>Annulla</button><button class="btn primary">Crea</button></div></form>`, { onClose: () => resolve(null) });
+    const input = m.querySelector('#ask-text');
+    input.focus();
+    m.querySelector('[data-no]').onclick = () => closeModal();
+    m.querySelector('form').onsubmit = (e) => {
+      e.preventDefault();
+      const v = input.value.trim();
+      resolve(v || null);
+      closeModal();
+    };
+  });
+}
+
 export const settingsView = {
   title: 'Impostazioni',
   live: false,
@@ -125,7 +142,7 @@ export const settingsView = {
       scheduleRender(0);
     },
     'pkg-new': async () => {
-      const name = prompt('Nome del nuovo pacchetto (es. estate.yaml)');
+      const name = await askText('Nuovo pacchetto', 'Nome del file (es. estate.yaml)');
       if (!name) return;
       const file = /\.(ya?ml|json)$/i.test(name) ? name : `${name}.yaml`;
       try {
@@ -157,8 +174,12 @@ export const settingsView = {
       const name = document.getElementById('token-name').value || 'Token';
       try {
         const { token } = await api('POST', '/api/auth/tokens', { name });
-        copyText(token);
-        alert(`Token creato e copiato negli appunti (non verrà più mostrato):\n\n${token}`);
+        const m = openModal(`<div class="modal-head"><h2>Token creato</h2></div>
+          <p class="small muted">Copialo adesso: non verrà più mostrato.</p>
+          <div class="copy"><input class="input mono" id="new-token" readonly value="${esc(token)}"><button class="btn icon" data-copy>${icon('copy')}</button></div>
+          <div class="row" style="margin-top:16px"><span class="spacer"></span><button class="btn primary" data-close>Fatto</button></div>`);
+        m.querySelector('[data-copy]').onclick = () => copyText(token);
+        m.querySelector('[data-close]').onclick = () => closeModal();
         scheduleRender(0);
       } catch (err) { toast(err.message, 'err'); }
     },

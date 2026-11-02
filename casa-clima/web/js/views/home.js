@@ -16,7 +16,7 @@ function profileCard(cc) {
   const seasons = ['auto', 'heat', 'cool', 'off'];
   const seasonIcon = { auto: 'season', heat: 'flame', cool: 'snowflake', off: 'power' };
   const seasonLabel = { auto: 'Auto', heat: 'Caldo', cool: 'Freddo', off: 'Spenta' };
-  return `<div class="card">
+  return `<div class="card profile-card">
     <div class="card-head">
       <div class="ico-wrap ${season === 'heat' ? 'heat' : season === 'cool' ? 'cool' : ''}">${icon(season === 'cool' ? 'snowflake' : season === 'heat' ? 'flame' : 'power')}</div>
       <div style="flex:1;min-width:0"><h3>Profilo della casa</h3>
@@ -124,12 +124,17 @@ function carMini(dev) {
 
 export const homeView = {
   title: 'Casa',
+  demoHidden: false,
+  actions: {
+    'hide-demo': () => { homeView.demoHidden = true; document.querySelector('[data-act="hide-demo"]')?.closest('.alert')?.remove(); }
+  },
   render() {
     const cc = store.cc;
     const integErrors = store.integrations.filter((i) => i.enabled && ['error', 'auth'].includes(i.status?.state));
     const scenes = [...store.states.values()].filter((s) => s.entity_id.startsWith('scene.'));
     const cars = vehicles();
     const alerts = [
+      ...(window.__CC_DEMO && !homeView.demoHidden ? [`<div class="alert info">${icon('flask')}<div style="flex:1"><b>Demo con una casa simulata.</b> Termostati, climatizzatori, finestre, Shelly e Tesla rispondono davvero ai comandi, ma niente è collegato a casa tua. Prova ad aprire una finestra in Dispositivi: dopo 15 secondi il clima della stanza va in pausa.</div><button class="btn icon sm ghost" data-act="hide-demo" aria-label="Chiudi">${icon('x')}</button></div>`] : []),
       ...store.notifications.slice(0, 3).map((n) => `<div class="alert info">${icon('info')}<div style="flex:1"><b>${esc(n.title)}</b> · ${esc(n.message)}</div><button class="btn icon sm ghost" data-act="dismiss-notification" data-id="${esc(n.id)}">${icon('x')}</button></div>`),
       ...cc.alerts.map((a) => `<div class="alert ${a.level}">${icon(a.level === 'warn' ? 'alert' : 'info')}<div>${esc(a.message)}</div></div>`),
       ...integErrors.map((i) => `<a class="alert error" href="#/integrazioni" style="color:inherit">${icon('alert')}<div><b>${esc(i.title)}</b>: ${esc(i.status.message || 'errore')}</div></a>`)

@@ -95,7 +95,8 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
   background: var(--surface); border-right: 1px solid var(--border);
   display: flex; flex-direction: column; padding: 18px 12px; gap: 2px; z-index: 20;
 }
-.brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 18px; font-weight: 700; font-size: 17px; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 18px; font-weight: 700; font-size: 17px; white-space: nowrap; }
+.brand .chip { padding: 2px 8px; font-size: 11px; }
 .brand img { width: 30px; height: 30px; }
 .nav a {
   display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px;
@@ -390,5 +391,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .search input { padding-left: 36px; }
 .pending { opacity: .6; }
 .page-head > .seg { max-width: 100%; min-width: 0; }
-.seg.profiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+.profile-card { container-type: inline-size; }
+.seg.profiles { display: grid; grid-template-columns: repeat(3, 1fr); }
+@container (min-width: 600px) { .seg.profiles { grid-template-columns: repeat(6, 1fr); } }
 .seg.profiles button { min-width: 0; }

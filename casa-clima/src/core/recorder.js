@@ -9,11 +9,11 @@ import { isNumeric } from './util.js';
 const MIN_GAP = 60_000; // al massimo un punto al minuto per entità
 
 export class Recorder {
-  constructor(hub, file, { days = 7 } = {}) {
+  constructor(hub, file, { days = 7, store } = {}) {
     this.hub = hub;
     this.days = days;
-    this.store = new JsonStore(file, { series: {} });
-    this.store.load();
+    this.store = store || new JsonStore(file, { series: {} });
+    if (!store) this.store.load();
     this.series = this.store.data.series;
     this._onChange = (e) => this.record(e);
   }

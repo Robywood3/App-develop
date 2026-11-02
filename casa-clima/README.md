@@ -17,6 +17,10 @@ pacchetto **Casa-Clima** coordina riscaldamento e raffrescamento di tutta la cas
 
 Al primo avvio è attiva una **casa demo** simulata, così puoi provare subito tutto senza credenziali.
 
+**Demo senza installare niente:** apri [`demo/index.html`](demo/index.html) nel browser (doppio clic sul file
+scaricato). È la stessa dashboard, con il motore Casa-Clima e la casa simulata che girano nel browser.
+Per rigenerarla dopo una modifica: `npm run demo`.
+
 > Come è fatto e come corrisponde a Home Assistant: [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md)
 
 ---

@@ -5,15 +5,24 @@
   "description": "Hub domotico personale (ispirato all'architettura di Home Assistant) con integrazioni Tesla, Daikin, Netatmo, tado°, Shelly e dashboard Casa-Clima",
   "type": "module",
   "main": "src/index.js",
-  "bin": { "casa-clima": "src/index.js" },
-  "engines": { "node": ">=20" },
+  "bin": {
+    "casa-clima": "src/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "demo": "node tools/build-demo.mjs"
   },
   "dependencies": {
     "yaml": "^2.9.1"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.24.2",
+    "events": "^3.3.0"
+  }
 }

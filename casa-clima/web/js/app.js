@@ -129,7 +129,7 @@ function navHTML(active) {
   const moreActive = !tabs.includes(active);
   return `
     <nav class="nav">
-      <div class="brand"><img src="icon.svg" alt="">Casa Clima</div>
+      <div class="brand"><img src="icon.svg" alt="">Casa Clima${window.__CC_DEMO ? '<span class="chip accent" style="margin-left:auto">Demo</span>' : ''}</div>
       ${nav}
       <div class="nav-foot">
         <div class="conn"><span class="dot ${store.connected ? 'ok' : 'err'}"></span>${store.connected ? 'Connesso' : 'Riconnessione…'}</div>
