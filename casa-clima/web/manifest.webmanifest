@@ -1,0 +1,13 @@
+{
+  "name": "Casa Clima",
+  "short_name": "Casa Clima",
+  "description": "La tua casa: clima, energia, auto e dispositivi smart",
+  "start_url": "/#/casa",
+  "display": "standalone",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "lang": "it",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,3 +1,6 @@
+> **Nuovo in questo repository: [Casa Clima](casa-clima/)**, l'hub domotico personale (stile Home Assistant)
+> con dashboard per Tesla, Daikin, Netatmo, tado°, Shelly e il pacchetto Casa-Clima. Vedi [casa-clima/README.md](casa-clima/README.md).
+
 # EZVIZ TV — le tue telecamere EZVIZ sulla TV LG
 
 App per **TV LG webOS** che mostra le telecamere del tuo account EZVIZ, comandata dal telecomando.

@@ -1,0 +1,182 @@
+# =====================================================================
+#  Pacchetto CASA-CLIMA
+#  Lo modifichi dall'interfaccia (Impostazioni → Pacchetti) oppure qui:
+#  data/packages/casa-clima.yaml. Sintassi compatibile con le
+#  automazioni e le scene di Home Assistant (senza template Jinja).
+# =====================================================================
+
+casa_clima:
+  name: Casa Clima
+
+  # Profili applicati a tutta la casa. heat = temperatura in riscaldamento,
+  # cool = temperatura in raffrescamento. "schedule: true" lascia lavorare
+  # il programma dei termostati (tado°, Netatmo); "off: true" spegne tutto.
+  profiles:
+    comfort:   { name: Comfort,    icon: sun,      heat: 21,   cool: 25 }
+    eco:       { name: Eco,        icon: leaf,     heat: 19,   cool: 27 }
+    notte:     { name: Notte,      icon: moon,     heat: 18,   cool: 26 }
+    fuori:     { name: Fuori casa, icon: away,     heat: 16,   cool: 29 }
+    programma: { name: Programma,  icon: calendar, schedule: true }
+    spento:    { name: Spento,     icon: power,    off: true }
+
+  # Stagione: auto | heat | cool | off. In "auto" sceglie dalla temperatura
+  # media prevista di oggi (o dalla temperatura esterna).
+  season:
+    mode: auto
+    heat_below: 16    # sotto questa media giornaliera: riscaldamento
+    cool_above: 23    # sopra questa media giornaliera: raffrescamento
+    # outdoor_sensor: sensor.meteo_temperatura
+
+  # Pausa automatica del clima quando una finestra resta aperta
+  window:
+    enabled: true
+    delay: 60          # secondi di finestra aperta prima della pausa
+    restore_delay: 30  # secondi di finestra chiusa prima di ripartire
+
+  humidity:
+    high: 65
+
+  # Stanze: se non le definisci vengono create in automatico dalla "stanza"
+  # assegnata a ogni entità (la puoi cambiare dall'interfaccia).
+  # Esempio di stanza definita a mano:
+  # rooms:
+  #   - name: Soggiorno
+  #     climates: [climate.tado_soggiorno, climate.daikin_soggiorno]
+  #     temperature: [sensor.netatmo_soggiorno_temperatura]
+  #     windows: [binary_sensor.finestra_soggiorno]
+  #     heat: [climate.tado_soggiorno]      # chi scalda d'inverno
+  #     cool: [climate.daikin_soggiorno]    # chi raffresca d'estate
+  #     offset: 0.5                         # +0,5 °C rispetto al profilo
+
+  # Energia (facoltativo, altrimenti riconosciuta dai nomi dei sensori)
+  # energy:
+  #   grid_power: sensor.shelly_pro_3em_potenza_totale
+  #   pv_power: sensor.inverter_potenza
+
+scenes:
+  - id: serata_film
+    name: Serata film
+    icon: movie
+    entities:
+      cover.demo_tapparella_soggiorno: closed
+      light.demo_luce_studio: { state: on, brightness_pct: 25 }
+
+  - id: buongiorno
+    name: Buongiorno
+    icon: sun
+    entities:
+      cover.demo_tapparella_soggiorno: open
+    actions:
+      - action: casa_clima.set_profile
+        data: { profile: comfort }
+
+automations:
+  # --- Programma settimanale dei profili --------------------------------
+  - id: mattino_feriale
+    alias: Mattino feriale in Comfort
+    trigger:
+      - trigger: time
+        at: "06:30"
+        weekday: [mon, tue, wed, thu, fri]
+    condition:
+      - condition: state
+        entity_id: select.casa_clima_profilo
+        state: [notte, eco]
+    action:
+      - action: casa_clima.set_profile
+        data: { profile: comfort }
+
+  - id: mattino_weekend
+    alias: Mattino weekend in Comfort
+    trigger:
+      - trigger: time
+        at: "08:00"
+        weekday: [sat, sun]
+    condition:
+      - condition: state
+        entity_id: select.casa_clima_profilo
+        state: notte
+    action:
+      - action: casa_clima.set_profile
+        data: { profile: comfort }
+
+  - id: notte
+    alias: Notte
+    trigger:
+      - trigger: time
+        at: "23:00"
+    condition:
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: select.casa_clima_profilo
+            state: [fuori, spento]
+    action:
+      - action: casa_clima.set_profile
+        data: { profile: notte }
+
+  # --- Umidità ----------------------------------------------------------
+  - id: avviso_umidita
+    alias: Avviso umidità alta
+    trigger:
+      - trigger: numeric_state
+        entity_id: sensor.demo_umidita_camera
+        above: 65
+        for: "00:15:00"
+    action:
+      - action: notify.notify
+        data:
+          title: Umidità alta
+          message: In camera l'umidità è sopra il 65%. Arieggia o accendi la deumidificazione.
+
+  # --- Tesla: precondizionamento nei giorni feriali ---------------------
+  # Sostituisci climate.demo_tesla_clima con l'entità della tua auto
+  # (es. climate.tesla_model_y_clima) e attivala dall'interfaccia.
+  - id: tesla_precondizionamento
+    alias: Tesla, abitacolo pronto alle 7:40
+    enabled: false
+    trigger:
+      - trigger: time
+        at: "07:25"
+        weekday: [mon, tue, wed, thu, fri]
+    condition:
+      - condition: numeric_state
+        entity_id: sensor.demo_tesla_batteria
+        above: 25
+    action:
+      - action: climate.set_temperature
+        target: { entity_id: climate.demo_tesla_clima }
+        data: { temperature: 21, hvac_mode: heat_cool }
+
+  # --- Fotovoltaico: usa l'eccedenza per raffrescare --------------------
+  - id: fv_eccedenza_raffrescamento
+    alias: Eccedenza fotovoltaico → Comfort
+    enabled: false
+    trigger:
+      - trigger: numeric_state
+        entity_id: sensor.demo_produzione_fv
+        above: 3000
+        for: "00:10:00"
+    condition:
+      - condition: state
+        entity_id: select.casa_clima_profilo
+        state: eco
+      - condition: time
+        after: "10:00"
+        before: "18:00"
+    action:
+      - action: casa_clima.set_profile
+        data: { profile: comfort }
+
+  # --- Tesla: ricarica con il sole --------------------------------------
+  - id: tesla_ricarica_solare
+    alias: Tesla, ricarica quando c'è sole
+    enabled: false
+    trigger:
+      - trigger: numeric_state
+        entity_id: sensor.demo_produzione_fv
+        above: 4000
+        for: "00:05:00"
+    action:
+      - action: switch.turn_on
+        target: { entity_id: switch.demo_tesla_ricarica }

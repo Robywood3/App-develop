@@ -1,0 +1,14 @@
+services:
+  casa-clima:
+    build: .
+    container_name: casa-clima
+    restart: unless-stopped
+    # rete dell'host: serve per raggiungere Shelly e Daikin in rete locale
+    network_mode: host
+    environment:
+      - PORT=8124
+      - TZ=Europe/Rome
+      # - CASA_CLIMA_PASSWORD=cambiami
+      # - PUBLIC_URL=http://192.168.1.10:8124
+    volumes:
+      - ./data:/data

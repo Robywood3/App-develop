@@ -1,0 +1,24 @@
+name: Casa Clima - test
+
+on:
+  push:
+    paths: ['casa-clima/**', '.github/workflows/casa-clima.yml']
+  pull_request:
+    paths: ['casa-clima/**']
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: casa-clima
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: casa-clima/package-lock.json
+      - run: npm ci
+      - run: npm test

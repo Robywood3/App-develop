@@ -1,0 +1,17 @@
+[Unit]
+Description=Casa Clima - hub domotico
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/App-develop/casa-clima
+ExecStart=/usr/bin/node src/index.js
+Restart=on-failure
+RestartSec=5
+Environment=PORT=8124
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
