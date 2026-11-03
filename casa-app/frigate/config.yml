@@ -1,0 +1,86 @@
+# Frigate 0.14 — EZVIZ cameras (section 7).
+# Secrets come from .env: {FRIGATE_RTSP_PASSWORD}, {FRIGATE_MQTT_USER}, {FRIGATE_MQTT_PASSWORD}.
+# RTSP paths and IP addresses: to verify for each model (open point). Add one block per camera (5-8).
+mqtt:
+  host: mosquitto
+  user: "{FRIGATE_MQTT_USER}"
+  password: "{FRIGATE_MQTT_PASSWORD}"
+
+detectors:
+  ov:
+    type: openvino
+    device: GPU
+
+model:
+  width: 300
+  height: 300
+  input_tensor: nhwc
+  input_pixel_format: bgr
+  path: /openvino-model/ssdlite_mobilenet_v2.xml
+  labelmap_path: /openvino-model/coco_91cl_bkgr.txt
+
+ffmpeg:
+  hwaccel_args: preset-vaapi
+
+go2rtc:
+  streams:
+    ingresso:
+      - rtsp://admin:{FRIGATE_RTSP_PASSWORD}@192.168.1.61:554/h264/ch1/main/av_stream
+    ingresso_sub:
+      - rtsp://admin:{FRIGATE_RTSP_PASSWORD}@192.168.1.61:554/h264/ch1/sub/av_stream
+    giardino:
+      - rtsp://admin:{FRIGATE_RTSP_PASSWORD}@192.168.1.62:554/h264/ch1/main/av_stream
+    giardino_sub:
+      - rtsp://admin:{FRIGATE_RTSP_PASSWORD}@192.168.1.62:554/h264/ch1/sub/av_stream
+  webrtc:
+    candidates:
+      - 192.168.1.10:8555   # IP of the mini PC on the home network
+      - stun:8555
+
+objects:
+  track: [person, car]
+
+record:
+  enabled: true
+  retain:
+    days: 0            # no continuous recording
+  alerts:
+    retain:
+      days: 30
+  detections:
+    retain:
+      days: 30
+
+snapshots:
+  enabled: true
+  retain:
+    default: 30
+
+cameras:
+  ingresso:
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/ingresso_sub
+          input_args: preset-rtsp-restream
+          roles: [detect]
+        - path: rtsp://127.0.0.1:8554/ingresso
+          input_args: preset-rtsp-restream
+          roles: [record]
+    detect:
+      width: 640
+      height: 360
+      fps: 5
+    # motion masks and zones: draw them in the Frigate UI, then copy them here
+  giardino:
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/giardino_sub
+          input_args: preset-rtsp-restream
+          roles: [detect]
+        - path: rtsp://127.0.0.1:8554/giardino
+          input_args: preset-rtsp-restream
+          roles: [record]
+    detect:
+      width: 640
+      height: 360
+      fps: 5

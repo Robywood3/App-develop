@@ -1,0 +1,66 @@
+name: Casa App - test
+
+on:
+  push:
+    paths: ['casa-app/**', '.github/workflows/casa-app.yml']
+  pull_request:
+    paths: ['casa-app/**']
+  workflow_dispatch:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      tsdb:
+        image: timescale/timescaledb:2.17.2-pg16
+        env:
+          POSTGRES_PASSWORD: test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: casa-app/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:test@localhost:5432/postgres
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: casa-app/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: casa-app/frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  compose:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: casa-app
+    steps:
+      - uses: actions/checkout@v4
+      - name: docker compose up -d (HA simulato)
+        run: |
+          cp .env.example .env
+          sed -i 's/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=sim/; s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-db/; s/^MQTT_PASSWORD=.*/MQTT_PASSWORD=ci-mqtt/' .env
+          printf 'HA_URL=ws://ha-sim:8123/api/websocket\nHA_TOKEN=sim\nBOOTSTRAP_ADMIN=admin\nBOOTSTRAP_PASSWORD=ci-password-1\n' > backend/.env
+          ./ops/setup.sh
+          docker compose up -d --build --wait --wait-timeout 300
+          curl -skf https://localhost/api/health | grep '"ha":true'
+      - if: failure()
+        run: docker compose logs

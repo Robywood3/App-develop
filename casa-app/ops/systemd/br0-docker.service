@@ -1,0 +1,11 @@
+[Unit]
+Description=Allow HA VM traffic on br0 despite Docker firewall rules
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/casa-app/ops/br0-docker.sh
+
+[Install]
+WantedBy=multi-user.target

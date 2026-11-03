@@ -1,0 +1,6 @@
+# Copy to ~/.config/autostart/ of the TV user on the mini PC (section 4, "Schermo TV").
+[Desktop Entry]
+Type=Application
+Name=Casa App (TV)
+Exec=sh -c 'sleep 15; chromium --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --check-for-update-interval=31536000 https://casa.local/'
+X-GNOME-Autostart-enabled=true

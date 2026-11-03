@@ -1,0 +1,117 @@
+# Casa App stack (docs/architettura.md, section 4). Home Assistant runs in its own VM.
+# Profiles: "video" = Frigate (needs Intel GPU + cameras), "sim" = simulated HA for tests.
+name: casa-app
+
+services:
+  db:
+    image: timescale/timescaledb:2.17.2-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: casa
+      POSTGRES_USER: casa
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U casa -d casa"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0.20
+    restart: unless-stopped
+    ports:
+      - "1883:1883"   # reachable by the HA VM on the home network
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/passwd:/mosquitto/config/passwd:ro
+      - mosquitto-data:/mosquitto/data
+    networks: [internal]
+
+  frigate:
+    profiles: [video]
+    image: ghcr.io/blakeblackshear/frigate:0.14.1
+    restart: unless-stopped
+    shm_size: "512mb"
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128   # Intel GPU (OpenVINO, VAAPI)
+    environment:
+      FRIGATE_RTSP_PASSWORD: ${FRIGATE_RTSP_PASSWORD:-}
+      FRIGATE_MQTT_USER: ${MQTT_USER}
+      FRIGATE_MQTT_PASSWORD: ${MQTT_PASSWORD}
+    volumes:
+      - ./frigate/config.yml:/config/config.yml
+      - ${VIDEO_PATH:-/mnt/video}:/media/frigate
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    ports:
+      - "8555:8555/tcp"   # WebRTC media for the live view (LAN and Tailscale only)
+      - "8555:8555/udp"
+    depends_on: [mosquitto]
+    networks: [internal]
+
+  ha-sim:
+    profiles: [sim]
+    build: ./backend
+    command: ["python", "-m", "app.sim.fake_ha", "--port", "8123", "--token", "sim", "--entities", "/config/entities.yaml"]
+    volumes:
+      - ./config:/config:ro
+    healthcheck:
+      disable: true
+    networks: [internal]
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://casa:${POSTGRES_PASSWORD}@db:5432/casa
+      FRIGATE_URL: http://frigate:5000
+      GO2RTC_URL: http://frigate:1984
+      MQTT_HOST: mosquitto
+      MQTT_USER: ${MQTT_USER}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
+    volumes:
+      - ./config:/config:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    networks: [internal]
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    networks: [internal]
+
+  caddy:
+    image: caddy:2.8.4-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      CASA_DOMAIN: ${CASA_DOMAIN:-casa.local}
+      TS_DOMAIN: ${TS_DOMAIN:-localhost}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+      # Tailscale certificates for *.ts.net (section 9); the socket exists once Tailscale is installed
+      - ${TAILSCALE_SOCKET:-/dev/null}:/var/run/tailscale/tailscaled.sock
+    depends_on: [backend, frontend]
+    networks: [internal]
+
+volumes:
+  db-data:
+  mosquitto-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  internal:

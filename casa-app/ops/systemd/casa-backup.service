@@ -1,0 +1,8 @@
+[Unit]
+Description=Casa App nightly backup
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/casa-app
+EnvironmentFile=-/opt/casa-app/ops/backup.env
+ExecStart=/opt/casa-app/ops/backup.sh
