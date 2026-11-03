@@ -1,0 +1,21 @@
+# Example mapping for scripts/import_csv.py. The real CSV headers are an open point:
+# replace column names with the ones of your files and check with --dry-run.
+files:
+  - path: /import/log_granulare.csv
+    delimiter: ","
+    timestamp:
+      column: timestamp
+      format: "%Y-%m-%d %H:%M:%S"   # or "epoch", or omit for ISO 8601
+      timezone: Europe/Rome
+    columns:
+      t_zona_giorno: zona_giorno.temp
+      potenza_pdc: pdc.potenza
+      target_pt: pdc.target_pt
+  - path: /import/log_shadow_ml.csv
+    delimiter: ";"
+    decimal_comma: true
+    timestamp:
+      column: ts
+      format: epoch
+    columns:
+      previsione: ml.shadow.previsione
