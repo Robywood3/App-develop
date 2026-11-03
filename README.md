@@ -1,5 +1,5 @@
-> **Nuovo in questo repository: [Casa Clima](casa-clima/)**, l'hub domotico personale (stile Home Assistant)
-> con dashboard per Tesla, Daikin, Netatmo, tado°, Shelly e il pacchetto Casa-Clima. Vedi [casa-clima/README.md](casa-clima/README.md).
+> **Casa App** ([casa-app/](casa-app/)): interfaccia della casa basata su Home Assistant, secondo
+> [casa-app/docs/architettura.md](casa-app/docs/architettura.md). Sostituisce il prototipo [casa-clima/](casa-clima/).
 
 # EZVIZ TV — le tue telecamere EZVIZ sulla TV LG
 
