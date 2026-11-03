@@ -1,0 +1,12 @@
+# Home Assistant services the backend may call (CLAUDE.md, rule 5).
+# The backend also checks that the target has `command: true` in entities.yaml.
+services:
+  - input_boolean.turn_on
+  - input_boolean.turn_off
+  - input_number.set_value
+  - climate.set_temperature
+  - climate.set_hvac_mode
+  - switch.turn_on
+  - switch.turn_off
+  - water_heater.set_temperature
+  - script.turn_on

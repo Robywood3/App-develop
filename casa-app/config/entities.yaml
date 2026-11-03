@@ -1,0 +1,171 @@
+# Map of logical names -> Home Assistant entities.
+# Every entity_id of the project lives ONLY in this file (CLAUDE.md, rule 4).
+#
+# Fields:
+#   entity_id:  HA entity. null = not configured yet (the app shows "da configurare").
+#   label:      Italian label shown in the UI.
+#   attribute:  read this attribute instead of the state (e.g. climate temperature).
+#   unit:       unit shown in the UI.
+#   log:        true = write to the long-term history (TimescaleDB), max 1 value / 10 s.
+#   command:    true = the app may send commands to this entity.
+#   min/max:    allowed range for numeric commands (the backend rejects values outside).
+#   step:       UI step for numeric commands.
+#
+# "(da confermare)" marks values from the open points in docs/architettura.md, section 14.
+
+entities:
+  # --- Heat pump (PDC) -------------------------------------------------
+  pdc.target_pt:
+    entity_id: input_number.pdc_target_temp
+    label: Target piano terra
+    unit: "°C"
+    log: true
+    command: true
+    min: 16
+    max: 24
+    step: 0.5
+  pdc.target_1p:
+    entity_id: input_number.pdc_hvac_night_target
+    label: Target primo piano (boost notte)
+    unit: "°C"
+    log: true
+    command: true
+    min: 16
+    max: 24
+    step: 0.5
+  pdc.offset:
+    entity_id: climate.pdc_leaving_water_offset
+    attribute: temperature
+    label: Offset mandata
+    unit: "°C"
+    log: true
+    command: true
+    min: -10
+    max: 10
+    step: 1
+  pdc.potenza:
+    entity_id: sensor.2_pdc_channel_1_power
+    label: Potenza elettrica PDC
+    unit: W
+    log: true
+  acs.stato:
+    entity_id: water_heater.pdc
+    label: Acqua calda sanitaria
+    log: true
+  acs.temp:
+    entity_id: water_heater.pdc
+    attribute: current_temperature
+    label: Temperatura ACS
+    unit: "°C"
+    log: true
+  acs.target:
+    entity_id: water_heater.pdc
+    attribute: temperature
+    label: Target ACS
+    unit: "°C"
+    log: true
+    command: true
+    min: 40
+    max: 60
+    step: 1
+
+  # --- Comfort -----------------------------------------------------------
+  zona_giorno.temp:
+    entity_id: sensor.zona_giorno_temperatura
+    label: Zona giorno
+    unit: "°C"
+    log: true
+
+  # --- Ventilation (VMC) (da confermare: switch_0 = PT, switch_1 = 1P) ----
+  vmc.pt:
+    entity_id: switch.shellyplus2pm_1c6920480994_switch_0
+    label: VMC piano terra
+    log: true
+    command: true
+  vmc.1p:
+    entity_id: switch.shellyplus2pm_1c6920480994_switch_1
+    label: VMC primo piano
+    log: true
+    command: true
+
+  # --- Air conditioning ----------------------------------------------------
+  hvac.potenza:
+    entity_id: sensor.hvac_shelly_channel_1_power
+    label: Potenza clima
+    unit: W
+    log: true
+
+  # --- Fireplace mode and scenarios (da confermare: nomi delle entità) -----
+  camino.modalita:
+    entity_id: null            # e.g. input_boolean.modalita_camino
+    label: Modalità camino
+    log: true
+    command: true
+  scenario.notte:
+    entity_id: null            # e.g. script.scenario_notte
+    label: Scenario notte
+    command: true
+  scenario.fuori_casa:
+    entity_id: null            # e.g. script.scenario_fuori_casa
+    label: Scenario fuori casa
+    command: true
+
+  # --- Energy (da confermare: inverter, accumulo, colonnina) ---------------
+  energia.fv:
+    entity_id: null
+    label: Produzione FV
+    unit: W
+    log: true
+  energia.rete:
+    entity_id: null
+    label: Scambio rete
+    unit: W
+    log: true
+  energia.casa:
+    entity_id: null
+    label: Consumo casa
+    unit: W
+    log: true
+  energia.accumulo_potenza:
+    entity_id: null
+    label: Potenza accumulo
+    unit: W
+    log: true
+  energia.accumulo_soc:
+    entity_id: null
+    label: Carica accumulo
+    unit: "%"
+    log: true
+  energia.auto_potenza:
+    entity_id: null
+    label: Ricarica auto
+    unit: W
+    log: true
+
+  # --- Cars (Tesla via HA integration; CUPRA separate module) -------------
+  auto.tesla.batteria:
+    entity_id: null
+    label: Tesla batteria
+    unit: "%"
+    log: true
+  auto.tesla.autonomia:
+    entity_id: null
+    label: Tesla autonomia
+    unit: km
+    log: true
+  auto.tesla.ricarica:
+    entity_id: null
+    label: Tesla stato ricarica
+  auto.cupra.batteria:
+    entity_id: null
+    label: CUPRA batteria
+    unit: "%"
+    log: true
+  auto.cupra.autonomia:
+    entity_id: null
+    label: CUPRA autonomia
+    unit: km
+    log: true
+  auto.cupra.ricarica:
+    entity_id: null
+    label: CUPRA stato ricarica
