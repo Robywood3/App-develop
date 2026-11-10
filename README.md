@@ -154,7 +154,7 @@ di garanzia dei costruttori.
 
 ```
 index.html            pagina dell'applicazione (moduli ES)
-css/style.css         stile (tema chiaro/scuro)
+css/style.css         stile Techint E&C: navy e verde, Arial (tema chiaro/scuro)
 js/engine/            modello fisico, usabile anche da Node
   steam.js            IAPWS-IF97
   gas.js              proprietà gas e combustione

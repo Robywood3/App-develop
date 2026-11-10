@@ -85,8 +85,8 @@ function render(canvas, spec) {
 
   const fg = cssVar('--fg');
   const muted = cssVar('--muted');
-  const grid = cssVar('--line-soft');
-  const axis = cssVar('--line');
+  const grid = cssVar('--grid');
+  const axis = cssVar('--axis');
   const fontData = cssVar('--font-data');
   const fontDisp = cssVar('--font-display');
 
@@ -108,8 +108,8 @@ function render(canvas, spec) {
   const Y = (y) => m.t + ph - ((y - yr.min) / (yr.max - yr.min)) * ph;
 
   // titolo
-  ctx.fillStyle = fg;
-  ctx.font = `600 13px ${fontDisp}`;
+  ctx.fillStyle = cssVar('--strong');
+  ctx.font = `700 13px ${fontDisp}`;
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
   if (spec.title) ctx.fillText(spec.title.toUpperCase(), m.l, 16);

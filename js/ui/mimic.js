@@ -131,8 +131,10 @@ export function buildMimic(svg, cfg, r) {
       const [k1, k2] = b.name.replace(' (condensato)', '').split(' ');
       const lx = bx + bw / 2;
       const fs = nb > 1 || cw < 46 ? 9.5 : 10.5;
-      el('text', { x: lx, y: hy0 - 2 - (k2 ? 10 : 0), class: 'lbl-sm', 'text-anchor': 'middle', 'font-size': fs }, g, k1);
-      if (k2) el('text', { x: lx, y: hy0 - 2, class: 'lbl-sm', 'text-anchor': 'middle', 'font-size': fs }, g, k2);
+      // le sigle dei banchi stretti si comprimono nella larghezza del banco per non sovrapporsi
+      const fit = (s) => (s.length * fs * 0.76 > bw - 2 ? { textLength: Math.max(8, bw - 2), lengthAdjust: 'spacingAndGlyphs' } : {});
+      el('text', { x: lx, y: hy0 - 2 - (k2 ? 10 : 0), class: 'lbl-sm', 'text-anchor': 'middle', 'font-size': fs, ...fit(k1) }, g, k1);
+      if (k2) el('text', { x: lx, y: hy0 - 2, class: 'lbl-sm', 'text-anchor': 'middle', 'font-size': fs, ...fit(k2) }, g, k2);
       // per i banchi in parallelo si mostra la potenza complessiva della colonna
       if (j === 0) ref.cols.push({ name: b.name, idx: i, t: el('text', { x: x + w / 2, y: hy1 - 4, class: 'val-muted', 'text-anchor': 'middle', 'font-size': 9.5 }, g, '') });
       b._cx = lx;

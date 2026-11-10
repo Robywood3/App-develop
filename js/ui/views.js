@@ -125,11 +125,11 @@ function expansionLine(sec, steps = 14) {
 
 export function renderTS(canvas, r) {
   if (!r || !r.online) {
-    drawChart(canvas, { title: 'Ciclo a vapore fermo', series: [{ points: dome(), color: '--muted', width: 1.5, label: 'Saturazione' }], xLabel: 'Entropia [kJ/(kg·K)]', yLabel: 'Temperatura [°C]' });
+    drawChart(canvas, { title: 'Ciclo a vapore fermo', series: [{ points: dome(), color: '--ref', width: 1.5, label: 'Saturazione' }], xLabel: 'Entropia [kJ/(kg·K)]', yLabel: 'Temperatura [°C]' });
     return;
   }
   const b = r.bt;
-  const series = [{ points: dome(), color: '--muted', width: 1.5, label: 'Saturazione', noHover: true }];
+  const series = [{ points: dome(), color: '--ref', width: 1.5, label: 'Saturazione', noHover: true }];
   const labels = [];
   const n = b.names.length;
   const Tfeed = b.TsubLP;
@@ -194,24 +194,24 @@ export function renderCurves(canvases, data, cur) {
   const markLoad = cur && cur.online ? cur : null;
   drawChart(cEL, {
     title: 'Rendimento netto vs carico TG', xLabel: 'Carico TG [%]', yLabel: 'Rendimento [%]', xMin: 30, xMax: 100,
-    series: data ? [{ points: pick(data.load, 'eta'), color: '--accent', width: 2.4, markers: true, fill: true, label: 'η netto' }] : [],
+    series: data ? [{ points: pick(data.load, 'eta'), color: '--data-1', width: 2.4, markers: true, fill: true, label: 'η netto' }] : [],
     marks: markLoad ? [{ x: markLoad.gt.load * 100, y: markLoad.eta * 100, label: `${fmt(markLoad.eta * 100, 2)} %` }] : [],
     xUnit: '%', hoverDecimals: 2,
   });
   drawChart(cPL, {
     title: 'Potenza netta vs carico TG', xLabel: 'Carico TG [%]', yLabel: 'Potenza [MW]', xMin: 30, xMax: 100,
-    series: data ? [{ points: pick(data.load, 'net'), color: '--accent', width: 2.4, markers: true, fill: true, label: 'Netta' }] : [],
+    series: data ? [{ points: pick(data.load, 'net'), color: '--data-1', width: 2.4, markers: true, fill: true, label: 'Netta' }] : [],
     marks: markLoad ? [{ x: markLoad.gt.load * 100, y: markLoad.net, label: `${fmt(markLoad.net, 1)} MW` }] : [],
     xUnit: '%', hoverDecimals: 1,
   });
   drawChart(cET, {
     title: 'Rendimento netto vs temperatura aria', xLabel: 'Temperatura aria [°C]', yLabel: 'Rendimento [%]',
-    series: data ? [{ points: pick(data.temp, 'eta'), color: '--gas', width: 2.4, markers: true, fill: true, label: 'η netto (carico base)' }] : [],
+    series: data ? [{ points: pick(data.temp, 'eta'), color: '--data-2', width: 2.4, markers: true, fill: true, label: 'η netto (carico base)' }] : [],
     xUnit: '°C', hoverDecimals: 2,
   });
   drawChart(cPT, {
     title: 'Potenza netta vs temperatura aria', xLabel: 'Temperatura aria [°C]', yLabel: 'Potenza [MW]',
-    series: data ? [{ points: pick(data.temp, 'net'), color: '--gas', width: 2.4, markers: true, fill: true, label: 'Netta (carico base)' }] : [],
+    series: data ? [{ points: pick(data.temp, 'net'), color: '--data-2', width: 2.4, markers: true, fill: true, label: 'Netta (carico base)' }] : [],
     xUnit: '°C', hoverDecimals: 1,
   });
 }
@@ -227,18 +227,18 @@ export function renderTrend(cP, cT, hist) {
   drawChart(cP, {
     title: 'Potenze', xLabel: `Tempo [${unit}]`, yLabel: 'Potenza [MW]', yMin: Math.min(0, ...hist.map((h) => h.net)),
     series: [
-      { points: pts('net'), color: '--accent', width: 2.4, label: 'Netta', fill: true },
-      { points: pts('gt'), color: '--gas', width: 1.8, label: 'TG' },
-      { points: pts('st'), color: '--hp', width: 1.8, label: 'TV' },
+      { points: pts('net'), color: '--data-1', width: 2.4, label: 'Netta', fill: true },
+      { points: pts('gt'), color: '--data-2', width: 1.8, label: 'TG' },
+      { points: pts('st'), color: '--data-3', width: 1.8, dash: [6, 3], label: 'TV' },
     ],
     xUnit: unit, xHoverDecimals: 1,
   });
   drawChart(cT, {
     title: 'Temperature', xLabel: `Tempo [${unit}]`, yLabel: 'Temperatura [°C]',
     series: [
-      { points: pts('T4'), color: '--gas', width: 2, label: 'Scarico TG' },
-      { points: pts('Tstack'), color: '--muted', width: 2, label: 'Camino' },
-      { points: pts('Tamb'), color: '--water', width: 2, label: 'Aria' },
+      { points: pts('T4'), color: '--data-1', width: 2, label: 'Scarico TG' },
+      { points: pts('Tstack'), color: '--data-2', width: 2, label: 'Camino' },
+      { points: pts('Tamb'), color: '--ref', width: 2, label: 'Aria' },
     ],
     xUnit: unit, xHoverDecimals: 1,
   });
@@ -283,11 +283,11 @@ export function renderBalance(box, r) {
   }
   const Q = r.Qfuel;
   const rows = [
-    ['Potenza elettrica TG', r.Pgt, '--gas'],
-    ['Potenza elettrica TV', r.Pst, '--hp'],
-    ['Perdita al camino', r.stackLoss, '--muted'],
-    ['Calore al condensatore', r.bt.Qcond, '--water'],
-    ['Altre perdite (meccaniche, elettriche, irraggiamento)', r.otherLoss, '--ip'],
+    ['Potenza elettrica TG', r.Pgt, '--data-1'],
+    ['Potenza elettrica TV', r.Pst, '--data-2'],
+    ['Perdita al camino', r.stackLoss, '--ref'],
+    ['Calore al condensatore', r.bt.Qcond, '--ref'],
+    ['Altre perdite (meccaniche, elettriche, irraggiamento)', r.otherLoss, '--ref'],
   ];
   let html = '';
   for (const [name, v, c] of rows) {
@@ -295,8 +295,8 @@ export function renderBalance(box, r) {
     html += `<div class="bal-row"><span>${name}</span><div class="bal-bar"><span style="width:${Math.max(0, pct).toFixed(2)}%;background:var(${c})"></span></div><span class="bal-val">${fmt(v, 1)} MW · ${fmt(pct, 1)} %</span></div>`;
   }
   html += `<div class="bal-row total"><span>Combustibile (PCI)</span><span></span><span class="bal-val">${fmt(Q, 1)} MW · 100 %</span></div>`;
-  html += `<div class="bal-row"><span>Ausiliari e trasformatore</span><div class="bal-bar"><span style="width:${((r.Paux + r.Ptrafo) / Q * 100).toFixed(2)}%;background:var(--warn)"></span></div><span class="bal-val">− ${fmt(r.Paux + r.Ptrafo, 1)} MW</span></div>`;
-  html += `<div class="bal-row total"><span>Potenza netta</span><div class="bal-bar"><span style="width:${(r.eta * 100).toFixed(2)}%;background:var(--accent)"></span></div><span class="bal-val">${fmt(r.net, 1)} MW · ${fmt(r.eta * 100, 2)} %</span></div>`;
+  html += `<div class="bal-row"><span>Ausiliari e trasformatore</span><div class="bal-bar"><span style="width:${((r.Paux + r.Ptrafo) / Q * 100).toFixed(2)}%;background:var(--alarm)"></span></div><span class="bal-val">− ${fmt(r.Paux + r.Ptrafo, 1)} MW</span></div>`;
+  html += `<div class="bal-row total"><span>Potenza netta</span><div class="bal-bar"><span style="width:${(r.eta * 100).toFixed(2)}%;background:var(--target)"></span></div><span class="bal-val">${fmt(r.net, 1)} MW · ${fmt(r.eta * 100, 2)} %</span></div>`;
   box.innerHTML = html;
 }
 
@@ -353,7 +353,7 @@ export function renderUtilities(box, r, cfg, des) {
     ]));
   }
   const tot = U.breakdown.reduce((a, b) => a + b.MW, 0) || 1;
-  const cols = ['--hp', '--water', '--gas', '--ip', '--muted'];
+  const cols = ['--data-1', '--data-2', '--data-3', '--data-4', '--ref'];
   const bars = U.breakdown.map((b, i) => `<div class="bal-row"><span>${b.name}</span><div class="bal-bar"><span style="width:${((b.MW / tot) * 100).toFixed(2)}%;background:var(${cols[i % cols.length]})"></span></div><span class="bal-val">${fmt(b.MW, 2)} MW · ${fmt((b.MW / tot) * 100, 1)} %</span></div>`).join('');
   box.innerHTML = `<div class="ut-grid">${cards.join('')}</div><h3 class="ut-h">Potenza ausiliaria per sistema · totale ${fmt(tot, 2)} MW</h3><div class="balance">${bars}</div>`;
 }
