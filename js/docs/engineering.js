@@ -99,6 +99,10 @@ export function sizeLine({ m, v, velMax, pOp, Top, service = 'steam', pDes = nul
   const P = Math.max(0.1, (pD - 1.013) / 10); // MPa g
   const y = mat === 'C' && TD >= 566 ? 0.7 : 0.4;
   const Q = m * v; // m3/s
+  // dati non numerici o nulli (progetto non coerente) non hanno un diametro: errore esplicito invece di una ricerca senza fine
+  if (!(Q > 0) || !Number.isFinite(Q) || !(velMax > 0) || !Number.isFinite(P) || !Number.isFinite(S)) {
+    throw new Error('dimensionamento di una linea con dati non validi (portata, velocità o pressione): ricalcolare il progetto');
+  }
   const pick = (DN, OD) => {
     const tmin = (P * OD) / (2 * (S + P * y)) + M.c;
     const tmin0 = mat === 'P' ? (P * OD) / (2 * S + P) : tmin;
@@ -116,10 +120,12 @@ export function sizeLine({ m, v, velMax, pOp, Top, service = 'steam', pDes = nul
   if (!sel) {
     // condotto fabbricato oltre DN 2400: passo di 100 mm, senza limite superiore (scarichi TV verso ACC di grande taglia)
     const dMin = Math.sqrt((4 * Q) / (Math.PI * velMax)) * 1000;
-    for (let DN = Math.max(2500, Math.floor(dMin / 100) * 100); ; DN += 100) {
+    const DN0 = Math.max(2500, Math.floor(dMin / 100) * 100);
+    for (let DN = DN0; DN <= DN0 + 5000; DN += 100) {
       const c = pick(DN, DN + 16);
       if (c.vel <= velMax) { sel = c; break; }
     }
+    if (!sel) throw new Error('dimensionamento di una linea non riuscito: portata fuori dal campo dei condotti previsti');
   }
   const rc = ratingClass(M.group, pD - 1.013, TD);
   const ins = insulationFor(Top);

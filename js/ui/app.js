@@ -330,8 +330,11 @@ function updateBrand() {
 // ----------------------------------------------------------------- input esercizio
 function bindRange(id, outId, apply, format) {
   const inp = $(id);
+  // limiti letti una sola volta: una pagina manomessa non può spingere il calcolo fuori campo
+  const lo = parseFloat(inp.min), hi = parseFloat(inp.max), def = parseFloat(inp.value);
   const handler = () => {
-    const val = parseFloat(inp.value);
+    const raw = parseFloat(inp.value);
+    const val = Number.isFinite(raw) ? Math.min(hi, Math.max(lo, raw)) : def;
     apply(val);
     $(outId).textContent = format(val);
   };
@@ -373,7 +376,11 @@ function bindOperation() {
     S.daily = e.target.checked;
     if (!S.daily) { S.op.Tamb = S.TambBase; $('out-tamb').textContent = `${fmt(S.TambBase, 1)} °C`; }
   });
-  $('in-ngton').addEventListener('change', (e) => { S.op.nGTon = parseInt(e.target.value, 10); invalidateCurves(); });
+  $('in-ngton').addEventListener('change', (e) => {
+    const n = parseInt(e.target.value, 10);
+    if (!(n >= 1 && n <= S.cfg.nGT)) { e.target.value = String(S.op.nGTon); return; }
+    S.op.nGTon = n; invalidateCurves();
+  });
 
   bindRange('m-gas', 'out-gas', (v) => { S.op.gasPrice = v; }, (v) => `${fmt(v, 0)} €/MWh`);
   bindRange('m-co2', 'out-co2', (v) => { S.op.co2Price = v; }, (v) => `${fmt(v, 0)} €/t`);
@@ -496,7 +503,9 @@ function bindDesign() {
   const fSel = $('d-fuel');
   for (const name of Object.keys(FUEL_PRESETS)) fSel.add(new Option(name, name));
 
+  // i menu accettano solo i valori previsti: una voce aggiunta a mano nella pagina viene ignorata
   gtSel.addEventListener('change', () => {
+    if (!Object.hasOwn(GT_PRESETS, gtSel.value)) { syncDesignInputs(); return; }
     S.cfg = newConfig(gtSel.value, S.cfg.steam.type, S.cfg);
     // gradiente di carico di catalogo (MW/min) riportato in %/min del carico base
     const g = GT_PRESETS[gtSel.value];
@@ -507,10 +516,23 @@ function bindDesign() {
     }
     scheduleRedesign();
   });
-  $('d-hrsg').addEventListener('change', (e) => { S.cfg = newConfig(S.cfg.gtName, e.target.value, S.cfg); scheduleRedesign(); });
-  $('d-ngt').addEventListener('change', (e) => { S.cfg.nGT = parseInt(e.target.value, 10); S.op.nGTon = S.cfg.nGT; scheduleRedesign(); });
-  $('d-backup').addEventListener('change', (e) => { S.cfg.backupFuel = e.target.value; scheduleRedesign(); });
-  fSel.addEventListener('change', () => { S.cfg.fuelName = fSel.value; S.cfg.fuelComp = { ...FUEL_PRESETS[fSel.value] }; scheduleRedesign(); });
+  $('d-hrsg').addEventListener('change', (e) => {
+    if (!Object.hasOwn(DESIGN_RANGES.levels, e.target.value)) { syncDesignInputs(); return; }
+    S.cfg = newConfig(S.cfg.gtName, e.target.value, S.cfg); scheduleRedesign();
+  });
+  $('d-ngt').addEventListener('change', (e) => {
+    const n = parseInt(e.target.value, 10);
+    if (![1, 2, 3].includes(n)) { syncDesignInputs(); return; }
+    S.cfg.nGT = n; S.op.nGTon = n; scheduleRedesign();
+  });
+  $('d-backup').addEventListener('change', (e) => {
+    if (!['none', 'diesel'].includes(e.target.value)) { syncDesignInputs(); return; }
+    S.cfg.backupFuel = e.target.value; scheduleRedesign();
+  });
+  fSel.addEventListener('change', () => {
+    if (!Object.hasOwn(FUEL_PRESETS, fSel.value)) { syncDesignInputs(); return; }
+    S.cfg.fuelName = fSel.value; S.cfg.fuelComp = { ...FUEL_PRESETS[fSel.value] }; scheduleRedesign();
+  });
   for (const [id, key, k] of GT_FIELDS) {
     $(id).addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) { S.cfg.gt[key] = v / k; scheduleRedesign(); } else syncDesignInputs(); });
   }
@@ -525,11 +547,15 @@ function bindDesign() {
   });
   $('d-cond').addEventListener('change', (e) => {
     const v = e.target.value;
+    if (!['water', 'once', 'air'].includes(v)) { syncDesignInputs(); return; }
     S.cfg.steam.condenser.type = v === 'once' ? 'water' : v;
     S.cfg.steam.condenser.cooling = v === 'once' ? 'once' : 'tower';
     scheduleRedesign();
   });
-  $('d-hpevap').addEventListener('change', (e) => { S.cfg.steam.hpEvap = e.target.value; scheduleRedesign(); });
+  $('d-hpevap').addEventListener('change', (e) => {
+    if (!['drum', 'benson'].includes(e.target.value)) { syncDesignInputs(); return; }
+    S.cfg.steam.hpEvap = e.target.value; scheduleRedesign();
+  });
   $('d-pgas').addEventListener('change', (e) => {
     const v = parseFloat(e.target.value);
     if (Number.isFinite(v)) { S.cfg.gasSupplyBar = v; scheduleRedesign(); } else syncDesignInputs();
@@ -563,7 +589,11 @@ function bindControls() {
     $('play-icon').setAttribute('d', S.running ? 'M4 3h3v10H4zM9 3h3v10H9z' : 'M4 2l10 6-10 6z');
     $('btn-play').setAttribute('aria-label', S.running ? 'Pausa' : 'Riprendi');
   });
-  $('sim-speed').addEventListener('change', (e) => { S.speed = parseFloat(e.target.value); });
+  const speeds = [...$('sim-speed').options].map((o) => parseFloat(o.value));
+  $('sim-speed').addEventListener('change', (e) => {
+    const v = parseFloat(e.target.value);
+    if (speeds.includes(v)) S.speed = v; else e.target.value = String(S.speed);
+  });
   $('btn-start').addEventListener('click', () => { S.sim.start(); tick(); });
   $('btn-stop').addEventListener('click', () => { S.sim.stop(); tick(); });
   $('btn-trip').addEventListener('click', () => { S.sim.trip(); tick(); });
@@ -608,7 +638,7 @@ function bindControls() {
   };
   try {
     const saved = localStorage.getItem('ccgt-theme');
-    if (saved) applyTheme(saved);
+    if (saved === 'dark' || saved === 'light') applyTheme(saved);
   } catch (e) { /* archiviazione non disponibile */ }
   $('btn-theme').addEventListener('click', () => {
     const cur = document.documentElement.getAttribute('data-theme');
@@ -627,7 +657,7 @@ function init() {
   bindOperation();
   bindControls();
   redesign();
-  S.docs = initDocs(() => ({ cfg: S.cfg, des: S.des }));
+  S.docs = initDocs(() => ({ cfg: S.cfg, des: S.des, pending: S.redesignPending }));
   S.sim.log('Simulatore avviato: unità in servizio a carico base');
   tick();
   setInterval(tick, TICK_MS);

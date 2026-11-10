@@ -153,3 +153,23 @@ test('livello senza vapore al progetto: avviso nel progetto ed errore esplicito 
   assert.ok(des.idleLevels.length > 0 && des.notes.some((t) => /non produc/.test(t)));
   assert.throws(() => engineeringModel(cfg, des, defaultProjectMeta()), /non produc(e|ono) vapore al punto di progetto/);
 });
+
+test('robustezza: dati non coerenti danno un errore esplicito, non un calcolo senza fine', () => {
+  // linea senza portata valida (progetto non ricalcolato): errore, non ricerca illimitata del diametro
+  assert.throws(() => sizeLine({ m: NaN, v: 0.03, velMax: 50, pOp: 100, Top: 500 }), /dati non validi/);
+  assert.throws(() => sizeLine({ m: 0, v: 0.03, velMax: 50, pOp: 100, Top: 500 }), /dati non validi/);
+  // configurazione modificata senza ricalcolo del progetto: il modello degli elaborati termina comunque
+  const cfg = defaultConfig();
+  const des = designPlant(cfg);
+  cfg.gasSupplyBar = 1;
+  cfg.steam.levels.forEach((l) => { l.p = 1; l.Tsh = 1; });
+  const t0 = Date.now();
+  try { engineeringModel(cfg, des, defaultProjectMeta()); } catch (e) { assert.match(e.message, /\S/); }
+  assert.ok(Date.now() - t0 < 20000, 'il modello deve terminare');
+  // celle CSV che un foglio di calcolo leggerebbe come formula
+  const fake = { table: () => ({ columns: [{ key: 'a', title: 'A' }, { key: 'b', title: 'B' }], rows: [{ a: "=cmd|' /C calc'!A0", b: '-12,5' }, { a: '@SUM(1)', b: '+3' }, { a: '-2+3', b: 'testo' }] }) };
+  const lines = csvFor({}, fake).split('\r\n');
+  assert.equal(lines[1], "'=cmd|' /C calc'!A0;-12,5");
+  assert.equal(lines[2], "'@SUM(1);+3");
+  assert.equal(lines[3], "'-2+3;testo");
+});

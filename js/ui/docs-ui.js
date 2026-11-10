@@ -64,6 +64,8 @@ export function initDocs(getDesign) {
     });
   }
 
+  // durante il ricalcolo del progetto configurazione e risultati non sono coerenti: gli elaborati aspettano
+  const busy = () => !!getDesign().pending;
   const catalog = () => documentCatalog(meta, model());
   const escHtml = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   /** Elaborato corrente; se non esiste più nella configurazione attuale (es. P&ID gasolio, circuito IP) torna al primo. */
@@ -100,6 +102,7 @@ export function initDocs(getDesign) {
     let html = '';
     let grp = '';
     let cat;
+    if (busy()) return;
     try { cat = catalog(); } catch (e) { return; } // progetto non documentabile: l'elenco resta quello precedente
     for (const c of cat) {
       if (c.group !== grp) { grp = c.group; html += `<div class="grp">${escHtml(grp)}</div>`; }
@@ -110,6 +113,7 @@ export function initDocs(getDesign) {
 
   function renderCurrent() {
     let entry, sheets;
+    if (busy()) return;
     try {
       entry = currentEntry();
       sheets = sheetsOf(entry);
@@ -131,8 +135,10 @@ export function initDocs(getDesign) {
     $('docs-paper').innerHTML = svg;
   }
 
-  const safeName = (t) => String(t).replace(/[^\w.\-]+/g, '_');
-  const fileBase = (entry) => safeName(`${entry.number}_rev${meta.rev || 'A'}`);
+  // nome file: solo lettere, cifre, punto, trattino e sottolineato; niente sequenze di punti, punto iniziale o nomi smisurati.
+  // La parte finale (estensione, numero di foglio) è fissa e si aggiunge dopo il taglio.
+  const safeName = (t, tail = '') => (String(t).replace(/[^\w.\-]+/g, '_').replace(/\.{2,}/g, '.').replace(/_{2,}/g, '_').replace(/^[._]+/, '').slice(0, 96) || 'documento') + tail;
+  const fileBase = (entry) => `${entry.number}_rev${meta.rev || 'A'}`;
 
   $('docs-list').addEventListener('click', (e) => {
     const b = e.target.closest('[data-doc]');
@@ -155,21 +161,25 @@ export function initDocs(getDesign) {
     });
   }
   $('btn-doc-pdf').addEventListener('click', async () => {
+    if (busy()) return;
     const entry = currentEntry();
     const pdf = buildPdf(sheetsOf(entry), { title: `${entry.number} ${entry.title}`, author: meta.author, subject: meta.project });
-    status((await saveFile(`${fileBase(entry)}.pdf`, pdf, 'application/pdf')).msg);
+    status((await saveFile(safeName(fileBase(entry), '.pdf'), pdf, 'application/pdf')).msg);
   });
   $('btn-doc-svg').addEventListener('click', async () => {
+    if (busy()) return;
     const entry = currentEntry();
     const svg = sheetToSVG(sheetsOf(entry)[D.sheetIdx]);
     const suffix = sheetsOf(entry).length > 1 ? `_f${D.sheetIdx + 1}` : '';
-    status((await saveFile(`${fileBase(entry)}${suffix}.svg`, svg, 'image/svg+xml')).msg);
+    status((await saveFile(safeName(fileBase(entry), `${suffix}.svg`), svg, 'image/svg+xml')).msg);
   });
   $('btn-doc-csv').addEventListener('click', async () => {
+    if (busy()) return;
     const entry = currentEntry();
-    status((await saveFile(`${fileBase(entry)}.csv`, csvFor(model(), entry), 'text/csv')).msg);
+    status((await saveFile(safeName(fileBase(entry), '.csv'), csvFor(model(), entry), 'text/csv')).msg);
   });
   $('btn-pkg').addEventListener('click', async () => {
+    if (busy()) return;
     const btn = $('btn-pkg');
     btn.disabled = true;
     status('Generazione del pacchetto…');
@@ -186,7 +196,7 @@ export function initDocs(getDesign) {
       }
       const reg = registerSheets(M, cat, counts);
       const pdf = buildPdf([...reg, ...all], { title: `${meta.project} – elaborati di ingegneria rev. ${meta.rev}`, author: meta.author, subject: meta.project });
-      const res = await saveFile(safeName(`${meta.prefix || 'CCGT'}_pacchetto_elaborati_rev${meta.rev || 'A'}.pdf`), pdf, 'application/pdf');
+      const res = await saveFile(safeName(`${meta.prefix || 'CCGT'}_pacchetto_elaborati_rev${meta.rev || 'A'}`, '.pdf'), pdf, 'application/pdf');
       status(res.ok ? `${res.msg} (${reg.length + all.length} fogli A3)` : res.msg);
     } catch (e) {
       status(`Errore nella generazione: ${e.message}`);

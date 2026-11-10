@@ -2840,6 +2840,24 @@ function defaultOperation() {
   };
 }
 
+// Campi fisici ammessi per le condizioni di esercizio. Fuori da questi il modello esce dal suo dominio
+// (pressione quasi nulla: NaN e iterazioni lunghissime); i valori non numerici tornano al valore tipico.
+const OPERATION_RANGES = {
+  Tamb: [-40, 55], pamb: [0.6, 1.1], rh: [0, 1], load: [0, 1], Tcw: [0, 45], ductT: [0, 900],
+  gasPrice: [0, 1000], co2Price: [0, 1000], omVar: [0, 1000], powerPrice: [-500, 5000],
+};
+
+/** Copia delle condizioni di esercizio con ogni grandezza riportata nel campo ammesso. */
+function sanitizeOperation(op) {
+  const def = defaultOperation();
+  const out = { ...op };
+  for (const [k, [lo, hi]] of Object.entries(OPERATION_RANGES)) {
+    const v = Number(out[k]);
+    out[k] = Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : def[k];
+  }
+  return out;
+}
+
 // Campi ammessi per i dati di progetto: [minimo, massimo]. Valori fuori campo, nulli o non numerici
 // porterebbero il modello fuori dal suo dominio (potenze negative, NaN, iterazioni senza fine).
 const DESIGN_RANGES = {
@@ -2972,7 +2990,8 @@ function designPlant(cfg) {
 }
 
 /** Calcola un punto di funzionamento dell'impianto. */
-function plantPoint(cfg, des, op) {
+function plantPoint(cfg, des, opIn) {
+  const op = sanitizeOperation(opIn);
   const amb = { T: op.Tamb, p: op.pamb, rh: op.rh };
   const nOn = Math.max(0, Math.min(op.nGTon ?? cfg.nGT, cfg.nGT));
   const fuel = des.fuel;
@@ -3084,7 +3103,7 @@ function offlinePoint(cfg, op) {
 }
 
 
-return { LEVEL_NAMES, GT_PRESETS, GT_GROUPS, FUEL_PRESETS, ISO, LIMITS, defaultConfig, defaultOperation, DESIGN_RANGES, sanitizeConfig, designIssues, designPlant, plantPoint };
+return { LEVEL_NAMES, GT_PRESETS, GT_GROUPS, FUEL_PRESETS, ISO, LIMITS, defaultConfig, defaultOperation, OPERATION_RANGES, sanitizeOperation, DESIGN_RANGES, sanitizeConfig, designIssues, designPlant, plantPoint };
 })();
 
 __m['js/engine/dynamics.js'] = (() => {
@@ -4939,6 +4958,10 @@ function sizeLine({ m, v, velMax, pOp, Top, service = 'steam', pDes = null, TDes
   const P = Math.max(0.1, (pD - 1.013) / 10); // MPa g
   const y = mat === 'C' && TD >= 566 ? 0.7 : 0.4;
   const Q = m * v; // m3/s
+  // dati non numerici o nulli (progetto non coerente) non hanno un diametro: errore esplicito invece di una ricerca senza fine
+  if (!(Q > 0) || !Number.isFinite(Q) || !(velMax > 0) || !Number.isFinite(P) || !Number.isFinite(S)) {
+    throw new Error('dimensionamento di una linea con dati non validi (portata, velocità o pressione): ricalcolare il progetto');
+  }
   const pick = (DN, OD) => {
     const tmin = (P * OD) / (2 * (S + P * y)) + M.c;
     const tmin0 = mat === 'P' ? (P * OD) / (2 * S + P) : tmin;
@@ -4956,10 +4979,12 @@ function sizeLine({ m, v, velMax, pOp, Top, service = 'steam', pDes = null, TDes
   if (!sel) {
     // condotto fabbricato oltre DN 2400: passo di 100 mm, senza limite superiore (scarichi TV verso ACC di grande taglia)
     const dMin = Math.sqrt((4 * Q) / (Math.PI * velMax)) * 1000;
-    for (let DN = Math.max(2500, Math.floor(dMin / 100) * 100); ; DN += 100) {
+    const DN0 = Math.max(2500, Math.floor(dMin / 100) * 100);
+    for (let DN = DN0; DN <= DN0 + 5000; DN += 100) {
       const c = pick(DN, DN + 16);
       if (c.vel <= velMax) { sel = c; break; }
     }
+    if (!sel) throw new Error('dimensionamento di una linea non riuscito: portata fuori dal campo dei condotti previsti');
   }
   const rc = ratingClass(M.group, pD - 1.013, TD);
   const ins = insulationFor(Top);
@@ -10489,6 +10514,8 @@ function initDocs(getDesign) {
     });
   }
 
+  // durante il ricalcolo del progetto configurazione e risultati non sono coerenti: gli elaborati aspettano
+  const busy = () => !!getDesign().pending;
   const catalog = () => documentCatalog(meta, model());
   const escHtml = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   /** Elaborato corrente; se non esiste più nella configurazione attuale (es. P&ID gasolio, circuito IP) torna al primo. */
@@ -10525,6 +10552,7 @@ function initDocs(getDesign) {
     let html = '';
     let grp = '';
     let cat;
+    if (busy()) return;
     try { cat = catalog(); } catch (e) { return; } // progetto non documentabile: l'elenco resta quello precedente
     for (const c of cat) {
       if (c.group !== grp) { grp = c.group; html += `<div class="grp">${escHtml(grp)}</div>`; }
@@ -10535,6 +10563,7 @@ function initDocs(getDesign) {
 
   function renderCurrent() {
     let entry, sheets;
+    if (busy()) return;
     try {
       entry = currentEntry();
       sheets = sheetsOf(entry);
@@ -10556,8 +10585,10 @@ function initDocs(getDesign) {
     $('docs-paper').innerHTML = svg;
   }
 
-  const safeName = (t) => String(t).replace(/[^\w.\-]+/g, '_');
-  const fileBase = (entry) => safeName(`${entry.number}_rev${meta.rev || 'A'}`);
+  // nome file: solo lettere, cifre, punto, trattino e sottolineato; niente sequenze di punti, punto iniziale o nomi smisurati.
+  // La parte finale (estensione, numero di foglio) è fissa e si aggiunge dopo il taglio.
+  const safeName = (t, tail = '') => (String(t).replace(/[^\w.\-]+/g, '_').replace(/\.{2,}/g, '.').replace(/_{2,}/g, '_').replace(/^[._]+/, '').slice(0, 96) || 'documento') + tail;
+  const fileBase = (entry) => `${entry.number}_rev${meta.rev || 'A'}`;
 
   $('docs-list').addEventListener('click', (e) => {
     const b = e.target.closest('[data-doc]');
@@ -10580,21 +10611,25 @@ function initDocs(getDesign) {
     });
   }
   $('btn-doc-pdf').addEventListener('click', async () => {
+    if (busy()) return;
     const entry = currentEntry();
     const pdf = buildPdf(sheetsOf(entry), { title: `${entry.number} ${entry.title}`, author: meta.author, subject: meta.project });
-    status((await saveFile(`${fileBase(entry)}.pdf`, pdf, 'application/pdf')).msg);
+    status((await saveFile(safeName(fileBase(entry), '.pdf'), pdf, 'application/pdf')).msg);
   });
   $('btn-doc-svg').addEventListener('click', async () => {
+    if (busy()) return;
     const entry = currentEntry();
     const svg = sheetToSVG(sheetsOf(entry)[D.sheetIdx]);
     const suffix = sheetsOf(entry).length > 1 ? `_f${D.sheetIdx + 1}` : '';
-    status((await saveFile(`${fileBase(entry)}${suffix}.svg`, svg, 'image/svg+xml')).msg);
+    status((await saveFile(safeName(fileBase(entry), `${suffix}.svg`), svg, 'image/svg+xml')).msg);
   });
   $('btn-doc-csv').addEventListener('click', async () => {
+    if (busy()) return;
     const entry = currentEntry();
-    status((await saveFile(`${fileBase(entry)}.csv`, csvFor(model(), entry), 'text/csv')).msg);
+    status((await saveFile(safeName(fileBase(entry), '.csv'), csvFor(model(), entry), 'text/csv')).msg);
   });
   $('btn-pkg').addEventListener('click', async () => {
+    if (busy()) return;
     const btn = $('btn-pkg');
     btn.disabled = true;
     status('Generazione del pacchetto…');
@@ -10611,7 +10646,7 @@ function initDocs(getDesign) {
       }
       const reg = registerSheets(M, cat, counts);
       const pdf = buildPdf([...reg, ...all], { title: `${meta.project} – elaborati di ingegneria rev. ${meta.rev}`, author: meta.author, subject: meta.project });
-      const res = await saveFile(safeName(`${meta.prefix || 'CCGT'}_pacchetto_elaborati_rev${meta.rev || 'A'}.pdf`), pdf, 'application/pdf');
+      const res = await saveFile(safeName(`${meta.prefix || 'CCGT'}_pacchetto_elaborati_rev${meta.rev || 'A'}`, '.pdf'), pdf, 'application/pdf');
       status(res.ok ? `${res.msg} (${reg.length + all.length} fogli A3)` : res.msg);
     } catch (e) {
       status(`Errore nella generazione: ${e.message}`);
@@ -10972,8 +11007,11 @@ function updateBrand() {
 // ----------------------------------------------------------------- input esercizio
 function bindRange(id, outId, apply, format) {
   const inp = $(id);
+  // limiti letti una sola volta: una pagina manomessa non può spingere il calcolo fuori campo
+  const lo = parseFloat(inp.min), hi = parseFloat(inp.max), def = parseFloat(inp.value);
   const handler = () => {
-    const val = parseFloat(inp.value);
+    const raw = parseFloat(inp.value);
+    const val = Number.isFinite(raw) ? Math.min(hi, Math.max(lo, raw)) : def;
     apply(val);
     $(outId).textContent = format(val);
   };
@@ -11015,7 +11053,11 @@ function bindOperation() {
     S.daily = e.target.checked;
     if (!S.daily) { S.op.Tamb = S.TambBase; $('out-tamb').textContent = `${fmt(S.TambBase, 1)} °C`; }
   });
-  $('in-ngton').addEventListener('change', (e) => { S.op.nGTon = parseInt(e.target.value, 10); invalidateCurves(); });
+  $('in-ngton').addEventListener('change', (e) => {
+    const n = parseInt(e.target.value, 10);
+    if (!(n >= 1 && n <= S.cfg.nGT)) { e.target.value = String(S.op.nGTon); return; }
+    S.op.nGTon = n; invalidateCurves();
+  });
 
   bindRange('m-gas', 'out-gas', (v) => { S.op.gasPrice = v; }, (v) => `${fmt(v, 0)} €/MWh`);
   bindRange('m-co2', 'out-co2', (v) => { S.op.co2Price = v; }, (v) => `${fmt(v, 0)} €/t`);
@@ -11138,7 +11180,9 @@ function bindDesign() {
   const fSel = $('d-fuel');
   for (const name of Object.keys(FUEL_PRESETS)) fSel.add(new Option(name, name));
 
+  // i menu accettano solo i valori previsti: una voce aggiunta a mano nella pagina viene ignorata
   gtSel.addEventListener('change', () => {
+    if (!Object.hasOwn(GT_PRESETS, gtSel.value)) { syncDesignInputs(); return; }
     S.cfg = newConfig(gtSel.value, S.cfg.steam.type, S.cfg);
     // gradiente di carico di catalogo (MW/min) riportato in %/min del carico base
     const g = GT_PRESETS[gtSel.value];
@@ -11149,10 +11193,23 @@ function bindDesign() {
     }
     scheduleRedesign();
   });
-  $('d-hrsg').addEventListener('change', (e) => { S.cfg = newConfig(S.cfg.gtName, e.target.value, S.cfg); scheduleRedesign(); });
-  $('d-ngt').addEventListener('change', (e) => { S.cfg.nGT = parseInt(e.target.value, 10); S.op.nGTon = S.cfg.nGT; scheduleRedesign(); });
-  $('d-backup').addEventListener('change', (e) => { S.cfg.backupFuel = e.target.value; scheduleRedesign(); });
-  fSel.addEventListener('change', () => { S.cfg.fuelName = fSel.value; S.cfg.fuelComp = { ...FUEL_PRESETS[fSel.value] }; scheduleRedesign(); });
+  $('d-hrsg').addEventListener('change', (e) => {
+    if (!Object.hasOwn(DESIGN_RANGES.levels, e.target.value)) { syncDesignInputs(); return; }
+    S.cfg = newConfig(S.cfg.gtName, e.target.value, S.cfg); scheduleRedesign();
+  });
+  $('d-ngt').addEventListener('change', (e) => {
+    const n = parseInt(e.target.value, 10);
+    if (![1, 2, 3].includes(n)) { syncDesignInputs(); return; }
+    S.cfg.nGT = n; S.op.nGTon = n; scheduleRedesign();
+  });
+  $('d-backup').addEventListener('change', (e) => {
+    if (!['none', 'diesel'].includes(e.target.value)) { syncDesignInputs(); return; }
+    S.cfg.backupFuel = e.target.value; scheduleRedesign();
+  });
+  fSel.addEventListener('change', () => {
+    if (!Object.hasOwn(FUEL_PRESETS, fSel.value)) { syncDesignInputs(); return; }
+    S.cfg.fuelName = fSel.value; S.cfg.fuelComp = { ...FUEL_PRESETS[fSel.value] }; scheduleRedesign();
+  });
   for (const [id, key, k] of GT_FIELDS) {
     $(id).addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) { S.cfg.gt[key] = v / k; scheduleRedesign(); } else syncDesignInputs(); });
   }
@@ -11167,11 +11224,15 @@ function bindDesign() {
   });
   $('d-cond').addEventListener('change', (e) => {
     const v = e.target.value;
+    if (!['water', 'once', 'air'].includes(v)) { syncDesignInputs(); return; }
     S.cfg.steam.condenser.type = v === 'once' ? 'water' : v;
     S.cfg.steam.condenser.cooling = v === 'once' ? 'once' : 'tower';
     scheduleRedesign();
   });
-  $('d-hpevap').addEventListener('change', (e) => { S.cfg.steam.hpEvap = e.target.value; scheduleRedesign(); });
+  $('d-hpevap').addEventListener('change', (e) => {
+    if (!['drum', 'benson'].includes(e.target.value)) { syncDesignInputs(); return; }
+    S.cfg.steam.hpEvap = e.target.value; scheduleRedesign();
+  });
   $('d-pgas').addEventListener('change', (e) => {
     const v = parseFloat(e.target.value);
     if (Number.isFinite(v)) { S.cfg.gasSupplyBar = v; scheduleRedesign(); } else syncDesignInputs();
@@ -11205,7 +11266,11 @@ function bindControls() {
     $('play-icon').setAttribute('d', S.running ? 'M4 3h3v10H4zM9 3h3v10H9z' : 'M4 2l10 6-10 6z');
     $('btn-play').setAttribute('aria-label', S.running ? 'Pausa' : 'Riprendi');
   });
-  $('sim-speed').addEventListener('change', (e) => { S.speed = parseFloat(e.target.value); });
+  const speeds = [...$('sim-speed').options].map((o) => parseFloat(o.value));
+  $('sim-speed').addEventListener('change', (e) => {
+    const v = parseFloat(e.target.value);
+    if (speeds.includes(v)) S.speed = v; else e.target.value = String(S.speed);
+  });
   $('btn-start').addEventListener('click', () => { S.sim.start(); tick(); });
   $('btn-stop').addEventListener('click', () => { S.sim.stop(); tick(); });
   $('btn-trip').addEventListener('click', () => { S.sim.trip(); tick(); });
@@ -11250,7 +11315,7 @@ function bindControls() {
   };
   try {
     const saved = localStorage.getItem('ccgt-theme');
-    if (saved) applyTheme(saved);
+    if (saved === 'dark' || saved === 'light') applyTheme(saved);
   } catch (e) { /* archiviazione non disponibile */ }
   $('btn-theme').addEventListener('click', () => {
     const cur = document.documentElement.getAttribute('data-theme');
@@ -11269,7 +11334,7 @@ function init() {
   bindOperation();
   bindControls();
   redesign();
-  S.docs = initDocs(() => ({ cfg: S.cfg, des: S.des }));
+  S.docs = initDocs(() => ({ cfg: S.cfg, des: S.des, pending: S.redesignPending }));
   S.sim.log('Simulatore avviato: unità in servizio a carico base');
   tick();
   setInterval(tick, TICK_MS);

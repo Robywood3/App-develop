@@ -99,6 +99,24 @@ export function defaultOperation() {
   };
 }
 
+// Campi fisici ammessi per le condizioni di esercizio. Fuori da questi il modello esce dal suo dominio
+// (pressione quasi nulla: NaN e iterazioni lunghissime); i valori non numerici tornano al valore tipico.
+export const OPERATION_RANGES = {
+  Tamb: [-40, 55], pamb: [0.6, 1.1], rh: [0, 1], load: [0, 1], Tcw: [0, 45], ductT: [0, 900],
+  gasPrice: [0, 1000], co2Price: [0, 1000], omVar: [0, 1000], powerPrice: [-500, 5000],
+};
+
+/** Copia delle condizioni di esercizio con ogni grandezza riportata nel campo ammesso. */
+export function sanitizeOperation(op) {
+  const def = defaultOperation();
+  const out = { ...op };
+  for (const [k, [lo, hi]] of Object.entries(OPERATION_RANGES)) {
+    const v = Number(out[k]);
+    out[k] = Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : def[k];
+  }
+  return out;
+}
+
 // Campi ammessi per i dati di progetto: [minimo, massimo]. Valori fuori campo, nulli o non numerici
 // porterebbero il modello fuori dal suo dominio (potenze negative, NaN, iterazioni senza fine).
 export const DESIGN_RANGES = {
@@ -231,7 +249,8 @@ export function designPlant(cfg) {
 }
 
 /** Calcola un punto di funzionamento dell'impianto. */
-export function plantPoint(cfg, des, op) {
+export function plantPoint(cfg, des, opIn) {
+  const op = sanitizeOperation(opIn);
   const amb = { T: op.Tamb, p: op.pamb, rh: op.rh };
   const nOn = Math.max(0, Math.min(op.nGTon ?? cfg.nGT, cfg.nGT));
   const fuel = des.fuel;

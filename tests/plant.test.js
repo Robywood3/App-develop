@@ -160,3 +160,13 @@ test('casi limite del ciclo a vapore: fumi freddi, post-combustione spinta, RH s
   for (const b of r5.bt.banks) assert.ok(b.TgOut >= b.TwIn - 0.5 && b.TgIn >= b.TwOut - 0.5, `incrocio ${b.name}`);
   assert.equal(r5.warnings.filter((w) => /non realizzabile/.test(w)).length, 0);
 });
+
+test('condizioni di esercizio fuori campo o non numeriche: risultato finito', () => {
+  const cfg = defaultConfig();
+  const des = designPlant(cfg);
+  for (const op of [{ pamb: 0.001 }, { pamb: NaN }, { Tamb: 1e308 }, { Tamb: -1e308 }, { rh: 50 }, { Tcw: 'x' }, { ductT: 1e9 }, { load: 7 }]) {
+    const r = plantPoint(cfg, des, { ...defaultOperation(), nGTon: cfg.nGT, ...op });
+    assert.ok(Number.isFinite(r.net) && Number.isFinite(r.eta), `non finito con ${JSON.stringify(op)}`);
+    assert.ok(r.eta < 0.68, `rendimento non plausibile con ${JSON.stringify(op)}`);
+  }
+});
