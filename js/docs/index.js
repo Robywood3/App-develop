@@ -305,7 +305,9 @@ export function registerSheets(M, catalog, sheetCounts) {
 
 export function csvFor(M, entry) {
   const t = entry.table(M);
-  const esc = (v) => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  // i testi che un foglio di calcolo leggerebbe come formula (=, +, -, @) sono resi inerti con un apice; i numeri restano tali
+  const inert = (s) => (/^[=+\-@\t\r]/.test(s) && !/^[+\-]?\d[\d.,]*(?:[eE][+\-]?\d+)?$/.test(s) ? `'${s}` : s);
+  const esc = (v) => { const s = inert(String(v ?? '')); return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const lines = [t.columns.map((c) => esc(c.title)).join(';')];
   for (const r of t.rows) {
     if (r.group) { lines.push(esc(r.group)); continue; }

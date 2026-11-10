@@ -10,7 +10,7 @@ JavaScript puro, nessuna dipendenza né passo di compilazione obbligatorio.
 ## Avvio
 
 ```bash
-npm start            # python3 -m http.server 8080, poi apri http://localhost:8080
+npm start            # server locale solo su 127.0.0.1:8080, poi apri http://localhost:8080
 ```
 
 In alternativa apri direttamente `dist/simulatore-ccgt.html` (file singolo,

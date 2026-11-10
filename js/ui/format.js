@@ -21,3 +21,8 @@ export function fmtSigned(v, d = 1) {
   if (!Number.isFinite(v)) return '—';
   return (v > 0 ? '+' : '') + fmt(v, d);
 }
+
+/** Testo reso inerte per l'inserimento in HTML (messaggi, nomi, note). */
+export function escHtml(t) {
+  return String(t ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}

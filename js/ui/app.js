@@ -3,7 +3,7 @@
 import { defaultConfig, defaultOperation, designPlant, plantPoint, GT_PRESETS, GT_GROUPS, FUEL_PRESETS, LIMITS, DESIGN_RANGES } from '../engine/plant.js';
 import { HRSG_TYPES, LEVEL_NAMES } from '../engine/bottoming.js';
 import { PlantSim, formatSimTime } from '../engine/dynamics.js';
-import { fmt } from './format.js';
+import { fmt, escHtml } from './format.js';
 import { gasStation } from '../engine/utilities.js';
 import { sparkline, redrawAll } from './charts.js';
 import { buildMimic, updateMimic, mimicSignature } from './mimic.js';
@@ -224,7 +224,7 @@ function renderAlarms(v) {
   if (S.mode === 'dyn' && v.snap.state === 'BLOCCO') items.unshift('Blocco TG attivo: riconoscere a macchina ferma.');
   if (S.mode === 'dyn' && v.online && !v.stOnline) items.push('TV fuori parallelo: vapore in bypass al condensatore.');
   const html = items.length
-    ? items.map((w) => `<div class="alarm">${w}</div>`).join('')
+    ? items.map((w) => `<div class="alarm">${escHtml(w)}</div>`).join('')
     : '<div class="alarm ok">Nessun allarme attivo</div>';
   if (box.innerHTML !== html) box.innerHTML = html;
 }
@@ -237,7 +237,7 @@ function renderEvents() {
   lastEvCount = ev.length;
   lastEvT = ev[0]?.t ?? 0;
   $('events').innerHTML = ev.length
-    ? ev.slice(0, 60).map((e) => `<li class="${e.level === 'alarm' ? 'alarm-ev' : ''}"><time>${formatSimTime(e.t)}</time><span>${e.msg}</span></li>`).join('')
+    ? ev.slice(0, 60).map((e) => `<li class="${e.level === 'alarm' ? 'alarm-ev' : ''}"><time>${formatSimTime(e.t)}</time><span>${escHtml(e.msg)}</span></li>`).join('')
     : '<li><time>—</time><span class="muted">Registro eventi vuoto. Usa Arresta, Avvia o Blocco TG per generare sequenze.</span></li>';
 }
 

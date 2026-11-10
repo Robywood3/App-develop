@@ -6,6 +6,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const entry = join(root, 'js/ui/app.js');
@@ -59,7 +60,10 @@ const body = html.slice(html.indexOf('<!--APP-START-->') + 16, html.indexOf('<!-
 const safeBundle = bundle.replace(/<\/script/gi, '<\\/script');
 
 const fragment = `${title}\n${metaSides}\n${fonts}\n<style>\n${css}\n</style>\n${body}\n<script>\n${safeBundle}\n</script>\n`;
-const full = `<!doctype html>\n<html lang="it">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n${fragment.replace(body, '').replace(`<script>\n${safeBundle}\n</script>\n`, '')}</head>\n<body>\n${body}\n<script>\n${safeBundle}\n</script>\n</body>\n</html>\n`;
+// Il file autonomo dichiara una policy che blocca ogni accesso alla rete e ammette solo lo script incluso (impronta SHA-256).
+const scriptHash = createHash('sha256').update(`\n${safeBundle}\n`, 'utf8').digest('base64');
+const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-${scriptHash}'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">`;
+const full = `<!doctype html>\n<html lang="it">\n<head>\n<meta charset="utf-8">\n${csp}\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n${fragment.replace(body, '').replace(`<script>\n${safeBundle}\n</script>\n`, '')}</head>\n<body>\n${body}\n<script>\n${safeBundle}\n</script>\n</body>\n</html>\n`;
 
 mkdirSync(join(root, 'dist'), { recursive: true });
 writeFileSync(join(root, 'dist/artifact.html'), fragment);

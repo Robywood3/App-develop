@@ -2,6 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-j9UTrLZcWwEeKZO0JLbzHzLMg0EAvGVS9cbyS5mB6oc='; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Simulatore Ciclo Combinato</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -3368,7 +3369,12 @@ function fmtSigned(v, d = 1) {
   return (v > 0 ? '+' : '') + fmt(v, d);
 }
 
-return { fmt, fmtSigned };
+/** Testo reso inerte per l'inserimento in HTML (messaggi, nomi, note). */
+function escHtml(t) {
+  return String(t ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+return { fmt, fmtSigned, escHtml };
 })();
 
 __m['js/ui/charts.js'] = (() => {
@@ -10409,7 +10415,9 @@ function registerSheets(M, catalog, sheetCounts) {
 
 function csvFor(M, entry) {
   const t = entry.table(M);
-  const esc = (v) => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  // i testi che un foglio di calcolo leggerebbe come formula (=, +, -, @) sono resi inerti con un apice; i numeri restano tali
+  const inert = (s) => (/^[=+\-@\t\r]/.test(s) && !/^[+\-]?\d[\d.,]*(?:[eE][+\-]?\d+)?$/.test(s) ? `'${s}` : s);
+  const esc = (v) => { const s = inert(String(v ?? '')); return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const lines = [t.columns.map((c) => esc(c.title)).join(';')];
   for (const r of t.rows) {
     if (r.group) { lines.push(esc(r.group)); continue; }
@@ -10646,7 +10654,7 @@ __m['js/ui/app.js'] = (() => {
 const { defaultConfig, defaultOperation, designPlant, plantPoint, GT_PRESETS, GT_GROUPS, FUEL_PRESETS, LIMITS, DESIGN_RANGES } = __m['js/engine/plant.js'];
 const { HRSG_TYPES, LEVEL_NAMES } = __m['js/engine/bottoming.js'];
 const { PlantSim, formatSimTime } = __m['js/engine/dynamics.js'];
-const { fmt } = __m['js/ui/format.js'];
+const { fmt, escHtml } = __m['js/ui/format.js'];
 const { gasStation } = __m['js/engine/utilities.js'];
 const { sparkline, redrawAll } = __m['js/ui/charts.js'];
 const { buildMimic, updateMimic, mimicSignature } = __m['js/ui/mimic.js'];
@@ -10867,7 +10875,7 @@ function renderAlarms(v) {
   if (S.mode === 'dyn' && v.snap.state === 'BLOCCO') items.unshift('Blocco TG attivo: riconoscere a macchina ferma.');
   if (S.mode === 'dyn' && v.online && !v.stOnline) items.push('TV fuori parallelo: vapore in bypass al condensatore.');
   const html = items.length
-    ? items.map((w) => `<div class="alarm">${w}</div>`).join('')
+    ? items.map((w) => `<div class="alarm">${escHtml(w)}</div>`).join('')
     : '<div class="alarm ok">Nessun allarme attivo</div>';
   if (box.innerHTML !== html) box.innerHTML = html;
 }
@@ -10880,7 +10888,7 @@ function renderEvents() {
   lastEvCount = ev.length;
   lastEvT = ev[0]?.t ?? 0;
   $('events').innerHTML = ev.length
-    ? ev.slice(0, 60).map((e) => `<li class="${e.level === 'alarm' ? 'alarm-ev' : ''}"><time>${formatSimTime(e.t)}</time><span>${e.msg}</span></li>`).join('')
+    ? ev.slice(0, 60).map((e) => `<li class="${e.level === 'alarm' ? 'alarm-ev' : ''}"><time>${formatSimTime(e.t)}</time><span>${escHtml(e.msg)}</span></li>`).join('')
     : '<li><time>—</time><span class="muted">Registro eventi vuoto. Usa Arresta, Avvia o Blocco TG per generare sequenze.</span></li>';
 }
 
