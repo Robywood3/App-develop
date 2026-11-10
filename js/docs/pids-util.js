@@ -434,7 +434,7 @@ export function pid203(M, reg, doc) {
   const pp = p.pumps(60, 120, { n: 2, pitch: 28, tag: '0PGB10AP', sucLine: 'CCR', disLine: 'CCS', service: 'pompe ciclo chiuso' });
   // dosatore a vaso
   vvessel(sh, 98, 104, 8, 12);
-  p.refEq('0PGB30');
+  p.refEq('0PGB30BB001');
   sh.text(102, 121, '0PGB30', { size: 1.2, anchor: 'middle', bold: true });
   sh.path([[102, 104], [102, pp.yD]], ST.thin);
   sh.path([[102, 116], [102, 128], [92, 128], [92, pp.yS]], ST.thin);

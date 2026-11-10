@@ -96,3 +96,67 @@ test('modelli TG di riferimento: prestazioni ISO da scheda OEM e taglie 60 Hz', 
   assert.ok(Math.abs(r.gross - 880) < 15, `lordo ${r.gross}`);
   assert.ok(r.etaGross > 0.625, `eta lordo ${r.etaGross}`);
 });
+
+test('dati di progetto fuori campo: riportati nei limiti con avviso, senza NaN', () => {
+  const cfg = defaultConfig('Classe F (~300 MW)', '3PRH');
+  Object.assign(cfg.gt, { mAirISO: 0, PR: -5, TIT: 1e9, etaC: NaN, coolFrac: 5 });
+  cfg.steam.etaHP = NaN; cfg.steam.levels[0].p = 0.2; cfg.steam.levels[1].p = 500; cfg.steam.levels[2].p = -3;
+  cfg.steam.pinch = [0, NaN, 99]; cfg.steam.condenser.dTcw = 0; cfg.nGT = 7; cfg.gasSupplyBar = 500;
+  const des = designPlant(cfg);
+  assert.ok(des.notes.length >= 6, 'attesi avvisi per i valori corretti');
+  assert.ok(cfg.gt.mAirISO >= 50 && cfg.gt.PR >= 8 && cfg.gt.TIT <= 1750 && Number.isFinite(cfg.gt.etaC));
+  assert.equal(cfg.nGT, 3); assert.equal(cfg.gasSupplyBar, 60);
+  assert.ok(cfg.steam.levels[0].p >= 2 * cfg.steam.levels[1].p && cfg.steam.levels[1].p >= 2 * cfg.steam.levels[2].p && cfg.steam.levels[2].p >= 1.5);
+  const r = plantPoint(cfg, des, { ...defaultOperation(), nGTon: 3 });
+  for (const v of [r.net, r.eta, r.Pst, r.bt.Tstack, r.bt.pCond]) assert.ok(Number.isFinite(v));
+  assert.ok(r.net > 0 && r.eta > 0.2 && r.eta < 0.66);
+  // evaporatore Benson solo con 3 livelli + RH; le classi H a 1-2 livelli restano a corpo cilindrico
+  const c2 = defaultConfig('Siemens SGT5-9000HL (593 MW)', '2P');
+  assert.equal(c2.steam.hpEvap, 'drum');
+  c2.steam.hpEvap = 'benson';
+  designPlant(c2);
+  assert.equal(c2.steam.hpEvap, 'drum');
+});
+
+test('compressore gas: pressione richiesta di progetto, potenza proporzionale alla portata', () => {
+  const cfg = defaultConfig('Siemens SGT5-9000HL (593 MW)', '3PRH');
+  cfg.gasSupplyBar = 45;
+  const des = designPlant(cfg);
+  const p = [1, 0.7, 0.4].map((load) => plantPoint(cfg, des, { ...defaultOperation(), load }));
+  assert.ok(p.every((r) => r.aux.gasComp > 0), 'il compressore resta in servizio a carico parziale');
+  for (const r of p) assert.ok(Math.abs(r.aux.gasComp / r.mFuelTot - p[0].aux.gasComp / p[0].mFuelTot) < 1e-9);
+});
+
+test('casi limite del ciclo a vapore: fumi freddi, post-combustione spinta, RH sotto il vapore in ingresso', () => {
+  const finite = (r) => [r.net, r.eta, r.Pst, r.bt.Tstack, r.bt.pCond, ...r.bt.mLevels, ...r.bt.pAdm].every(Number.isFinite);
+  // TIT molto bassa: fumi a ~300 °C, la pressione HP si adatta e tutti i livelli producono vapore
+  const c1 = defaultConfig('Classe F (~300 MW)', '3PRH');
+  c1.gt.TIT = 900;
+  const d1 = designPlant(c1);
+  assert.ok(d1.notes.some((t) => /fumi di scarico/.test(t)));
+  assert.ok(c1.steam.levels[0].p < 60 && d1.point.mLevels.every((m) => m > 1));
+  assert.equal(designPlant(c1).notes.length, 0, 'il secondo ricalcolo non deve riproporre correzioni');
+  for (const load of [1, 0.5, 0.2]) assert.ok(finite(plantPoint(c1, d1, { ...defaultOperation(), load })));
+  // post-combustione molto oltre il progetto: condensatore al limite, nessun NaN, scambio realizzabile
+  const r2 = plantPoint(c1, d1, { ...defaultOperation(), ductT: 800 });
+  assert.ok(finite(r2) && r2.bt.pCond <= 0.2501);
+  for (const b of r2.bt.banks) assert.ok(b.TgOut >= b.TwIn - 1 && b.TgIn >= b.TwOut - 1, `incrocio ${b.name}`);
+  assert.ok(r2.bt.Tstack > 55);
+  // pressione HP entro il campo delle proprietà anche con livelli ravvicinati e post-combustione
+  const c3 = defaultConfig('Siemens SGT5-8000H (450 MW)', '3PRH');
+  Object.assign(c3.steam.levels[0], { p: 185 }); c3.steam.levels[1].p = 60; c3.steam.levels[2].p = 12;
+  const d3 = designPlant(c3);
+  const r3 = plantPoint(c3, d3, { ...defaultOperation(), ductT: 800 });
+  assert.ok(finite(r3) && r3.bt.pDrum[0] <= 200 + 1e-9);
+  // RH richiesto sotto la temperatura del risurriscaldato freddo: il banco cede comunque calore al vapore
+  const c4 = defaultConfig('Classe F (~300 MW)', '3PRH');
+  c4.steam.Trh = 300;
+  const r4 = plantPoint(c4, designPlant(c4), defaultOperation());
+  const rh = r4.bt.banks.find((b) => b.name === 'RH');
+  assert.ok(rh && rh.Q > 0 && rh.TwOut > rh.TwIn);
+  // carico bassissimo su classe H: surriscaldatore IP ed economizzatore HP interlacciati, nessun incrocio
+  const c5 = defaultConfig('Siemens SGT5-9000HL (593 MW)', '3PRH');
+  const r5 = plantPoint(c5, designPlant(c5), { ...defaultOperation(), load: 0.2, Tamb: -10 });
+  for (const b of r5.bt.banks) assert.ok(b.TgOut >= b.TwIn - 0.5 && b.TgIn >= b.TwOut - 0.5, `incrocio ${b.name}`);
+  assert.equal(r5.warnings.filter((w) => /non realizzabile/.test(w)).length, 0);
+});

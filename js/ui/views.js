@@ -269,7 +269,7 @@ export function renderStreams(table, r, cfg) {
   for (const [k, s] of Object.entries(st)) html += row(nm[k], s.m, s.p, s.T, k === 'exh' ? `titolo x = ${fmt(s.x, 3)}` : '');
   html += row('Ingresso preriscaldatore', r.bt.mSteamTot, null, r.bt.TCondOut, `ricircolo a ≥ ${fmt(cfg.steam.TwPreMin, 0)} °C`);
   r.bt.names.forEach((lv, k) => {
-    html += row(`Corpo cilindrico ${lv}`, r.bt.mLevelsTot[k], r.bt.pDrum[k], r.bt.Tsat[k], 'saturazione');
+    html += row(k === 0 && cfg.steam.hpEvap === 'benson' ? 'Separatore HP (Benson)' : `Corpo cilindrico ${lv}`, r.bt.mLevelsTot[k], r.bt.pDrum[k], r.bt.Tsat[k], 'saturazione');
   });
   html += '</tbody>';
   table.innerHTML = html;

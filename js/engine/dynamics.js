@@ -156,11 +156,16 @@ export class PlantSim {
       }
       case 'IN_SERVIZIO':
         this.rampTo(this.setpoint, dt);
-        this.phase = Math.abs(this.gtLoad - this.setpoint) < 1e-6 ? 'Regolazione di carico' : 'Variazione di carico in rampa';
+        if (this.gtLoad <= 0) {
+          // set-point nullo: TG a giri nominali senza carico, con il solo combustibile di marcia a vuoto
+          this.phase = 'Marcia a vuoto (carico nullo)';
+          fuelFrac = FSNL_FUEL;
+        } else this.phase = Math.abs(this.gtLoad - this.setpoint) < 1e-6 ? 'Regolazione di carico' : 'Variazione di carico in rampa';
         break;
       case 'ARRESTO':
         if (this.phase === 'Riduzione di carico') {
-          this.rampTo(LOAD_HOLD, dt);
+          // sotto il carico di riscaldamento (arresto durante la presa di carico) si scarica direttamente
+          if (this.gtLoad > LOAD_HOLD) this.rampTo(LOAD_HOLD, dt);
           if (this.gtLoad <= LOAD_HOLD + 1e-9) {
             if (this.stOnline) this.log('TV fuori parallelo, vapore in bypass');
             this.stOnline = false;

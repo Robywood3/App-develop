@@ -845,7 +845,7 @@ export function pid108(M, reg, doc) {
     p.valve(330, 176, { line: 'CWS', kind: 'butterfly', act: 'mot', service: 'ingresso acqua condensatore' });
     p.line('CWR', [[c1, 200], [368, 200]], { label: false });
     p.valve(330, 200, { line: 'CWR', kind: 'butterfly', act: 'mot', service: 'uscita acqua condensatore' });
-    p.off(368, 200, 'right', 'ALLA TORRE', 'pid202', { w: 24 });
+    p.off(368, 200, 'right', M.once ? 'RESTITUZIONE' : 'ALLA TORRE', 'pid202', { w: 24 });
     p.inst(352, 186, 'TT', { line: 'CWR', to: [352, 200], service: 'temperatura acqua uscita condensatore' });
     // estrazione condensato
     p.line('CDS', [[c0 + 36, cy1 + 8], [c0 + 36, 226], [150, 226]], { seg: 1, at: 0.5 });

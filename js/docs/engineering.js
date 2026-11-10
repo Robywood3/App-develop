@@ -4,7 +4,7 @@
 // instradamento della linea vapore HP. Valori preliminari, coerenti con il modello termico.
 // Codifica impianto: KKS semplificata (unità 1..3 = treni TG/GVR, 0 = comune).
 
-import { plantPoint, defaultOperation, ISO, GT_PRESETS } from '../engine/plant.js';
+import { plantPoint, defaultOperation, ISO, GT_PRESETS, designIssues } from '../engine/plant.js';
 import { propsPT, propsPH, satP, Tsat } from '../engine/steam.js';
 import { utilitiesBalance } from '../engine/utilities.js';
 import { utilityLines, utilityLoads, utilityEquipment, vGas } from './utilities-eng.js';
@@ -114,8 +114,9 @@ export function sizeLine({ m, v, velMax, pOp, Top, service = 'steam', pDes = nul
     if (c.vel <= velMax && c.ID > 0) { sel = c; break; }
   }
   if (!sel) {
-    // condotto fabbricato oltre DN 2400: passo di 100 mm
-    for (let DN = 2500; DN <= 12000; DN += 100) {
+    // condotto fabbricato oltre DN 2400: passo di 100 mm, senza limite superiore (scarichi TV verso ACC di grande taglia)
+    const dMin = Math.sqrt((4 * Q) / (Math.PI * velMax)) * 1000;
+    for (let DN = Math.max(2500, Math.floor(dMin / 100) * 100); ; DN += 100) {
       const c = pick(DN, DN + 16);
       if (c.vel <= velMax) { sel = c; break; }
     }
@@ -171,6 +172,12 @@ export function engineeringModel(cfg, des, meta) {
   const r = plantPoint(cfg, des, op);
   const gt = r.gt;
   const bt = r.bt;
+  {
+    // un livello senza produzione di vapore (o un banco senza scambio) al punto di progetto non è dimensionabile
+    const { idleLevels, missingBanks } = designIssues(cfg.steam.type, bt);
+    if (idleLevels.length) throw new Error(`${idleLevels.length > 1 ? 'i livelli' : 'il livello'} ${idleLevels.join(', ')} non produc${idleLevels.length > 1 ? 'ono' : 'e'} vapore al punto di progetto. Rivedere pressioni, pinch e temperatura minima al camino nella scheda Progetto.`);
+    if (missingBanks.length) throw new Error(`al punto di progetto ${missingBanks.length > 1 ? 'i banchi' : 'il banco'} ${missingBanks.join(', ')} non scambia${missingBanks.length > 1 ? 'no' : ''} calore. Rivedere temperature di surriscaldamento, pressioni e pinch nella scheda Progetto.`);
+  }
   const type = cfg.steam.type;
   const names = bt.names;
   const n = names.length;
@@ -470,6 +477,9 @@ export function engineeringModel(cfg, des, meta) {
   E(tp('MBP10'), 'Skid valvole gas combustibile', `${N}`, 'Valvole di arresto/rapporto, regolazione, sfiato', `Portata ${f1(gt.mFuel * 3.6)} t/h · p alimentazione ${f1(pFG)} bar`, f1(pFG * 1.15), '60', 'AISI 316L');
   E(tp('EKG10'), 'Riscaldatore gas combustibile', `${N}`, 'Scambiatore a fascio tubiero, lato tubi acqua IP', `Duty ${f1((gt.mFuel * 2.3 * (cfg.gt.Tfuel - 15)) / 1000)} MW · gas 15 → ${cfg.gt.Tfuel} °C`, f1(pFG * 1.15), String(cfg.gt.Tfuel + 30), 'SA-516 70 / SA-213 TP316');
   E(tp('MBV10'), 'Centralina olio lubrificazione TG', `${N}`, 'Serbatoio, pompe AC 2×100 % + DC emergenza, refrigeranti', `Pompe ${loadKW(kks(1, 'MBV', 10, 'AP', 1))} kW`, '', '', '', loadKW(kks(1, 'MBV', 10, 'AP', 1)));
+  E(tp('MBV20'), 'Pompa olio di sollevamento rotore TG', `${N}`, 'Volumetrica ad alta pressione, in servizio a bassa velocità e in viraggio', '150 bar', '200', '80', '', loadKW(kks(1, 'MBV', 20, 'AP', 1)));
+  E(tp('MBM10'), 'Cabinato acustico TG con ventilazione', `${N}`, 'Ventilatori 2×100 %, rivelazione gas e incendio, estinzione a CO₂', 'Ventilazione in depressione', '', '', '', loadKW(kks(1, 'MBM', 10, 'AN', 1)));
+  E(tp('MBU10'), 'Skid lavaggio compressore TG', `${N}`, 'Serbatoio detergente, pompa, ugelli in linea e fuori linea', 'Acqua demineralizzata 1,5 kg/s durante il lavaggio', '10', '80', 'AISI 304');
   E(tp('MBJ10'), 'Avviatore statico a frequenza variabile (SFC)', `${N}`, 'Convertitore a tiristori', `${f0(sfcKW)} kW in avviamento`, '', '', '', loadKW(kks(1, 'MBJ', 10, 'GH', 1)));
 
   eq.push({ group: 'Generatore di vapore a recupero (per ciascun GVR)' });
@@ -509,6 +519,9 @@ export function engineeringModel(cfg, des, meta) {
   });
   const stackD = roundUp(Math.sqrt((4 * r.gas.m / ((op.pamb * 1e5) / (288 * (bt.Tstack + 273.15)))) / (Math.PI * 20)), 0.1);
   E(tp('HNE10'), 'Camino con silenziatore e serranda', `${N}`, 'Autoportante in acciaio, CEMS', `DI ${f1(stackD)} m · H ${meta.stackHeight} m · velocità fumi ~20 m/s`, '', '150', 'Acciaio al carbonio / Corten');
+  E(tp('LAE10AT001'), 'Desurriscaldatore interstadio vapore HP', `${N}`, 'A iniezione di acqua alimento, tra SH1 e SH2', `Spray fino a ${f1(bt.mLevels[0] * 0.05 * 3.6)} t/h`, f0(designP(0)), f0(roundUp(bt.Tsh[0] + 15, 5)), 'SA-335 P91');
+  if (reheat) E(tp('LAF10AT001'), 'Desurriscaldatore interstadio vapore RH', `${N}`, 'A iniezione di acqua alimento IP, tra RH1 e RH2', `Spray fino a ${f1((bt.sections[1].m / N) * 0.04 * 3.6)} t/h`, f0(roundUp(bt.pAdm[1] * 1.1, 1)), f0(roundUp(bt.Trh + 15, 5)), 'SA-335 P91');
+  E(tp('HAC30AP001/002'), 'Pompe ricircolo preriscaldatore condensato', `${2 * N} (2×100 % per GVR)`, 'Centrifughe orizzontali; mantengono l\'ingresso preriscaldatore sopra il punto di rugiada acida', `Q ${f0((bt.mLevels.reduce((a, b) => a + b, 0) * 0.35 * 3.6))} t/h`, f0(roundUp(bt.pDrum[n - 1] * 1.6, 1)), f0(roundUp(bt.TsubLP + 20, 5)), 'Acciaio al carbonio', loadKW(kks(1, 'HAC', 30, 'AP', 1)));
   E(tp('LAC10AP001/002'), 'Pompe alimento HP/IP', `${2 * N} (2×100 % per GVR)`, 'Centrifughe multistadio a barile, spillamento IP',
     `Q ${f0(pumps.fw1.Q)} m³/h · H ${f0(pumps.fw1.H)} m · ${f0(pumps.fw1.kW)} kW assorbiti`, f0(pFWhp * 1.25), f0(roundUp(bt.TsubLP + 20, 5)), 'Acciaio al 13 % Cr', loadKW(kks(1, 'LAC', 10, 'AP', 1)));
   E(tp('HAN10BB001'), 'Serbatoio flash spurghi', `${N}`, 'Verticale atmosferico', `Spurgo continuo ~1 % della produzione HP`, '6', '200', 'SA-516 Gr.70');
@@ -525,12 +538,13 @@ export function engineeringModel(cfg, des, meta) {
     const A = (bt.Qcond * 1e6) / (3000 * lmtd);
     E('0MAG10', 'Condensatore a superficie', '1', 'Due passaggi, tubi in titanio, pozzo caldo', `Duty ${f0(bt.Qcond)} MW · ${f1(bt.pCond * 1000)} mbar · superficie ~${f0(A)} m² · acqua ${f0(des.mcw * 3.6 / 1.0)} t/h`, '1,0 / FV', '80', 'Mantello CS, tubi Ti Gr.2');
     E('0PAC10AP001/002', 'Pompe acqua di circolazione (MCW)', '2 (2×50 %)', 'Verticali centrifughe, valvola combinata ritegno/regolazione in mandata', `Q ${f0(pumps.cw.Q)} m³/h · H ${f0(pumps.cw.H)} m · ${f0(pumps.cw.kW)} kW assorbiti`, '4,5', '50', once ? 'Duplex / super duplex (mare), inox/CS (fiume)' : 'Ghisa sferoidale / inox', loadKW(kks(0, 'PAC', 10, 'AP', 1)));
-    if (tower) E('0PAE10', 'Torre di raffreddamento evaporativa a tiraggio indotto', '1', `${ctCells} celle in linea, ventilatori assiali`, `Duty ${f0(des.QcondD)} MW · ΔT ${f1(cond.dTcw)} K · avvicinamento ~6 K`, '', '', 'Calcestruzzo / GRP');
   } else {
     E('0MAG10', 'Aerocondensatore (ACC)', '1', `${accCells} celle a A, ventilatori assiali`, `Duty ${f0(bt.Qcond)} MW · ITD ${cond.ITD} K · ${f1(bt.pCond * 1000)} mbar`, '1,0 / FV', '120', 'Tubi alettati in acciaio alluminato', loadKW(kks(0, 'MAG', 10, 'AN', 1)));
   }
   E('0LCB10AP001/002', 'Pompe estrazione condensato', '2 (2×100 %)', 'Verticali a barile, multistadio', `Q ${f0(pumps.cd.Q)} m³/h · H ${f0(pumps.cd.H)} m · ${f0(pumps.cd.kW)} kW assorbiti`, f1(bt.pDrum[lowest] * 1.8 + 4), '80', 'Ghisa / inox', loadKW(kks(0, 'LCB', 10, 'AP', 1)));
   E('0MAJ10AP001/002', 'Pompe del vuoto ad anello liquido', '2 (2×100 %)', 'Con separatore e refrigerante', 'Mantenimento vuoto ed evacuazione all\'avviamento', '', '', '', loadKW(kks(0, 'MAJ', 10, 'AP', 1)));
+  E('0MAV10', 'Centralina olio lubrificazione TV', '1', 'Serbatoio, pompe AC 2×100 % + DC emergenza, refrigeranti e filtri 2×100 %, estrattori vapori', `Pompe ${loadKW(kks(0, 'MAV', 10, 'AP', 1))} kW`, '10', '80', '', loadKW(kks(0, 'MAV', 10, 'AP', 1)));
+  E('0MAV20', 'Pompa olio di sollevamento rotore TV', '1', 'Volumetrica ad alta pressione, in servizio a bassa velocità e in viraggio', '150 bar', '200', '80', '', loadKW(kks(0, 'MAV', 20, 'AP', 1)));
   E('0MAW10', 'Condensatore vapore tenute', '1', 'Fascio tubiero, estrattori 2×100 %', 'Lato acqua: condensato principale', '', '', 'CS / inox');
 
   utilityEquipment({ E, eq, U, N, water, once, tower, benson, f0, f1, loadKW, kks, des, pFG, ctCells, accCells, bt });

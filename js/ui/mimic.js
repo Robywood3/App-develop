@@ -230,7 +230,11 @@ export function buildMimic(svg, cfg, r) {
   // ------------------------------------------------------------- Tubazioni vapore
   const yHP = 262, yHRH = 282, yCRH = 302, yLP = 330, yX = 364;
   const by = hy1;
-  const shHP = posOf('SH HP') ?? posOf('EVA HP');
+  // A carico molto basso un banco può non scambiare e non comparire: la tubazione parte allora dal banco
+  // più vicino dello stesso circuito o, in mancanza, dall'ingresso del GVR.
+  const firstX = cols.length && cols[0].banks.length ? cols[0].banks[0]._cx : hx0 + 40;
+  const posAny = (...list) => { for (const nm of list) { const x = posOf(nm); if (x !== null) return x; } return firstX; };
+  const shHP = posAny('SH HP', 'EVA HP', 'RH');
   const hpSec = secs[0];
   if (n === 1) {
     pipe(`M${shHP} ${by} V${yHP} H${lp.inX} V${lp.inY}`, 's-hp', 'hp');
@@ -238,7 +242,7 @@ export function buildMimic(svg, cfg, r) {
     pipe(`M${shHP} ${by} V${yHP} H${hpSec.inX} V${hpSec.inY}`, 's-hp', 'hp');
   }
   if (type === '3PRH') {
-    const rh = posOf('RH');
+    const rh = posAny('RH', 'SH HP', 'EVA HP');
     const shIP = posOf('SH IP');
     const ipSec = secs[1];
     pipe(`M${hpSec.outX} ${hpSec.outY} V${yCRH} H${rh} V${by}`, 's-ip', 'crh');
@@ -252,7 +256,7 @@ export function buildMimic(svg, cfg, r) {
     pipe(`M${hpSec.outX} ${hpSec.outY} V${yX} H${lp.inX} V${lp.inY}`, 's-ip', 'xo');
   }
   if (n >= 2) {
-    const shLP = posOf('SH LP') ?? posOf('EVA LP');
+    const shLP = posAny('SH LP', 'EVA LP', 'EVA IP', 'EVA HP');
     pipe(`M${shLP} ${by} V${yLP} H${lp.inX + 14} V${yX}`, 's-lp', 'lp');
     el('circle', { cx: lp.inX + 14, cy: yX, r: 3.5, class: 'f-lp' }, g);
   }

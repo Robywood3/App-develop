@@ -132,3 +132,24 @@ test('taratura su Ostiglia (1+1 classe H, Benson): vapore, collettori, pompe e a
     for (const s of buildDocument(M2, c)) assert.ok(!/NaN|undefined/.test(sheetToSVG(s)), c.id);
   }
 });
+
+test('liste coerenti: tag apparecchiature univoci e condotto ACC dimensionato sugli impianti più grandi', () => {
+  for (const [g, type, nGT, ct] of [['Classe F (~300 MW)', '3PRH', 1, 'water'], ['Siemens SGT5-9000HL (593 MW)', '3PRH', 3, 'air'], ['Classe E (~170 MW)', '1P', 2, 'air']]) {
+    const cfg = defaultConfig(g, type); cfg.nGT = nGT; cfg.steam.condenser.type = ct;
+    const M = engineeringModel(cfg, designPlant(cfg), defaultProjectMeta());
+    const tags = M.eq.filter((e) => !e.group).map((e) => e.tag);
+    assert.deepEqual(tags.filter((t, i) => tags.indexOf(t) !== i), [], `${g}: tag duplicati`);
+    for (const l of M.lines) assert.ok(Number.isFinite(l.DN) && l.vel > 0 && !/undefined|NaN/.test(l.lineNo), `${g}: linea ${l.id}`);
+    for (const e of M.eq) if (!e.group) for (const v of Object.values(e)) assert.ok(typeof v !== 'string' || !/NaN|undefined/.test(v), `${g}: ${e.tag}`);
+    // apparecchiature principali presenti sui P&ID e in lista
+    for (const t of ['0MAV10', '0MAV20']) assert.ok(tags.includes(t), `${t} assente`);
+  }
+});
+
+test('livello senza vapore al progetto: avviso nel progetto ed errore esplicito negli elaborati', () => {
+  const cfg = defaultConfig('Classe F (~300 MW)', '3PRH');
+  cfg.gt.TIT = 1750; cfg.steam.TstackMin = 150; cfg.steam.levels[1].p = 60;
+  const des = designPlant(cfg);
+  assert.ok(des.idleLevels.length > 0 && des.notes.some((t) => /non produc/.test(t)));
+  assert.throws(() => engineeringModel(cfg, des, defaultProjectMeta()), /non produc(e|ono) vapore al punto di progetto/);
+});

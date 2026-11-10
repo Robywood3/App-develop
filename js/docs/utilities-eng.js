@@ -294,12 +294,16 @@ export function utilityEquipment(c) {
   E('0QCA10', 'Skid dosaggio ammoniaca (pH)', '1', `Serbatoio ${f1(U.chem.tankM3)} m³ in plastica, pompa di riempimento, pompe a membrana 2×100 % con posizionatore automatico`, `${f1(pl.ammonia)} l/h · 6–8 bar · proporzionale alla portata condensato con correzione sul pH`, '10', '50', 'PE / AISI 316', loadKW(kks(0, 'QCA', 10, 'AP', 1)));
   E('0QCB10', 'Skid dosaggio deossigenante (carboidrazide)', '1', `Serbatoio ${f1(U.chem.tankM3)} m³ in plastica, pompa di riempimento, pompe a membrana 2×100 % con posizionatore automatico`, `${f1(pl.scavenger)} l/h · 6–8 bar · proporzionale alla portata condensato con correzione sull'O₂ nel corpo LP`, '10', '50', 'PE / AISI 316', loadKW(kks(0, 'QCB', 10, 'AP', 1)));
   if (benson) E('0QCC20', 'Skid dosaggio fosfati al corpo IP', '1', `Serbatoio ${f1(U.chem.tankM3)} m³ con agitatore; pompe a membrana 2×100 % (evaporatore HP Benson a trattamento volatile)`, `IP ${pl.phosphateIP} l/h · fosfato trisodico`, f0(bt.pDrum[1] * 1.4), '50', 'PE / AISI 316', loadKW(kks(0, 'QCC', 20, 'AP', 1)));
-  else E('0QCC10', 'Skid dosaggio fosfati ai corpi HP e IP', '1', `Serbatoio ${f1(U.chem.tankM3)} m³ con agitatore; due set di pompe a membrana 2×100 % a regolazione manuale (HP e IP)`, `HP ${pl.phosphateHP} l/h a ${f0(bt.pDrum[0] * 1.3)} bar · IP ${pl.phosphateIP} l/h · fosfato trisodico`, f0(bt.pDrum[0] * 1.4), '50', 'PE / AISI 316', loadKW(kks(0, 'QCC', 10, 'AP', 1)));
+  else {
+    E('0QCC10', `Skid dosaggio fosfati${bt.pDrum.length > 2 ? ' al corpo HP' : ''}`, '1', `Serbatoio ${f1(U.chem.tankM3)} m³ con agitatore; pompe a membrana 2×100 % a regolazione manuale`, `HP ${pl.phosphateHP} l/h a ${f0(bt.pDrum[0] * 1.3)} bar · fosfato trisodico`, f0(bt.pDrum[0] * 1.4), '50', 'PE / AISI 316', loadKW(kks(0, 'QCC', 10, 'AP', 1)));
+    if (bt.pDrum.length > 2) E('0QCC20', 'Set pompe dosaggio fosfati al corpo IP', '1', 'Pompe a membrana 2×100 % a regolazione manuale, aspirazione dal serbatoio dello skid HP', `IP ${pl.phosphateIP} l/h a ${f0(bt.pDrum[1] * 1.3)} bar`, f0(bt.pDrum[1] * 1.4), '50', 'PE / AISI 316');
+  }
   E('0QCD10', 'Docce di emergenza e lavaocchi', '1', 'Area dosaggi chimici ciclo e torre', '', '', '', '');
   E('0QUA10', 'Pannello di campionamento (SWAS)', '1', 'Refrigeranti campioni, riduttori, analizzatori in linea', 'Conducibilità cationica e specifica, pH, O₂, SiO₂, Na', '', '', 'AISI 316L', loadKW(kks(0, 'QUA', 10, 'GA', 1)));
   eq.push({ group: 'Acque reflue e drenaggi' });
   const w = U.ww;
   E('0GMA10BB001', 'Vasca di neutralizzazione', '1', 'In calcestruzzo rivestito, agitatore', `Ingresso ${f0(w.totalM3h)} m³/h · volume ${f0(roundUp(w.totalM3h * 8, 50))} m³`, 'Atm.', '60', 'Calcestruzzo / vinilestere', loadKW(kks(0, 'GMA', 10, 'AP', 1)));
+  E('0GMA10AP001/002', 'Pompe vasca di neutralizzazione', '2 (2×100 %)', 'Centrifughe sommerse o autoadescanti', `Q ${f0(w.totalM3h * 1.3)} m³/h · H 25 m`, '8', '60', 'AISI 316L', loadKW(kks(0, 'GMA', 10, 'AP', 1)));
   E('0GMA20BB001', 'Vasca di controllo finale', '1', 'Con strumentazione di monitoraggio allo scarico', 'pH, temperatura, conducibilità, portata', 'Atm.', '60', 'Calcestruzzo');
   E('0GMB10', 'Disoleatore acque oleose', '1', 'A coalescenza, classe I (≤ 5 mg/l idrocarburi)', '5 m³/h', 'Atm.', '50', 'Acciaio al carbonio / CLS', loadKW(kks(0, 'GMB', 10, 'AP', 1)));
   eq.push({ group: 'Gas tecnici' });

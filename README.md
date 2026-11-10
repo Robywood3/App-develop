@@ -131,6 +131,22 @@ lordi (catalogo 880 MW).
 Dove le descrizioni BoP generiche e Ostiglia differiscono (aria compressa, demi con
 caldaia Benson, caldaia ausiliaria) prevale il dato d'impianto reale.
 
+### Campo di validità e controlli
+
+- I dati di progetto sono validati: valori nulli, non numerici o fuori campo vengono
+  riportati nei limiti ammessi (`DESIGN_RANGES` in `js/engine/plant.js`) con un avviso
+  nella scheda Progetto. Le pressioni dei livelli restano ordinate (ogni livello al più
+  la metà del superiore) e la pressione HP si adatta alla temperatura dei fumi quando lo
+  scarico della TG è troppo freddo per evaporare.
+- L'evaporatore Benson è disponibile solo sul livello HP del ciclo a 3 livelli + RH.
+- In esercizio un allarme segnala quando lo scambio in un banco del GVR non è
+  realizzabile (fumi più freddi del lato acqua) e quando il condensatore è al limite.
+- Se al punto di progetto un livello non produce vapore, la simulazione prosegue ma gli
+  elaborati di ingegneria non vengono generati e il motivo è indicato nel pannello.
+- Il modello è verificato con una campagna su tutte le configurazioni predefinite
+  (17 TG × 3 GVR × 1–3 TG × 3 raffreddamenti, carichi 20–100 %, −10…40 °C, post-combustione)
+  e con prove a dati casuali entro i campi ammessi.
+
 È uno strumento didattico e di prefattibilità: i risultati non sostituiscono i dati
 di garanzia dei costruttori.
 

@@ -91,7 +91,9 @@ export function solveBottoming(c, gas, cond, opt) {
       const Ts = c.condenser.type === 'air'
         ? cond.Tamb + c.condenser.ITD * q
         : cond.Tcw + (c.condenser.dTcw + c.condenser.TTD) * q;
-      pCondNew = psat(Ts);
+      // carico termico molto oltre il progetto (es. post-combustione spinta): la saturazione resta nel
+      // campo fisico e la pressione si ferma al limite massimo del condensatore
+      pCondNew = psat(Math.min(Ts, 90));
     }
     pCondNew = Math.min(Math.max(pCondNew, P_COND_MIN), P_COND_MAX);
 
@@ -100,7 +102,8 @@ export function solveBottoming(c, gas, cond, opt) {
       for (let k = 0; k < n; k++) {
         const sec = r.sections[k];
         const sRef = ref.sections[k];
-        let p = ref.pAdm[k] * (sec.m / sRef.m) * Math.sqrt((sec.Tin + 273.15) / (sRef.Tin + 273.15));
+        // sezione senza portata al progetto (livello non alimentato): la pressione resta quella di riferimento
+        let p = sRef.m > 1e-6 ? ref.pAdm[k] * (sec.m / sRef.m) * Math.sqrt((sec.Tin + 273.15) / (sRef.Tin + 273.15)) : ref.pAdm[k];
         // con RH la pressione di ammissione IP (a valle del RH) è proporzionale a quella
         // del risurriscaldamento freddo, quindi la legge si applica direttamente a pAdm[1]
         if (k === 0 && !slidingHP) p = Math.max(p, ref.pAdm[0]);
@@ -111,6 +114,10 @@ export function solveBottoming(c, gas, cond, opt) {
         pAdmNew[k] = p;
       }
       for (let k = n - 2; k >= 0; k--) pAdmNew[k] = Math.max(pAdmNew[k], pAdmNew[k + 1] * 1.5);
+      // il vincolo precedente non deve portare il livello HP oltre il suo limite (campo delle proprietà
+      // del vapore): in tal caso sono i livelli inferiori a scendere
+      pAdmNew[0] = Math.min(pAdmNew[0], P_MAX_BAR * (1 - c.dpSH));
+      for (let k = 1; k < n; k++) pAdmNew[k] = Math.min(pAdmNew[k], pAdmNew[k - 1] / 1.5);
     }
 
     let maxErr = Math.abs(pCondNew - pCond) / pCond;
@@ -118,7 +125,8 @@ export function solveBottoming(c, gas, cond, opt) {
     const w = 0.6;
     pCond = pCond + w * (pCondNew - pCond);
     for (let k = 0; k < n; k++) pAdm[k] = pAdm[k] + w * (pAdmNew[k] - pAdm[k]);
-    if (maxErr < 1e-5) break;
+    // oltre 20 iterazioni (bilancio interno smorzato che oscilla allo 0,1 %) si accetta una tolleranza più larga
+    if (maxErr < (outer < 20 ? 1e-5 : 2e-3)) break;
   }
   return result;
 }
@@ -131,7 +139,7 @@ function solveAtPressures(c, gas, pAdm, pCond, ref, nHRSG, reheat, names, warm) 
   const hg = (T) => gasH(xg, T);
 
   // Pressioni nei corpi cilindrici
-  const pDrum = pAdm.map((p) => p / (1 - c.dpSH));
+  const pDrum = pAdm.map((p) => Math.min(P_MAX_BAR, p / (1 - c.dpSH)));
   const sat = pDrum.map((p) => satP(p));
   const Ts = sat.map((s) => s.T);
   const pLP = pDrum[n - 1];
@@ -152,8 +160,10 @@ function solveAtPressures(c, gas, pAdm, pCond, ref, nHRSG, reheat, names, warm) 
   const Tg0 = gas.T;
   const Tsh = [];
   const hSh = [];
-  const Trh = reheat ? Math.min(c.Trh, Tg0 - c.dTsh) : 0;
-  const hRh = reheat ? hPT(pRHout, Math.max(Trh, Tsat(pRHout) + 1)) : 0;
+  let Trh = reheat ? Math.min(c.Trh, Tg0 - c.dTsh) : 0;
+  let hRh = reheat ? hPT(pRHout, Math.max(Trh, Tsat(pRHout) + 1)) : 0;
+  const hRhSet = hRh, TrhSet = Trh;
+  const hRhGasLim = reheat ? hPT(pRHout, Math.max(Tg0 - c.dTsh, Tsat(pRHout) + 1)) : 0;
 
   // Entalpie costanti alle pressioni fissate
   const hInEva = Ts.map((T, k) => hPT(pDrum[k], T - c.approach[k]));
@@ -189,15 +199,24 @@ function solveAtPressures(c, gas, pAdm, pCond, ref, nHRSG, reheat, names, warm) 
   let mPre = 0;
   let m0Exp = -1;
 
-  for (let it = 0; it < 150; it++) {
+  for (let it = 0; it < 200; it++) {
     const mOld = m.slice();
+    // smorzamento progressivo: interviene solo se l'iterazione non converge (cicli limite con più vincoli attivi)
+    // (se la chiamata precedente ha già richiesto lo smorzamento si riparte smorzati dalla soluzione a caldo)
+    const ite = it + (warm.damped ? 40 : 0);
+    const om = ite < 40 ? 1 : ite < 90 ? 0.5 : ite < 160 ? 0.2 : 0.08;
     zones = [];
 
     // Espansione HP (serve l'entalpia del risurriscaldamento freddo)
     if (reheat && Math.abs(m[0] - m0Exp) > 1e-4 * Math.max(m[0], 1)) {
-      const etaHP = ref ? partLoadEta(c.etaHP, (m[0] * nHRSG) / ref.sections[0].m) : c.etaHP;
+      const etaHP = ref && ref.sections[0].m > 1e-6 ? partLoadEta(c.etaHP, (m[0] * nHRSG) / ref.sections[0].m) : c.etaHP;
       hCRH = expand(hSh[0], pAdm[0], pAdm[1], etaHP).hOut;
       m0Exp = m[0];
+      // il risurriscaldatore deve cedere calore al vapore: se la temperatura richiesta è sotto quella del
+      // risurriscaldato freddo (o del vapore IP) vale un salto minimo di 40 kJ/kg sopra l'ingresso
+      // (senza mai superare il limite imposto dalla temperatura dei fumi)
+      const hInMax = Math.min(Math.max(hCRH, hSh[1]) + 40, hRhGasLim);
+      if (hRhSet < hInMax) { hRh = hInMax; Trh = propsPH(pRHout, hRh).T; } else { hRh = hRhSet; Trh = TrhSet; }
     }
 
     let Ttop = Tg0;
@@ -224,17 +243,23 @@ function solveAtPressures(c, gas, pAdm, pCond, ref, nHRSG, reheat, names, warm) 
       // dell'acqua di alimento nel corpo cilindrico LP (degasaggio).
       if (k > 0) {
         let viol = absorbed + Qeco - avail[k];
-        const j = k - 1;
-        let d = hSh[j] - eco[k][j].hLow;
-        if (reheat && j === 0) d += hRh - hCRH;
-        if (reheat && j === 1) d += hRh - hSh[1];
         if (lowest) {
           let mUp = 0;
           for (let i = 0; i < k; i++) mUp += m[i];
           viol += mUp * (sat[k].hL - hSub);
-          d += sat[k].hL - hSub;
         }
-        newCap[j] = Math.max(0, m[j] - viol / d);
+        // Il vincolo limita il livello immediatamente superiore; se questo è già a portata nulla
+        // (es. post-combustione molto oltre il progetto) la violazione residua passa ai livelli più alti.
+        for (let j = k - 1; j >= 0; j--) {
+          let d = hSh[j] - eco[k][j].hLow;
+          if (reheat && j === 0) d += hRh - hCRH;
+          if (reheat && j === 1) d += hRh - hSh[1];
+          if (lowest) d += sat[k].hL - hSub;
+          const capJ = Math.max(0, m[j] - viol / d);
+          newCap[j] = j === k - 1 ? capJ : Math.min(newCap[j], capJ);
+          if (capJ > 1e-9 && m[j] > 1e-9) break;
+          viol -= m[j] * d;
+        }
       }
 
       let mk;
@@ -273,7 +298,8 @@ function solveAtPressures(c, gas, pAdm, pCond, ref, nHRSG, reheat, names, warm) 
       zones.push({ level: k, Ttop, Tbot, Qsh, Qrh, Qeva, Qsub, items, Tsh: Tsh[k] });
       Ttop = Tbot;
     }
-    cap = newCap;
+    cap = om === 1 ? newCap : newCap.map((v, k) => (Number.isFinite(v) && Number.isFinite(cap[k]) ? cap[k] + om * (v - cap[k]) : v));
+    if (om < 1) for (let k = 0; k < n; k++) m[k] = mOld[k] + om * (m[k] - mOld[k]);
 
     // Preriscaldatore condensato (zona fredda) e vincolo di temperatura al camino
     let mTot = 0;
@@ -284,13 +310,17 @@ function solveAtPressures(c, gas, pAdm, pCond, ref, nHRSG, reheat, names, warm) 
     const Qavail = Math.max(0, mg * (hg(TgIn) - hg(Math.min(TstackMin, TgIn))) * keep);
     const Qreq = mTot * (hSubMax - hCondOut);
     const hSubNew = Qreq <= Qavail || mTot < 1e-6 ? hSubMax : hCondOut + Qavail / mTot;
-    hSub = 0.3 * hSub + 0.7 * hSubNew;
+    hSub = (1 - 0.7 * om) * hSub + 0.7 * om * hSubNew;
     const Qpre = mTot * (hSub - hCondOut);
     Tstack = gasT(xg, hg(TgIn) - Qpre / (mg * keep), TgIn - 50);
 
     let err = Math.abs(hSub - hSubNew) / 100;
     for (let k = 0; k < n; k++) err = Math.max(err, Math.abs(m[k] - mOld[k]));
-    if (err < 1e-6 && it > 2) break;
+    // con lo smorzamento attivo (più vincoli che commutano) si accetta una convergenza allo 0,05 % delle portate
+    let mSum = 0;
+    for (let k = 0; k < n; k++) mSum += m[k];
+    if (err < (om === 1 ? 1e-6 : Math.max(0.03, 5e-4 * mSum)) && it > 2) break;
+    if (it >= 39) warm.damped = true;
   }
   warm.m = m.slice();
   warm.hSub = hSub;
@@ -309,7 +339,7 @@ function solveAtPressures(c, gas, pAdm, pCond, ref, nHRSG, reheat, names, warm) 
     const pOut = last ? pCond : pAdm[k + 1];
     const name = sectionName(c.type, k, n);
     const etaD = name === 'HP' ? c.etaHP : name === 'IP' ? c.etaIP : c.etaLP;
-    const ratio = ref ? mSec / ref.sections[k].m : 1;
+    const ratio = ref && ref.sections[k].m > 1e-6 ? mSec / ref.sections[k].m : 1;
     const eta = ref ? partLoadEta(etaD, ratio) : etaD;
     const area = last ? (ref ? ref.lpArea : 0) : 0;
     const e = expand(hIn, pIn, pOut, eta, { wet: last, m: mSec, area });
@@ -358,13 +388,14 @@ function solveAtPressures(c, gas, pAdm, pCond, ref, nHRSG, reheat, names, warm) 
   let Ppump = (mPre * N * vCond * (pCondPumpOut - pCond) * 100) / c.etaPump / 1000;
   for (let j = 0; j < n - 1; j++) Ppump += (m[j] * N * sat[n - 1].vL * (pDrum[j] * 1.15 - pLP) * 100) / c.etaPump / 1000;
 
-  // Dettaglio banchi GVR in ordine lato fumi (per un GVR)
+  // Dettaglio banchi GVR in ordine lato fumi (per un GVR); i banchi senza scambio (< 1 kW) non compaiono
+  const QMIN = 1;
   const banks = [];
   for (const z of zones) {
     const k = z.level;
     let T = z.Ttop;
     const push = (name, Q, TwIn, TwOut, extra = {}) => {
-      if (Q <= 1e-6) return;
+      if (Q <= QMIN) return;
       const Tout = gasT(xg, hg(T) - Q / (mg * keep), T - 10);
       banks.push({ name, Q: Q / 1000, TgIn: T, TgOut: Tout, TwIn, TwOut, ...extra });
       T = Tout;
@@ -374,15 +405,27 @@ function solveAtPressures(c, gas, pAdm, pCond, ref, nHRSG, reheat, names, warm) 
       const Qtot = z.Qsh + z.Qrh;
       const Tout = gasT(xg, hg(T) - Qtot / (mg * keep), T - 10);
       const TcrhMix = propsPH(pAdm[1], stPoints.crhMix ? stPoints.crhMix.h : hCRH).T;
-      banks.push({ name: `SH ${names[0]}`, Q: z.Qsh / 1000, TgIn: T, TgOut: Tout, TwIn: Ts[0], TwOut: Tsh[0], parallel: true });
-      banks.push({ name: 'RH', Q: z.Qrh / 1000, TgIn: T, TgOut: Tout, TwIn: TcrhMix, TwOut: Trh, parallel: true });
+      if (z.Qsh > QMIN) banks.push({ name: `SH ${names[0]}`, Q: z.Qsh / 1000, TgIn: T, TgOut: Tout, TwIn: Ts[0], TwOut: Tsh[0], parallel: true });
+      if (z.Qrh > QMIN) banks.push({ name: 'RH', Q: z.Qrh / 1000, TgIn: T, TgOut: Tout, TwIn: TcrhMix, TwOut: Trh, parallel: true });
       T = Tout;
-    } else {
-      push(`SH ${names[k]}`, z.Qsh, Ts[k], Tsh[k]);
     }
     // gli economizzatori dei livelli superiori nella stessa zona lavorano in parallelo sul lato fumi
-    const ecos = z.items.filter((it) => it.Q > 1e-6);
-    if (ecos.length === 1) push(`ECO ${names[ecos[0].level]}`, ecos[0].Q, ecos[0].TwIn, ecos[0].TwOut);
+    const ecos = z.items.filter((it) => it.Q > QMIN);
+    let shInParallel = false;
+    if (!(k === 0 && reheat)) {
+      // Il surriscaldatore precede gli economizzatori; se a carico molto basso raffredda i fumi sotto la
+      // temperatura di uscita dell'acqua degli economizzatori, i banchi lavorano interlacciati (in parallelo).
+      const TafterSh = z.Qsh > QMIN ? gasT(xg, hg(T) - z.Qsh / (mg * keep), T - 10) : T;
+      shInParallel = z.Qsh > QMIN && ecos.some((it) => TafterSh < it.TwOut + 0.5);
+      if (!shInParallel) push(`SH ${names[k]}`, z.Qsh, Ts[k], Tsh[k]);
+    }
+    if (shInParallel) {
+      const Qtot = z.Qsh + ecos.reduce((a, it) => a + it.Q, 0);
+      const Tout = gasT(xg, hg(T) - Qtot / (mg * keep), T - 10);
+      banks.push({ name: `SH ${names[k]}`, Q: z.Qsh / 1000, TgIn: T, TgOut: Tout, TwIn: Ts[k], TwOut: Tsh[k], parallel: true });
+      for (const it of ecos) banks.push({ name: `ECO ${names[it.level]}`, Q: it.Q / 1000, TgIn: T, TgOut: Tout, TwIn: it.TwIn, TwOut: it.TwOut, parallel: true });
+      T = Tout;
+    } else if (ecos.length === 1) push(`ECO ${names[ecos[0].level]}`, ecos[0].Q, ecos[0].TwIn, ecos[0].TwOut);
     else if (ecos.length > 1) {
       const Qtot = ecos.reduce((a, it) => a + it.Q, 0);
       const Tout = gasT(xg, hg(T) - Qtot / (mg * keep), T - 10);
@@ -395,7 +438,7 @@ function solveAtPressures(c, gas, pAdm, pCond, ref, nHRSG, reheat, names, warm) 
     const Qpre = mPre * (hSub - hCondOut);
     let T = zones[zones.length - 1].Tbot;
     const Tout = gasT(xg, hg(T) - Qpre / (mg * keep), T - 10);
-    if (Qpre > 1e-6) banks.push({ name: 'PRE (condensato)', Q: Qpre / 1000, TgIn: T, TgOut: Tout, TwIn: Math.max(TCondOut, Math.min(c.TwPreMin, propsPH(pLP, hSub).T - 1)), TwOut: propsPH(pLP, hSub).T });
+    if (Qpre > QMIN) banks.push({ name: 'PRE (condensato)', Q: Qpre / 1000, TgIn: T, TgOut: Tout, TwIn: Math.max(TCondOut, Math.min(c.TwPreMin, propsPH(pLP, hSub).T - 1)), TwOut: propsPH(pLP, hSub).T });
   }
   const Qhrsg = banks.reduce((a, b) => a + b.Q, 0); // MW per GVR
 

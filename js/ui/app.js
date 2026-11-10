@@ -1,6 +1,6 @@
 // Controller dell'interfaccia: stato, input, ciclo di simulazione e aggiornamento delle viste.
 
-import { defaultConfig, defaultOperation, designPlant, plantPoint, GT_PRESETS, GT_GROUPS, FUEL_PRESETS, LIMITS } from '../engine/plant.js';
+import { defaultConfig, defaultOperation, designPlant, plantPoint, GT_PRESETS, GT_GROUPS, FUEL_PRESETS, LIMITS, DESIGN_RANGES } from '../engine/plant.js';
 import { HRSG_TYPES, LEVEL_NAMES } from '../engine/bottoming.js';
 import { PlantSim, formatSimTime } from '../engine/dynamics.js';
 import { fmt } from './format.js';
@@ -42,7 +42,7 @@ S.sim.t = DAY_START;
 function redesign() {
   S.des = designPlant(S.cfg);
   S.cache.clear();
-  S.curves = null;
+  invalidateCurves();
   const notes = $('design-notes');
   notes.hidden = !S.des.notes.length;
   notes.textContent = S.des.notes.join(' ');
@@ -120,7 +120,8 @@ function compose(ss, lag, fuelFrac) {
 }
 
 function tick() {
-  if (!S.des) return;
+  // con una modifica di progetto in attesa di ricalcolo la configurazione non è coerente con il riferimento
+  if (!S.des || S.redesignPending) return;
   let v;
   if (S.mode === 'ss') {
     const ss = steady(S.op.load);
@@ -281,16 +282,28 @@ function renderAnalysis() {
 
 const curveCanvases = () => ['c-eta-load', 'c-p-load', 'c-eta-t', 'c-p-t'].map($);
 
+// Le curve dipendono da configurazione e condizioni di esercizio: ogni modifica le invalida e rende
+// obsoleto un eventuale calcolo in corso (che lavora su una copia della configurazione).
+function invalidateCurves() {
+  S.curves = null;
+  S.curvesGen = (S.curvesGen || 0) + 1;
+}
+
 async function runCurves() {
+  if (S.redesignPending || S.curvesBusy) return;
   S.curvesBusy = true;
+  const gen = S.curvesGen;
   const status = $('curves-status');
   const btn = $('btn-curves');
   btn.disabled = true;
   try {
     const op = { ...S.op, nGTon: Math.min(S.op.nGTon, S.cfg.nGT) };
     if (S.daily) op.Tamb = S.TambBase;
-    S.curves = await computeCurves(S.cfg, S.des, op, (f) => { status.textContent = `Calcolo… ${Math.round(f * 100)} %`; });
-    status.textContent = `Aria ${fmt(op.Tamb, 1)} °C, ${op.nGTon} TG in servizio`;
+    const res = await computeCurves(JSON.parse(JSON.stringify(S.cfg)), S.des, op, (f) => { status.textContent = `Calcolo… ${Math.round(f * 100)} %`; });
+    if (gen === S.curvesGen) {
+      S.curves = res;
+      status.textContent = `Aria ${fmt(op.Tamb, 1)} °C, ${op.nGTon} TG in servizio`;
+    }
   } finally {
     S.curvesBusy = false;
     btn.disabled = false;
@@ -346,21 +359,21 @@ function bindOperation() {
     S.sim.setpoint = v / 100;
   }, (v) => `${fmt(v, 0)} %`);
   bindRange('in-ramp', 'out-ramp', (v) => { S.sim.rampPerMin = v; }, (v) => `${fmt(v, 0)} %/min`);
-  bindRange('in-tamb', 'out-tamb', (v) => { S.TambBase = v; if (!S.daily) S.op.Tamb = v; S.curves = null; }, (v) => `${fmt(v, 1)} °C`);
-  bindRange('in-pamb', 'out-pamb', (v) => { S.op.pamb = v / 1000; S.curves = null; }, (v) => `${fmt(v, 0)} mbar`);
-  bindRange('in-rh', 'out-rh', (v) => { S.op.rh = v / 100; S.curves = null; }, (v) => `${fmt(v, 0)} %`);
-  bindRange('in-tcw', 'out-tcw', (v) => { S.op.Tcw = v; S.curves = null; }, (v) => `${fmt(v, 1)} °C`);
+  bindRange('in-tamb', 'out-tamb', (v) => { S.TambBase = v; if (!S.daily) S.op.Tamb = v; invalidateCurves(); }, (v) => `${fmt(v, 1)} °C`);
+  bindRange('in-pamb', 'out-pamb', (v) => { S.op.pamb = v / 1000; invalidateCurves(); }, (v) => `${fmt(v, 0)} mbar`);
+  bindRange('in-rh', 'out-rh', (v) => { S.op.rh = v / 100; invalidateCurves(); }, (v) => `${fmt(v, 0)} %`);
+  bindRange('in-tcw', 'out-tcw', (v) => { S.op.Tcw = v; invalidateCurves(); }, (v) => `${fmt(v, 1)} °C`);
   bindRange('in-dbt', 'out-dbt', (v) => { if ($('in-db').checked) S.op.ductT = v; }, (v) => `${fmt(v, 0)} °C`);
   $('in-db').addEventListener('change', (e) => {
     $('f-dbt').hidden = !e.target.checked;
     S.op.ductT = e.target.checked ? parseFloat($('in-dbt').value) : 0;
   });
-  $('in-sliding').addEventListener('change', (e) => { S.op.slidingHP = e.target.checked; S.curves = null; });
+  $('in-sliding').addEventListener('change', (e) => { S.op.slidingHP = e.target.checked; invalidateCurves(); });
   $('in-daily').addEventListener('change', (e) => {
     S.daily = e.target.checked;
     if (!S.daily) { S.op.Tamb = S.TambBase; $('out-tamb').textContent = `${fmt(S.TambBase, 1)} °C`; }
   });
-  $('in-ngton').addEventListener('change', (e) => { S.op.nGTon = parseInt(e.target.value, 10); S.curves = null; });
+  $('in-ngton').addEventListener('change', (e) => { S.op.nGTon = parseInt(e.target.value, 10); invalidateCurves(); });
 
   bindRange('m-gas', 'out-gas', (v) => { S.op.gasPrice = v; }, (v) => `${fmt(v, 0)} €/MWh`);
   bindRange('m-co2', 'out-co2', (v) => { S.op.co2Price = v; }, (v) => `${fmt(v, 0)} €/t`);
@@ -397,14 +410,18 @@ function syncDesignInputs() {
   $('d-backup').value = c.backupFuel;
   $('d-hrsg').value = c.steam.type;
   $('d-fuel').value = c.fuelName;
-  for (const [id, key, k] of GT_FIELDS) $(id).value = +(c.gt[key] * k).toFixed(4);
-  for (const [id, key] of ST_FIELDS) $(id).value = c.steam[key];
+  const lim = (el, [lo, hi], k = 1) => { el.min = +(lo * k).toFixed(4); el.max = +(hi * k).toFixed(4); };
+  for (const [id, key, k] of GT_FIELDS) { $(id).value = +(c.gt[key] * k).toFixed(4); lim($(id), DESIGN_RANGES.gt[key], k); }
+  for (const [id, key] of ST_FIELDS) { $(id).value = c.steam[key]; lim($(id), DESIGN_RANGES.steam[key]); }
   $('d-pinch').value = c.steam.pinch[0];
+  lim($('d-pinch'), DESIGN_RANGES.pinch);
+  for (const [id, key] of [['d-tcwd', 'TcwDesign'], ['d-dtcw', 'dTcw'], ['d-ttd', 'TTD'], ['d-itd', 'ITD']]) lim($(id), DESIGN_RANGES.condenser[key]);
   $('f-trh').hidden = c.steam.type !== '3PRH';
   $('d-etaip').closest('.field').hidden = c.steam.type !== '3PRH';
   const cd = c.steam.condenser;
   $('d-cond').value = cd.type === 'water' && cd.cooling === 'once' ? 'once' : cd.type;
   $('d-hpevap').value = c.steam.hpEvap ?? 'drum';
+  $('d-hpevap').disabled = c.steam.type !== '3PRH';
   $('d-pgas').value = c.gasSupplyBar;
   const gst = gasStation(c, S.des.gtRef.point.p2, S.des.gtRef.point.mFuel * c.nGT);
   setText('d-pgas-hint', gst.compressor
@@ -431,18 +448,24 @@ function buildLevelInputs() {
     const pLabel = c.type === '3PRH' && k === 1 ? 'p RH freddo' : 'p ammissione';
     row.innerHTML = `
       <span class="lvl" style="color:var(--${names[k].toLowerCase()})">${names[k]}</span>
-      <div class="field"><label for="d-lp-${k}">${pLabel} <span class="u">bar</span></label><input type="number" id="d-lp-${k}" step="${k === 0 ? 5 : 0.5}" min="1.5" max="${k === 0 ? LIMITS.pHPmax : 80}" value="${l.p}"></div>
-      <div class="field"><label for="d-lt-${k}">T surrisc. <span class="u">°C</span></label><input type="number" id="d-lt-${k}" step="5" max="${LIMITS.TshMax}" value="${l.Tsh}"></div>`;
+      <div class="field"><label for="d-lp-${k}">${pLabel} <span class="u">bar</span></label><input type="number" id="d-lp-${k}" step="${k === 0 ? 5 : 0.5}" min="${DESIGN_RANGES.pLevelMin}" max="${DESIGN_RANGES.levels[c.type][k][1]}" value="${+l.p.toFixed(2)}"></div>
+      <div class="field"><label for="d-lt-${k}">T surrisc. <span class="u">°C</span></label><input type="number" id="d-lt-${k}" step="5" min="${DESIGN_RANGES.Tsh[0]}" max="${LIMITS.TshMax}" value="${+l.Tsh.toFixed(1)}"></div>`;
     box.appendChild(row);
-    row.querySelector(`#d-lp-${k}`).addEventListener('change', (e) => { c.levels[k].p = parseFloat(e.target.value); scheduleRedesign(); });
-    row.querySelector(`#d-lt-${k}`).addEventListener('change', (e) => { c.levels[k].Tsh = parseFloat(e.target.value); scheduleRedesign(); });
+    for (const [sel, key] of [[`#d-lp-${k}`, 'p'], [`#d-lt-${k}`, 'Tsh']]) {
+      row.querySelector(sel).addEventListener('change', (e) => {
+        const v = parseFloat(e.target.value);
+        if (Number.isFinite(v)) { c.levels[k][key] = v; scheduleRedesign(); } else syncDesignInputs();
+      });
+    }
   });
 }
 
 let redesignTimer = null;
 function scheduleRedesign() {
   clearTimeout(redesignTimer);
+  S.redesignPending = true;
   redesignTimer = setTimeout(() => {
+    S.redesignPending = false;
     redesign();
     S.mimicSig = '';
     tick();
@@ -489,13 +512,14 @@ function bindDesign() {
   $('d-backup').addEventListener('change', (e) => { S.cfg.backupFuel = e.target.value; scheduleRedesign(); });
   fSel.addEventListener('change', () => { S.cfg.fuelName = fSel.value; S.cfg.fuelComp = { ...FUEL_PRESETS[fSel.value] }; scheduleRedesign(); });
   for (const [id, key, k] of GT_FIELDS) {
-    $(id).addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) { S.cfg.gt[key] = v / k; scheduleRedesign(); } });
+    $(id).addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) { S.cfg.gt[key] = v / k; scheduleRedesign(); } else syncDesignInputs(); });
   }
   for (const [id, key] of ST_FIELDS) {
-    $(id).addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) { S.cfg.steam[key] = v; scheduleRedesign(); } });
+    $(id).addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) { S.cfg.steam[key] = v; scheduleRedesign(); } else syncDesignInputs(); });
   }
   $('d-pinch').addEventListener('change', (e) => {
-    const v = Math.max(3, parseFloat(e.target.value));
+    const v = parseFloat(e.target.value);
+    if (!Number.isFinite(v)) { syncDesignInputs(); return; }
     S.cfg.steam.pinch = S.cfg.steam.pinch.map(() => v);
     scheduleRedesign();
   });
@@ -508,10 +532,10 @@ function bindDesign() {
   $('d-hpevap').addEventListener('change', (e) => { S.cfg.steam.hpEvap = e.target.value; scheduleRedesign(); });
   $('d-pgas').addEventListener('change', (e) => {
     const v = parseFloat(e.target.value);
-    if (Number.isFinite(v)) { S.cfg.gasSupplyBar = Math.min(60, Math.max(20, v)); scheduleRedesign(); }
+    if (Number.isFinite(v)) { S.cfg.gasSupplyBar = v; scheduleRedesign(); } else syncDesignInputs();
   });
   for (const [id, key] of [['d-tcwd', 'TcwDesign'], ['d-dtcw', 'dTcw'], ['d-ttd', 'TTD'], ['d-itd', 'ITD']]) {
-    $(id).addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) { S.cfg.steam.condenser[key] = v; scheduleRedesign(); } });
+    $(id).addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) { S.cfg.steam.condenser[key] = v; scheduleRedesign(); } else syncDesignInputs(); });
   }
   $('btn-reset-design').addEventListener('click', () => {
     S.cfg = newConfig(S.cfg.gtName, S.cfg.steam.type, null);
@@ -544,7 +568,7 @@ function bindControls() {
   $('btn-stop').addEventListener('click', () => { S.sim.stop(); tick(); });
   $('btn-trip').addEventListener('click', () => { S.sim.trip(); tick(); });
   $('btn-ack').addEventListener('click', () => { S.sim.reset(); tick(); });
-  $('btn-curves').addEventListener('click', () => { S.curves = null; runCurves(); });
+  $('btn-curves').addEventListener('click', () => { invalidateCurves(); runCurves(); });
 
   // schede del pannello
   for (const t of document.querySelectorAll('.panel .tab')) {

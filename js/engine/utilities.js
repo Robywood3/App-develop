@@ -133,7 +133,7 @@ export function utilitiesBalance(cfg, des, r, o = {}) {
     addU(`${u}MBX10AC001`, `Refrigeranti ausiliari TG${u} (cabinato, skid, ventilazione)`, on ? Pgt1 * 1000 * 0.004 : 0);
     addU(`${u}LAC10AC001`, `Refrigeranti pompe alimento GVR${u}`, on ? 60 + 0.4 * (bt.mLevels[0] || 0) : 0);
   }
-  const gst = gasStation(cfg, online ? r.gt.p2 : des.gtRef.point.p2, online ? r.mFuelTot : des.gtRef.point.mFuel * N, o);
+  const gst = gasStation(cfg, des.gtRef.point.p2, online ? r.mFuelTot : des.gtRef.point.mFuel * N, o);
   if (gst.compressor) addU('0EKB10AC001', 'Refrigeranti compressori gas (gas e olio)', online ? gst.compressor.coolerKW : 0);
   const Pst = online ? r.Pst : 0;
   addU('0MAV10AC001', 'Refrigeranti olio lubrificazione TV', Pst > 0 ? 100 + 5 * Pst : 0);
@@ -236,8 +236,8 @@ export function utilitiesBalance(cfg, des, r, o = {}) {
   // essiccatori 2 × 2250 Nm³/h); le descrizioni BoP generiche indicano valori molto più bassi (2 × 400 Nm³/h)
   const grossD = (des.gtRef.Piso * N) * 1.5;
   const air = {
-    instrument: Math.round(2.3 * grossD + (water ? 0 : 30)), // Nm³/h
-    service: Math.round(0.66 * grossD),
+    instrument: Math.max(150, Math.round(2.3 * grossD + (water ? 0 : 30))), // Nm³/h (minimo per impianti piccoli)
+    service: Math.max(60, Math.round(0.66 * grossD)),
     pressure: 11, // bar a mandata compressori
     holdupMin: 5,
   };

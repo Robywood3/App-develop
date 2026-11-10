@@ -45,3 +45,23 @@ test('blocco TG, riavviamento e ritorno in servizio', () => {
   sim.step(150, steady);
   assert.ok(Math.abs(sim.gtLoad - 0.6) < 1e-9);
 });
+
+test('arresto durante la presa di carico: il carico non risale', () => {
+  const sim = new PlantSim();
+  const steady = (load) => ({ online: true, Pst: 100 * load, bt: { mSteamTot: 100 * load, Tstack: 90, pAdm: [100], Qcond: 200 * load } });
+  sim.trip();
+  for (let i = 0; i < 200; i++) sim.step(10, steady);
+  sim.reset();
+  sim.start();
+  let guard = 0;
+  while (sim.phase !== 'Presa di carico' && guard++ < 500) sim.step(5, steady);
+  for (let i = 0; i < 6; i++) sim.step(5, steady);
+  assert.equal(sim.phase, 'Presa di carico');
+  const before = sim.gtLoad;
+  assert.ok(before > 0 && before < 0.25);
+  sim.stop();
+  let peak = before;
+  for (let i = 0; i < 400 && sim.state !== 'FERMO'; i++) { sim.step(5, steady); peak = Math.max(peak, sim.gtLoad); }
+  assert.ok(peak <= before + 1e-12, `carico risalito da ${before} a ${peak}`);
+  assert.equal(sim.state, 'FERMO');
+});

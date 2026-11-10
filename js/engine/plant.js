@@ -5,6 +5,7 @@ import { fuelProperties, FUEL_PRESETS, fuelForTemperature, gasH, molarMass } fro
 import { GT_PRESETS, GT_GROUPS, gtDesign, gtAtLoad } from './gt.js';
 import { solveBottoming, LEVEL_NAMES } from './bottoming.js';
 import { gasStation } from './utilities.js';
+import { psat } from './steam.js';
 
 export const ISO = { Tamb: 15, pamb: 1.01325, rh: 0.6 };
 
@@ -66,7 +67,7 @@ export function defaultConfig(gtName = 'Classe F (~300 MW)', type = '3PRH') {
       pinch: st ? s.pinch.map((v, k) => (k === 0 ? st.pinchHP : st.pinch)) : s.pinch.slice(),
       approach: st ? s.approach.map((v, k) => (k === 0 ? st.approachHP : v)) : s.approach.slice(),
       // evaporatore HP a corpo cilindrico o a passaggio singolo (Benson, senza spurgo continuo HP)
-      hpEvap: st?.hpEvap ?? 'drum',
+      hpEvap: type === '3PRH' ? st?.hpEvap ?? 'drum' : 'drum',
       Trh: s.Trh,
       dTsh: 25,
       dpSH: 0.06,
@@ -98,38 +99,116 @@ export function defaultOperation() {
   };
 }
 
+// Campi ammessi per i dati di progetto: [minimo, massimo]. Valori fuori campo, nulli o non numerici
+// porterebbero il modello fuori dal suo dominio (potenze negative, NaN, iterazioni senza fine).
+export const DESIGN_RANGES = {
+  gt: {
+    mAirISO: [50, 1500, 'Portata aria ISO', 'kg/s'], PR: [8, 35, 'Rapporto di compressione', ''], TIT: [900, 1750, 'Temperatura uscita combustore', '°C'],
+    coolFrac: [0, 0.35, 'Aria di raffreddamento', '%', 100], etaC: [0.75, 0.94, 'Rendimento compressore', ''], etaT: [0.8, 0.95, 'Rendimento turbina', ''],
+    TETiso: [450, 720, 'Isoterma di scarico', '°C'], igvMin: [0.4, 0.95, 'Portata minima IGV', '%', 100],
+  },
+  steam: {
+    etaHP: [0.6, 0.95, 'Rendimento TV HP', ''], etaIP: [0.6, 0.95, 'Rendimento TV IP', ''], etaLP: [0.6, 0.95, 'Rendimento TV LP', ''],
+    TstackMin: [60, 150, 'Temperatura minima al camino', '°C'], Trh: [300, 610, 'Temperatura RH', '°C'],
+  },
+  condenser: {
+    TcwDesign: [0, 35, 'Temperatura acqua di progetto', '°C'], dTcw: [4, 20, 'Salto termico acqua', 'K'], TTD: [1, 15, 'Differenza terminale', 'K'], ITD: [15, 50, 'ITD aerocondensatore', 'K'],
+  },
+  pinch: [3, 40], Tsh: [200, 610], pLevelMin: 1.5, gasSupplyBar: [20, 60],
+  // pressioni di ammissione per livello [bar]: fuori da questi campi il modello a zone del GVR non è significativo
+  levels: { '3PRH': [[60, 185], [12, 60], [2, 12]], '2P': [[30, 185], [2, 15]], '1P': [[10, 120]] },
+};
+
 /**
  * Corregge i parametri di progetto fuori campo (in loco) e restituisce gli avvisi.
  * Il modello IF97 implementato copre p ≤ 200 bar nei corpi cilindrici (regione 3 inclusa).
  */
-export function sanitizeConfig(cfg) {
+export function sanitizeConfig(cfg, ctx = {}) {
   const notes = [];
-  const lv = cfg.steam.levels;
-  if (lv[0].p > LIMITS.pHPmax) {
-    notes.push(`Pressione HP limitata a ${LIMITS.pHPmax} bar (campo di validità del modello).`);
-    lv[0].p = LIMITS.pHPmax;
+  const R = DESIGN_RANGES;
+  const ref = defaultConfig(GT_PRESETS[cfg.gtName] ? cfg.gtName : undefined, STEAM_DEFAULTS[cfg.steam.type] ? cfg.steam.type : '3PRH');
+  const clampAll = (obj, ranges, dflt) => {
+    for (const [k, [lo, hi, label, unit, scale = 1]] of Object.entries(ranges)) {
+      let v = obj[k];
+      const u = unit ? ' ' + unit : '';
+      const show = (x) => String(+(x * scale).toFixed(4)).replace('.', ',');
+      if (!Number.isFinite(v)) { v = dflt[k]; notes.push(`${label}: valore non valido, ripristinato a ${show(v)}${u}.`); }
+      else if (v < lo || v > hi) { const c = Math.min(hi, Math.max(lo, v)); notes.push(`${label}: valore riportato nel campo ammesso ${show(lo)}–${show(hi)}${u}.`); v = c; }
+      obj[k] = v;
+    }
+  };
+  clampAll(cfg.gt, R.gt, ref.gt);
+  const { Trh: rTrh, ...rSteam } = R.steam;
+  clampAll(cfg.steam, cfg.steam.type === '3PRH' ? R.steam : rSteam, ref.steam);
+  clampAll(cfg.steam.condenser, R.condenser, ref.steam.condenser);
+  if (!['water', 'air'].includes(cfg.steam.condenser.type)) cfg.steam.condenser.type = 'water';
+  if (!['tower', 'once'].includes(cfg.steam.condenser.cooling)) cfg.steam.condenser.cooling = 'tower';
+  cfg.nGT = Math.min(3, Math.max(1, Math.round(Number.isFinite(cfg.nGT) ? cfg.nGT : 1)));
+  cfg.gasSupplyBar = Number.isFinite(cfg.gasSupplyBar) ? Math.min(R.gasSupplyBar[1], Math.max(R.gasSupplyBar[0], cfg.gasSupplyBar)) : 50;
+  // l'evaporatore a passaggio singolo è previsto solo sul livello HP del ciclo a 3 livelli con RH
+  if (cfg.steam.hpEvap === 'benson' && cfg.steam.type !== '3PRH') {
+    cfg.steam.hpEvap = 'drum';
+    notes.push('Evaporatore HP Benson disponibile solo con GVR a 3 livelli + RH: impostato a corpo cilindrico.');
   }
-  for (let k = 1; k < lv.length; k++) {
-    const pMax = lv[k - 1].p / 2;
-    if (lv[k].p > pMax) {
-      notes.push(`Pressione del livello ${k + 1} ridotta a ${pMax.toFixed(1)} bar: deve essere inferiore alla metà di quella del livello superiore.`);
-      lv[k].p = pMax;
+  if (cfg.steam.hpEvap !== 'benson') cfg.steam.hpEvap = 'drum';
+  cfg.steam.pinch = cfg.steam.pinch.map((v, k) => (Number.isFinite(v) ? Math.min(R.pinch[1], Math.max(R.pinch[0], v)) : ref.steam.pinch[k]));
+  const lv = cfg.steam.levels;
+  lv.forEach((l, k) => {
+    if (!Number.isFinite(l.p) || l.p <= 0) { l.p = ref.steam.levels[k].p; notes.push(`Pressione del livello ${k + 1}: valore non valido, ripristinata a ${l.p} bar.`); }
+    if (!Number.isFinite(l.Tsh)) l.Tsh = ref.steam.levels[k].Tsh;
+    l.Tsh = Math.min(LIMITS.TshMax, Math.max(R.Tsh[0], l.Tsh));
+  });
+  // La TG (già nei limiti) fissa la temperatura dei fumi: per evaporare a ogni livello la saturazione HP deve
+  // restare sotto la temperatura di scarico, altrimenti la portata di vapore al progetto sarebbe nulla.
+  ctx.fuel = fuelProperties(cfg.fuelComp);
+  ctx.gtD = { ...cfg.gt, fuel: ctx.fuel };
+  ctx.gtRef = gtDesign(ctx.gtD);
+  const T4 = ctx.gtRef.T4iso;
+  const n = lv.length;
+  const pR = R.levels[cfg.steam.type] || lv.map(() => [R.pLevelMin, LIMITS.pHPmax]);
+  const floor0 = R.pLevelMin * 2 ** (n - 1);
+  const pTop = Math.max(floor0, Math.floor(psat(Math.min(370, Math.max(120, T4 - cfg.steam.pinch[0] - 40))) * 2) / 2);
+  const bar = (v) => String(+v.toFixed(1)).replace('.', ',');
+  for (let k = 0; k < n; k++) {
+    // limite superiore: campo del livello, fumi (solo HP) e metà della pressione del livello superiore
+    let hi = pR[k][1];
+    if (k === 0) hi = Math.min(hi, pTop);
+    else hi = Math.min(hi, lv[k - 1].p / 2);
+    const lo = Math.min(pR[k][0], hi);
+    if (lv[k].p > hi) {
+      if (k === 0 && hi === pTop && pTop < pR[0][1]) notes.push(`Pressione ${n > 1 ? 'HP' : 'del vapore'} ridotta a ${bar(hi)} bar: fumi di scarico TG a ${T4.toFixed(0)} °C, troppo freddi per evaporare a pressione più alta.`);
+      else if (k > 0 && hi < pR[k][1]) notes.push(`Pressione del livello ${k + 1} ridotta a ${bar(hi)} bar: deve essere inferiore alla metà di quella del livello superiore.`);
+      else notes.push(`Pressione del livello ${k + 1}: valore riportato nel campo ammesso ${bar(lo)}–${bar(hi)} bar.`);
+      lv[k].p = hi;
+    } else if (lv[k].p < lo) {
+      notes.push(`Pressione del livello ${k + 1}: valore riportato nel campo ammesso ${bar(lo)}–${bar(hi)} bar.`);
+      lv[k].p = lo;
     }
   }
-  for (const l of lv) {
-    l.p = Math.max(l.p, 1.5);
-    l.Tsh = Math.min(l.Tsh, LIMITS.TshMax);
-  }
-  cfg.steam.Trh = Math.min(cfg.steam.Trh, LIMITS.TshMax);
+  void rTrh;
   return notes;
+}
+
+const REQUIRED_BANKS = {
+  '3PRH': ['SH HP', 'RH', 'EVA HP', 'SH IP', 'ECO HP', 'EVA IP', 'SH LP', 'ECO IP', 'EVA LP', 'PRE (condensato)'],
+  '2P': ['SH HP', 'EVA HP', 'SH LP', 'ECO HP', 'EVA LP', 'PRE (condensato)'],
+  '1P': ['SH HP', 'EVA HP', 'PRE (condensato)'],
+};
+
+/** Anomalie di un punto di progetto: livelli senza produzione di vapore e banchi senza scambio. */
+export function designIssues(type, bt) {
+  const mTot = bt.mLevels.reduce((a, b) => a + b, 0);
+  const idleLevels = bt.names.filter((_, k) => !(bt.mLevels[k] > Math.max(0.05, 0.002 * mTot)));
+  const have = new Set(bt.banks.map((b) => b.name));
+  const missingBanks = (REQUIRED_BANKS[type] || []).filter((nm) => !have.has(nm));
+  return { idleLevels, missingBanks };
 }
 
 /** Calcola i riferimenti di progetto (punto ISO a pieno carico). */
 export function designPlant(cfg) {
-  const notes = sanitizeConfig(cfg);
-  const fuel = fuelProperties(cfg.fuelComp);
-  const gtD = { ...cfg.gt, fuel };
-  const gtRef = gtDesign(gtD);
+  const ctx = {};
+  const notes = sanitizeConfig(cfg, ctx);
+  const { fuel, gtD, gtRef } = ctx;
   const op = { ...defaultOperation(), ...ISO, load: 1, nGTon: cfg.nGT, Tcw: cfg.steam.condenser.TcwDesign, ductT: 0 };
   const gtp = gtRef.point;
   const gas = { m: gtp.mExh, x: gtp.xExh, T: gtp.T4 };
@@ -143,7 +222,12 @@ export function designPlant(cfg) {
     lpArea: bt.lpArea,
   };
   const mcw = (bt.Qcond * 1000) / (4.18 * cfg.steam.condenser.dTcw); // kg/s acqua di raffreddamento
-  return { fuel, gtD, gtRef, stRef, mcw, QcondD: bt.Qcond, notes, point: bt };
+  // livelli o banchi senza scambio al punto di progetto: la simulazione prosegue, ma il progetto del GVR
+  // non è significativo (e gli elaborati di ingegneria non sono generabili)
+  const issues = designIssues(cfg.steam.type, bt);
+  if (issues.idleLevels.length) notes.push(`Al punto di progetto ${issues.idleLevels.length > 1 ? 'i livelli' : 'il livello'} ${issues.idleLevels.join(', ')} non produc${issues.idleLevels.length > 1 ? 'ono' : 'e'} vapore (fumi troppo freddi o vincoli di pinch e temperatura al camino): rivedere pressioni, pinch e temperatura minima al camino.`);
+  else if (issues.missingBanks.length) notes.push(`Al punto di progetto ${issues.missingBanks.length > 1 ? 'i banchi' : 'il banco'} ${issues.missingBanks.join(', ')} non scambia${issues.missingBanks.length > 1 ? 'no' : ''} calore: dati di progetto ai limiti del modello (rivedere temperature di surriscaldamento, pressioni e pinch).`);
+  return { fuel, gtD, gtRef, stRef, mcw, QcondD: bt.Qcond, notes, point: bt, idleLevels: issues.idleLevels, missingBanks: issues.missingBanks };
 }
 
 /** Calcola un punto di funzionamento dell'impianto. */
@@ -188,7 +272,8 @@ export function plantPoint(cfg, des, op) {
     Pcool = Pmcw + Pfan + Pacw;
   }
   // compressore gas se la pressione di rete non basta
-  const gst = gasStation(cfg, gt.p2, (gt.mFuel + mFuelDB) * nOn);
+  // la pressione richiesta ai TG è quella di progetto (pieno carico ISO), non quella del punto corrente
+  const gst = gasStation(cfg, des.gtRef.point.p2, (gt.mFuel + mFuelDB) * nOn);
   const PgasComp = gst.compressor ? gst.compressor.kW / 1000 : 0;
   const Pmisc = cfg.aux.miscFrac * gross + cfg.aux.gtAuxMW * nOn + PgasComp;
   const Paux = bt.Ppump + Pcool + Pmisc;
@@ -223,6 +308,9 @@ export function plantPoint(cfg, des, op) {
   if (gt.load < 0.4) warnings.push('Carico TG sotto il minimo tecnico ambientale tipico (~40%): emissioni di CO elevate.');
   if (gt.mode === 'Limite generatore') warnings.push('Potenza TG limitata dalla capacità del generatore.');
   if (bt.pCond >= 0.249) warnings.push('Pressione al condensatore oltre il limite di allarme (0,25 bar).');
+  // verifica di realizzabilità dello scambio: in ogni banco i fumi devono restare più caldi dell'acqua
+  const cross = bt.banks.find((k) => k.TgOut < k.TwIn - 1 || k.TgIn < k.TwOut - 1);
+  if (cross) warnings.push(`GVR: scambio non realizzabile nel banco ${cross.name} (fumi più freddi del lato acqua). Dati di progetto o di esercizio incoerenti: risultati non attendibili.`);
 
   const xO2dry = gas.x.O2 / (1 - gas.x.H2O);
 

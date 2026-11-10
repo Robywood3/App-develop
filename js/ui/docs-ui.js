@@ -65,6 +65,14 @@ export function initDocs(getDesign) {
   }
 
   const catalog = () => documentCatalog(meta, model());
+  const escHtml = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  /** Elaborato corrente; se non esiste più nella configurazione attuale (es. P&ID gasolio, circuito IP) torna al primo. */
+  const currentEntry = () => {
+    const cat = catalog();
+    let entry = cat.find((c) => c.id === D.current);
+    if (!entry) { entry = cat[0]; D.current = entry.id; D.sheetIdx = 0; }
+    return entry;
+  };
 
   function model() {
     const { cfg, des } = getDesign();
@@ -91,22 +99,27 @@ export function initDocs(getDesign) {
     const nav = $('docs-list');
     let html = '';
     let grp = '';
-    for (const c of catalog()) {
-      if (c.group !== grp) { grp = c.group; html += `<div class="grp">${grp}</div>`; }
-      html += `<button type="button" class="doc-item${c.id === D.current ? ' is-on' : ''}" data-doc="${c.id}"><span class="dn">${c.number}</span><span class="dt">${c.short}</span></button>`;
+    let cat;
+    try { cat = catalog(); } catch (e) { return; } // progetto non documentabile: l'elenco resta quello precedente
+    for (const c of cat) {
+      if (c.group !== grp) { grp = c.group; html += `<div class="grp">${escHtml(grp)}</div>`; }
+      html += `<button type="button" class="doc-item${c.id === D.current ? ' is-on' : ''}" data-doc="${c.id}"><span class="dn">${escHtml(c.number)}</span><span class="dt">${escHtml(c.short)}</span></button>`;
     }
     nav.innerHTML = html;
   }
 
   function renderCurrent() {
-    const entry = catalog().find((c) => c.id === D.current);
-    let sheets;
+    let entry, sheets;
     try {
+      entry = currentEntry();
       sheets = sheetsOf(entry);
     } catch (e) {
-      $('docs-paper').innerHTML = `<p class="muted">Impossibile generare l'elaborato: ${e.message}</p>`;
+      $('docs-paper').innerHTML = `<p class="muted">Elaborati non generabili: ${escHtml(e.message)}</p>`;
+      for (const id of ['btn-doc-pdf', 'btn-doc-svg', 'btn-doc-csv', 'btn-pkg', 'doc-prev', 'doc-next']) $(id).disabled = true;
+      status('');
       return;
     }
+    for (const id of ['btn-doc-pdf', 'btn-doc-svg', 'btn-doc-csv', 'btn-pkg']) $(id).disabled = false;
     D.sheetIdx = Math.min(D.sheetIdx, sheets.length - 1);
     $('doc-number').textContent = entry.number;
     $('doc-title').textContent = entry.title;
@@ -118,7 +131,8 @@ export function initDocs(getDesign) {
     $('docs-paper').innerHTML = svg;
   }
 
-  const fileBase = (entry) => `${entry.number}_rev${meta.rev || 'A'}`;
+  const safeName = (t) => String(t).replace(/[^\w.\-]+/g, '_');
+  const fileBase = (entry) => safeName(`${entry.number}_rev${meta.rev || 'A'}`);
 
   $('docs-list').addEventListener('click', (e) => {
     const b = e.target.closest('[data-doc]');
@@ -141,18 +155,18 @@ export function initDocs(getDesign) {
     });
   }
   $('btn-doc-pdf').addEventListener('click', async () => {
-    const entry = catalog().find((c) => c.id === D.current);
+    const entry = currentEntry();
     const pdf = buildPdf(sheetsOf(entry), { title: `${entry.number} ${entry.title}`, author: meta.author, subject: meta.project });
     status((await saveFile(`${fileBase(entry)}.pdf`, pdf, 'application/pdf')).msg);
   });
   $('btn-doc-svg').addEventListener('click', async () => {
-    const entry = catalog().find((c) => c.id === D.current);
+    const entry = currentEntry();
     const svg = sheetToSVG(sheetsOf(entry)[D.sheetIdx]);
     const suffix = sheetsOf(entry).length > 1 ? `_f${D.sheetIdx + 1}` : '';
     status((await saveFile(`${fileBase(entry)}${suffix}.svg`, svg, 'image/svg+xml')).msg);
   });
   $('btn-doc-csv').addEventListener('click', async () => {
-    const entry = catalog().find((c) => c.id === D.current);
+    const entry = currentEntry();
     status((await saveFile(`${fileBase(entry)}.csv`, csvFor(model(), entry), 'text/csv')).msg);
   });
   $('btn-pkg').addEventListener('click', async () => {
@@ -172,7 +186,7 @@ export function initDocs(getDesign) {
       }
       const reg = registerSheets(M, cat, counts);
       const pdf = buildPdf([...reg, ...all], { title: `${meta.project} – elaborati di ingegneria rev. ${meta.rev}`, author: meta.author, subject: meta.project });
-      const res = await saveFile(`${meta.prefix || 'CCGT'}_pacchetto_elaborati_rev${meta.rev || 'A'}.pdf`, pdf, 'application/pdf');
+      const res = await saveFile(safeName(`${meta.prefix || 'CCGT'}_pacchetto_elaborati_rev${meta.rev || 'A'}.pdf`), pdf, 'application/pdf');
       status(res.ok ? `${res.msg} (${reg.length + all.length} fogli A3)` : res.msg);
     } catch (e) {
       status(`Errore nella generazione: ${e.message}`);
@@ -190,6 +204,8 @@ export function initDocs(getDesign) {
     invalidate() {
       D.sig = '';
       D.model = null;
+      // l'elenco dipende dalla configurazione (P&ID gasolio, circuito IP, titoli del raffreddamento)
+      try { renderList(); } catch (e) { status(`Errore nell'elenco elaborati: ${e.message}`); }
       renderCurrent();
     },
   };
